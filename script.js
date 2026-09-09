@@ -79,7 +79,15 @@
  *   4. a glowing copy of the top side travels down to lie exactly over the
  *      bottom, tick marks land on both; the left side onto the right;
  *      "Opposite sides are equal in length."
- *   5. Next
+ *   5. Next -- the marks clear; the base is drawn under the shape and the
+ *      height dropped onto it; the diagonal cuts it into two triangles and
+ *      the shape moves aside for the working: ½ × b × h twice is b × h
+ *   6. Next -- the shape is put back together: "Which of these is the area
+ *      of the parallelogram?" over three formula chips
+ *   7. Next -- the learner's own go: the labels become 8 cm and 5 cm, and
+ *      the base, the height and then the area are picked from drop-downs
+ *   8. Next -- the board goes and Swiftee says from its bubble that a
+ *      special parallelogram is next
  */
 
 (function () {
@@ -90,7 +98,31 @@
      the event loop, so a scene plays its whole choreography out in a handful
      of frames and lands in exactly the state it would have reached anyway. */
   let fastForward = false;
-  const wait = ms => new Promise(r => setTimeout(r, fastForward ? 0 : ms));
+
+  /* Replay has to genuinely stop the scene in play -- a fast-forward will not
+     do, because the abandoned chain would carry on writing to the board
+     underneath the fresh one. So every wait belongs to the scene that started
+     it, and rejects with CANCELLED once that scene has been retired, which
+     unwinds the whole await chain of the scene being replaced. */
+  const CANCELLED = { cancelled: 'scene replaced' };
+  let runToken = 0;
+
+  const wait = ms => new Promise(function (resolve, reject) {
+    const mine = runToken;
+    setTimeout(function () {
+      if (mine !== runToken) return reject(CANCELLED);
+      resolve();
+    }, fastForward ? 0 : ms);
+  });
+
+  /* A retired scene unwinds through whatever await chain it was in, and some
+     of those chains are deliberately awaited by nobody -- a feedback line
+     typing itself out, a round finishing on a timer. Their rejection has
+     nowhere to go, so it is swallowed here rather than at a dozen call sites.
+     Anything that is not a cancellation is left to surface as usual. */
+  window.addEventListener('unhandledrejection', function (e) {
+    if (e.reason === CANCELLED) e.preventDefault();
+  });
   const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ---------- pieces ---------- */
@@ -415,30 +447,49 @@
    * end of this bit" rather than "take me somewhere else": the learner is
    * handed the same Next button they would have reached by playing it.
    */
-  const skipBtn = document.getElementById('skipBtn');
+  const skipBtn  = document.getElementById('skipBtn');
+  const resetBtn = document.getElementById('resetBtn');
 
   /* Bumped when a scene opens and again when one reaches its hand-off. The
      scene in play is state rather than something read off a call stack: the
      chain is driven partly by the learner, since the drop that completes a
      round carries the game into the next scene by itself. */
   let sceneSeq = 0;
-  let skipHideTimer = null;
 
-  function showSkip(on) {
-    clearTimeout(skipHideTimer);
-    if (on) {
-      skipBtn.hidden = false;
-      void skipBtn.offsetHeight;
-      skipBtn.classList.add('in');
-      return;
-    }
-    skipBtn.classList.remove('in');
-    skipHideTimer = setTimeout(function () { skipBtn.hidden = true; }, 340);
+  /* the Next the mission is waiting on, if it is waiting on one */
+  let pendingNext = null;
+
+  /* how to re-enter the scene in play, so Replay runs the same code that
+     played it the first time rather than a second, "from the top" path */
+  let sceneAgain = null;
+  let replaying = false;
+
+  const TOOLS = [skipBtn, resetBtn];
+
+  function showTools() {
+    TOOLS.forEach(function (b) {
+      b.hidden = false;
+      void b.offsetHeight;
+      b.classList.add('in');
+    });
   }
 
-  /* offered only while a scene is actually playing */
-  function sceneStart() { sceneSeq++; showSkip(true); }
-  function sceneEnd()   { sceneSeq++; showSkip(false); }
+  /* Both tools stay up from the first scene to the last, the hand-offs
+     included: with a Next waiting, Skip still means "move on" and Replay still
+     means "play that again", so there is nothing to be gained by taking them
+     away at exactly the moment a learner might want either.
+     `again` is the scene's own re-entry point; a scene that passes none cannot
+     be replayed, and Replay stays down for it. */
+  function sceneStart(again) {
+    sceneSeq++;
+    sceneAgain = again || null;
+    showTools();
+    resetBtn.disabled = !sceneAgain;
+  }
+
+  /* A scene has reached its hand-off. Only the counter moves, which is what
+     stops a skip that is still running; the tools stay where they are. */
+  function sceneEnd() { sceneSeq++; }
 
   /* Waits that hang on an event rather than a clock -- so far, a voice-over
      running to its end. A skip resolves them at once. */
@@ -482,6 +533,21 @@
      runs them all. */
   const skipFills = new Set();
 
+  /* Waits that hang on the scene's own furniture rather than on a clock: the
+     Next button, a corner join. A skip must NOT resolve these -- it stops at
+     the Next button by design -- but a teardown has to, or the abandoned
+     frame sits there for the rest of the session instead of unwinding at its
+     next wait(). */
+  const sceneWaiters = new Set();
+
+  function waitForScene(register) {
+    return new Promise(function (resolve) {
+      const done = function () { sceneWaiters.delete(done); resolve(); };
+      sceneWaiters.add(done);
+      register(done);
+    });
+  }
+
   /* A round waiting on the learner would stall a skip forever, so the answers
      go in for them -- no coaching, no confetti out of the cards, no chime. */
   const roundWaiting = function () {
@@ -504,7 +570,15 @@
 
   async function skipScene() {
     if (fastForward) return;
+
+    /* At a hand-off the scene is already over and the mission is waiting on
+       the Next button, so there is no choreography left to race through: Skip
+       means the same thing the learner means by pressing it. */
+    if (pendingNext) { pendingNext.click(); return; }
+
     const from = sceneSeq;
+
+    const token = runToken;
 
     fastForward = true;
     skipBtn.disabled = true;
@@ -512,9 +586,10 @@
 
     /* Never spin forever: if a scene ends up waiting on something a skip
        cannot reach, hand the game back at normal speed rather than leaving it
-       stuck in fast-forward. */
+       stuck in fast-forward. A replay retires the token, which drops the skip
+       at once rather than letting it fast-forward the fresh scene too. */
     const deadline = performance.now() + 8000;
-    while (sceneSeq === from && performance.now() < deadline) {
+    while (sceneSeq === from && runToken === token && performance.now() < deadline) {
       flushAnimations();
       releaseWaiters();
       if (roundWaiting()) fillRound();
@@ -528,6 +603,144 @@
   }
 
   skipBtn.addEventListener('click', skipScene);
+
+  /* ---------- replay ----------
+   * The scene's furniture is put back to how the page was parsed, and its own
+   * re-entry function is called again.
+   *
+   * What "put back" means is taken from the page rather than from each scene:
+   * the class list and the child nodes of everything inside a scene container
+   * are snapshotted at load, so restoring them undoes in one sweep every class
+   * a scene turned on and removes everything it built for itself -- without
+   * eight scenes each having to remember their own list, and without going
+   * stale as the mission grows.
+   *
+   * The board itself, Swiftee and the mission chrome are left alone: Replay
+   * re-enters one scene, not the whole mission.
+   */
+  const SCENE_ROOTS = ['bay', 'trayArea', 'lesson', 'quad', 'para', 'intro']
+    .map(function (id) { return document.getElementById(id); })
+    .filter(Boolean);
+
+  const pristineClass = new Map();
+  const bornWith = new Set();
+
+  SCENE_ROOTS.forEach(function (root) {
+    bornWith.add(root);
+    root.querySelectorAll('*').forEach(function (el) {
+      bornWith.add(el);
+      pristineClass.set(el, el.getAttribute('class') || '');
+    });
+  });
+
+  /* The inline properties the scenes park on things: hop offsets, the centred
+     first triangle, a bubble mid-resize, a docked card's hidden state. Cleared
+     one property at a time rather than by dropping the style attribute, so the
+     sprite sheet custom properties on the mascots survive. */
+  const PARKED = ['transform', 'opacity', 'width', 'height', 'left', 'top',
+                  'visibility', 'transition', 'min-height'];
+
+  function clearStage() {
+    /* let go of anything blocked on the scene's own furniture, so its frame
+       unwinds at its next wait() instead of waiting for a click that will
+       never come */
+    Array.from(sceneWaiters).forEach(function (done) {
+      try { done(); } catch (e) { /* already gone */ }
+    });
+    sceneWaiters.clear();
+    skipFills.clear();
+    releaseWaiters();
+    stopVoice();
+
+    /* drop every animation still holding a forwards fill */
+    [document.querySelector('.stage'), intro].forEach(function (root) {
+      if (!root || !root.getAnimations) return;
+      root.getAnimations({ subtree: true }).forEach(function (a) {
+        try { a.cancel(); } catch (e) { /* already done with */ }
+      });
+    });
+
+    SCENE_ROOTS.forEach(function (root) {
+      /* whatever the scene built for itself goes away again; taking only the
+         top of each built subtree, since removing it takes its children too */
+      Array.from(root.querySelectorAll('*')).forEach(function (el) {
+        if (!bornWith.has(el) && bornWith.has(el.parentNode)) el.remove();
+      });
+      Array.from(root.querySelectorAll('*')).concat(root).forEach(function (el) {
+        PARKED.forEach(function (prop) { el.style.removeProperty(prop); });
+      });
+    });
+
+    /* and the classes it turned on -- the containers themselves excepted,
+       since whether one is on screen at all was decided by an earlier scene
+       and the scene being replayed takes it as given */
+    pristineClass.forEach(function (cls, el) {
+      if (cls) el.setAttribute('class', cls);
+      else el.removeAttribute('class');
+    });
+
+    /* the cards go home, and the round they belonged to is forgotten */
+    allChips.forEach(function (chip) {
+      const home = trays[chip.dataset.round];
+      if (home) home.appendChild(chip);
+      chip.disabled = false;
+      chip.style.removeProperty('visibility');
+    });
+    round = 0;
+    roundSlots = [];
+    roundChips = [];
+    wrongInRound = 0;
+    autoScheduled = false;
+    roundDone = false;
+    drag = null;
+    picked = null;
+    trayArea.style.removeProperty('min-height');
+
+    /* every typewriter on the board, the heading included */
+    feedbackGen++;
+    document.querySelectorAll('.type .txt').forEach(function (t) { t.textContent = ''; });
+    document.querySelectorAll('.type .caret').forEach(function (c) { c.hidden = true; });
+
+    /* neither Next belongs to the scene being replayed */
+    pendingNext = null;
+    [nextBtn, nextBtnFree].forEach(function (b) {
+      if (!b) return;
+      b.hidden = true;
+      b.classList.remove('in', 'out');
+    });
+
+    board.classList.remove('cheer');
+    fx.textContent = '';                  /* confetti still on the way down */
+  }
+
+  async function replayScene() {
+    if (replaying || !sceneAgain) return;
+    const again = sceneAgain;
+
+    replaying = true;
+    resetBtn.disabled = true;
+    resetBtn.classList.add('working');
+    fastForward = false;
+    lockInput(true);
+
+    runToken++;                           /* retire the scene that is running */
+    clearStage();
+    lockTrayHeight();
+
+    /* one turn of the loop, so the retired chain has rejected and unwound
+       before the fresh one starts writing to the same board */
+    await new Promise(function (r) { setTimeout(r, 0); });
+
+    replaying = false;
+    resetBtn.classList.remove('working');
+    resetBtn.disabled = false;      /* the scene we just re-entered is still replayable */
+
+    /* not awaited: a scene runs on past its own function, carried by the
+       learner's answers, so there is nothing here to wait for */
+    again().catch(function (e) { if (e !== CANCELLED) throw e; });
+  }
+
+  resetBtn.addEventListener('click', replayScene);
 
   /* ---------- opening: draw each shape, then pour the colour in ---------- */
   async function revealShape(shape) {
@@ -548,20 +761,26 @@
       return;
     }
 
-    await outline.animate(
-      [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
-      { duration: 760, easing: 'cubic-bezier(.5,0,.2,1)', fill: 'forwards' }
-    ).finished;
+    /* a replay cancels whatever a scene left running, and a cancelled
+       animation rejects; the scene is being torn down either way */
+    try {
+      await outline.animate(
+        [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
+        { duration: 760, easing: 'cubic-bezier(.5,0,.2,1)', fill: 'forwards' }
+      ).finished;
+    } catch (e) { return; }
     outline.style.strokeDashoffset = 0;
 
     /* the clip rect slides up from below the artwork, so the colour reads as
        rising into the outline rather than simply switching on */
     const h = (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.height) || 200;
     fill.style.opacity = 1;
-    await wipe.animate(
-      [{ transform: 'translateY(' + h + 'px)' }, { transform: 'translateY(0px)' }],
-      { duration: 560, easing: 'cubic-bezier(.35,0,.25,1)', fill: 'forwards' }
-    ).finished;
+    try {
+      await wipe.animate(
+        [{ transform: 'translateY(' + h + 'px)' }, { transform: 'translateY(0px)' }],
+        { duration: 560, easing: 'cubic-bezier(.35,0,.25,1)', fill: 'forwards' }
+      ).finished;
+    } catch (e) { /* cancelled by a replay */ }
   }
 
   /* ---------- typewriter ----------
@@ -1458,14 +1677,16 @@
     /* the scene is over: a skip in flight stops here, and Skip stands down
        until the next scene opens */
     sceneEnd();
-    return new Promise(resolve => {
+    return waitForScene(resolve => {
       b.hidden = false;
       void b.offsetHeight;
       b.classList.add('in');
       lockInput(false);
       b.focus({ preventScroll: true });
+      pendingNext = b;
 
       b.addEventListener('click', () => {
+        pendingNext = null;
         sfx('click', .6);
         lockInput(true);
         b.classList.remove('in');
@@ -1620,7 +1841,7 @@
 
   async function sectionTwo() {
     lockInput(true);
-    sceneStart();
+    sceneStart(sectionTwo);
 
     /* 1. Swiftee ducks back behind the board, and the warm-up clears away
           while it is mid-air */
@@ -2315,7 +2536,7 @@
   }
 
   function awaitJoin(signal, pair) {
-    return new Promise(resolve => {
+    return waitForScene(resolve => {
       joinResolve = resolve;
       joinSignal = signal;
       joinPair = pair;
@@ -2385,22 +2606,24 @@
      left two fifths, the working to the right three fifths. A grid cannot
      animate that change, so the shape's box is measured before and after and
      the move is played back as a transform from the old place to the new. */
-  async function layoutWide() {
-    const before = quadSvg.getBoundingClientRect();
-    quad.classList.add('wide');
-    const after = quadSvg.getBoundingClientRect();
+  async function layoutWide(sec, svg, on) {
+    sec = sec || quad;
+    svg = svg || quadSvg;
+    const before = svg.getBoundingClientRect();
+    sec.classList.toggle('wide', on !== false);
+    const after = svg.getBoundingClientRect();
     if (REDUCED || !before.width || !after.width) return wait(120);
 
     const dx = before.left - after.left;
     const dy = before.top - after.top;
     const s  = before.width / after.width;
-    quadSvg.style.transformOrigin = '0 0';
-    const a = quadSvg.animate(
+    svg.style.transformOrigin = '0 0';
+    const a = svg.animate(
       [{ transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + s + ')' }, { transform: 'none' }],
       { duration: 760, easing: 'cubic-bezier(.4, 0, .2, 1)' }
     );
     try { await a.finished; } catch (e) {}
-    quadSvg.style.transformOrigin = '';
+    svg.style.transformOrigin = '';
   }
 
   /* the whole-shape fill gives way to the two coloured halves */
@@ -2419,20 +2642,22 @@
 
   /* a key word has landed in the working: light the part of the drawing it
      names -- a triangle swells once, a line stays lit */
+  function pulseTri(shape, color) {
+    const cls = 'pulse-' + color;
+    shape.classList.remove(cls);
+    void shape.offsetWidth;
+    shape.classList.add(cls);
+    setTimeout(() => shape.classList.remove(cls), 700);
+  }
+
   function onAreaWord(w) {
-    if (w === 'green' || w === 'purple') {
-      const cls = 'pulse-' + w;
-      quadShape.classList.remove(cls);
-      void quadShape.offsetWidth;
-      quadShape.classList.add(cls);
-      setTimeout(() => quadShape.classList.remove(cls), 700);
-      return;
-    }
+    if (w === 'green' || w === 'purple') { pulseTri(quadShape, w); return; }
     quadShape.classList.add('lit-' + w.replace(/^h-/, ''));
   }
 
-  function showLine(line) {
-    areaLinesEl.appendChild(line);
+  /* into the quadrilateral's working unless told otherwise */
+  function showLine(line, root) {
+    (root || areaLinesEl).appendChild(line);
     void line.offsetWidth;
     line.classList.add('show');
     sfx('click', .3);
@@ -2440,7 +2665,7 @@
   }
 
   /* a line of working that types itself out, lighting what it names */
-  async function showTypedLine(segs) {
+  async function showTypedLine(segs, root, onWord) {
     const line = document.createElement('div');
     line.className = 'area-line';
     line.innerHTML = '<span class="type-wrap"><span class="type-ghost"></span>' +
@@ -2448,8 +2673,8 @@
     /* the ghost carries the whole line, so the box is sized before the first
        character lands */
     segSpans(line.querySelector('.type-ghost'), segs).forEach((el, j) => { el.textContent = segs[j].t; });
-    await showLine(line);
-    await typeSegments(line.querySelector('.txt'), line.querySelector('.caret'), segs, AREA_MS, AREA_PAUSE, onAreaWord);
+    await showLine(line, root);
+    await typeSegments(line.querySelector('.txt'), line.querySelector('.caret'), segs, AREA_MS, AREA_PAUSE, onWord || onAreaWord);
     return line;
   }
 
@@ -2566,7 +2791,7 @@
 
   async function sectionThree() {
     lockInput(true);
-    sceneStart();
+    sceneStart(sectionThree);
 
     /* 1. Swiftee ducks back behind the board, and the lesson clears away
           while it is mid-air; the empty footer band draws in too */
@@ -2664,9 +2889,15 @@
     /* a few seconds to take it in, then on */
     await wait(2600);
     await showNext();
+    await sectionThreeAgain();
+  }
 
-    /* ---- the other way: the same shape, cut top to bottom ---- */
-    sceneStart();
+  /* ---- the other way: the same shape, cut top to bottom ----
+     Its own function so that it, like every other scene, has a re-entry point
+     Replay can call. */
+  async function sectionThreeAgain() {
+    lockInput(true);
+    sceneStart(sectionThreeAgain);
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
@@ -2722,7 +2953,7 @@
   /* ---------- section 4: a different quadrilateral, with measurements ---------- */
   async function sectionFour() {
     lockInput(true);
-    sceneStart();
+    sceneStart(sectionFour);
 
     await nextQuad(SPEC_B);
     await heading(FOUR.here);
@@ -2760,7 +2991,7 @@
   /* ---------- section 5: the learner's own go ---------- */
   async function sectionFive() {
     lockInput(true);
-    sceneStart();
+    sceneStart(sectionFive);
 
     await nextQuad(SPEC_C);
     await heading(FIVE.turn);
@@ -2806,9 +3037,13 @@
     'Let us now try finding the area of some special quadrilaterals.'
   ];
 
-  async function specialIntro() {
+  /* Swiftee ducks behind the board, the board fades off the landscape, and
+     Swiftee hops up on the intro's stage to say the lines from its bubble.
+     `again` is the calling scene's own re-entry point, for Replay. The scene
+     that follows takes the stage down again (see paraSection). */
+  async function boardAside(lines, again) {
     lockInput(true);
-    sceneStart();
+    sceneStart(again);
 
     const out = mascotJumpOut();
     await wait(260);
@@ -2832,16 +3067,18 @@
 
     await hopIn();
     await wait(240);
-    swiftee.hold('talking');
-    await say(SPECIAL[0]);
-    swiftee.release();
-    await wait(1500);
-    swiftee.hold('talking');
-    await say(SPECIAL[1]);
-    swiftee.release();
-    await wait(700);
+    for (let i = 0; i < lines.length; i++) {
+      swiftee.hold('talking');
+      await say(lines[i]);
+      swiftee.release();
+      await wait(i < lines.length - 1 ? 1500 : 700);
+    }
 
     await showNext(nextBtnFree);
+  }
+
+  async function specialIntro() {
+    await boardAside(SPECIAL, specialIntro);
     await paraSection();
   }
 
@@ -2868,9 +3105,14 @@
   const paraSvg    = document.getElementById('paraSvg');
   const paraArt    = paraSvg.querySelector('.art');
   const paraEx     = document.getElementById('paraEx');
+  const paraDims   = document.getElementById('paraDims');
   const paraTray   = document.getElementById('paraTray');
   const paraChips  = Array.from(paraTray.querySelectorAll('.chip'));
+  const areaTray   = document.getElementById('areaTray');
+  const areaChips  = Array.from(areaTray.querySelectorAll('.chip'));
+  const paraLines  = document.getElementById('paraLines');
   const facts      = document.getElementById('facts');
+  let paraFill = null;         /* the whole-shape fill, once built */
   const factMascot = document.getElementById('factMascot');
   const factEls    = { par: document.getElementById('factA'), eq: document.getElementById('factB') };
 
@@ -2906,6 +3148,38 @@
   };
   const PARA_ANSWER = 'parallelogram';
 
+  /* the second half: base, height, the cut, the working, and the quiz */
+  const PARA2 = {
+    here:   'Here is a parallelogram.',
+    base:   'This is the base of the parallelogram.',
+    height: 'Here comes the height!',
+    divide: 'Let us divide this into two triangles.',
+    which:  'Which of these is the area of the parallelogram?',
+    right:  'That’s Correct! Area of a parallelogram = base × height.'
+  };
+  const AREA_ANSWER = 'bh';
+
+  /* the learner's own go: the same shape with measurements on it */
+  const PARA3 = {
+    turn:   'Now it’s your turn! Find the area of this parallelogram.',
+    base:   '8 cm',
+    height: '5 cm'
+  };
+  /* and Swiftee's aside once it is done */
+  const PARA_ASIDE = [
+    'We now know how to find the area of a parallelogram.',
+    'Let us now try finding the area of a special parallelogram.'
+  ];
+
+  /* the two triangles are told apart by colour: purple on top of the cut,
+     green under it. Each has the same base b and the same height h. */
+  const PARA_LINES = [
+    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' = ½ × ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' }],
+    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 'green' },  { t: ' = ½ × ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' }],
+    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = ½ × b × h + ½ × b × h' }],
+    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = ' }, { t: 'base × height', w: 'para' }]
+  ];
+
   /* each fact's ghost holds its whole line from the first frame, so the list
      is sized before a character lands */
   Object.keys(PARA.facts).forEach(k => {
@@ -2922,12 +3196,54 @@
    * alike. */
   function buildPara() {
     const P = PARA_PTS;
-    paraArt.innerHTML =
-      '<polygon class="shape-fill" clip-path="url(#wipePara)" points="' + PARA_ORDER.map(k => pt(P[k])).join(' ') + '" />' +
-      '<path class="shape-outline" d="M' + PARA_ORDER.map(k => fmt(P[k].x) + ' ' + fmt(P[k].y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
-
     const ln = (cls, a, b) => '<line class="' + cls + '" x1="' + fmt(a.x) + '" y1="' + fmt(a.y) + '" x2="' + fmt(b.x) + '" y2="' + fmt(b.y) + '" />';
     const at = (o, u, s, n, t) => ({ x: o.x + u.x * s + n.x * t, y: o.y + u.y * s + n.y * t });
+
+    /* the shape, the two triangles the diagonal will make (purple above the
+       cut, green below), and the outline that draws itself */
+    paraArt.innerHTML =
+      '<polygon class="shape-fill" clip-path="url(#wipePara)" points="' + PARA_ORDER.map(k => pt(P[k])).join(' ') + '" />' +
+      '<polygon class="tri-fill c-purple" points="' + pt(P.TL) + ' ' + pt(P.TR) + ' ' + pt(P.BR) + '" />' +
+      '<polygon class="tri-fill c-green" points="' + pt(P.TL) + ' ' + pt(P.BR) + ' ' + pt(P.BL) + '" />' +
+      '<path class="shape-outline" d="M' + PARA_ORDER.map(k => fmt(P[k].x) + ' ' + fmt(P[k].y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
+    paraFill = paraArt.querySelector('.shape-fill');
+
+    /* the dimensions. A base is a two-headed arrow a little off its side,
+       with its label beyond; a height is dropped from a corner straight onto
+       the opposite side, with a right-angle mark at its foot and its label
+       alongside. The bottom base and the left height come first; the
+       diagonal, the top base and the right height arrive with the cut. */
+    const GAP = 20, HEAD = 9;
+    const arrow = (cls, a, b, ly, label, sym) => {
+      const y = a.y + GAP * (ly > 0 ? 1 : -1);
+      const A = { x: a.x, y: y }, B = { x: b.x, y: y };
+      return '<g class="d-group d-base ' + cls + '">' +
+        ln('d-arrow', A, B) +
+        '<path class="d-head" d="M' + fmt(A.x + HEAD) + ' ' + fmt(y - HEAD * .65) + ' L' + fmt(A.x) + ' ' + fmt(y) + ' L' + fmt(A.x + HEAD) + ' ' + fmt(y + HEAD * .65) + '" />' +
+        '<path class="d-head" d="M' + fmt(B.x - HEAD) + ' ' + fmt(y - HEAD * .65) + ' L' + fmt(B.x) + ' ' + fmt(y) + ' L' + fmt(B.x - HEAD) + ' ' + fmt(y + HEAD * .65) + '" />' +
+        '<text class="d-label" x="' + fmt((A.x + B.x) / 2) + '" y="' + fmt(y + (ly > 0 ? 22 : -11)) + '" font-size="' + (sym ? 17 : 14) + '" text-anchor="middle">' +
+          label + (sym ? '<tspan class="d-sym">' + sym + '</tspan>' : '') + '</text>' +
+      '</g>';
+    };
+    const height = (cls, top, foot, side, label, sym) => {
+      /* side: which way the mark and the label sit, +1 to the right */
+      const M = 12, up = foot.y > top.y ? -1 : 1;    /* the mark stands off the foot, toward the top */
+      const mark = 'M' + fmt(foot.x) + ' ' + fmt(foot.y + up * M) + ' H' + fmt(foot.x + side * M) + ' V' + fmt(foot.y);
+      return '<g class="d-group d-h ' + cls + '">' +
+        ln('d-height', top, foot) +
+        '<path class="d-mark" d="' + mark + '" />' +
+        '<text class="d-label" x="' + fmt(foot.x + side * 9) + '" y="' + fmt((top.y + foot.y) / 2) + '" font-size="' + (sym ? 17 : 14) + '" text-anchor="' + (side > 0 ? 'start' : 'end') + '" dominant-baseline="middle">' +
+          label + (sym ? '<tspan class="d-sym">' + sym + '</tspan>' : '') + '</text>' +
+      '</g>';
+    };
+    paraDims.innerHTML =
+      arrow('d-bottom', P.BL, P.BR, 1, 'Base', ' (b)') +
+      height('d-left', P.TL, { x: P.TL.x, y: P.BL.y }, 1, 'Height', ' (h)') +
+      '<g class="split-dims">' +
+        ln('join-line', P.TL, P.BR) +
+        arrow('d-top', P.TL, P.TR, -1, 'b', '') +
+        height('d-right', P.BR, { x: P.BR.x, y: P.TR.y }, -1, 'h', '') +
+      '</g>';
 
     let ex = '';
     Object.keys(PAIRS).forEach(k => {
@@ -2972,11 +3288,11 @@
 
   const pairEl = k => paraEx.querySelector('.pair-' + k);
 
-  /* ---------- the name quiz ----------
-   * Two chips under the shape. The right one goes green with a burst; a wrong
-   * one is shaken off, turned down in the heading, and steps back so the
-   * choice left is the answer. A skip taps the right one. */
-  function askName() {
+  /* ---------- tap the right chip ----------
+   * A row of chips under the shape. The right one goes green with a burst; a
+   * wrong one is shaken off, turned down in the heading, and steps back. A
+   * skip taps the right one. */
+  function askChips(chips, answer) {
     return new Promise(resolve => {
       let over = false;
       const finish = (chip, auto) => {
@@ -2984,7 +3300,7 @@
         over = true;
         skipFills.delete(fill);
         lockInput(true);
-        paraChips.forEach(c => c.removeEventListener('click', onTap));
+        chips.forEach(c => c.removeEventListener('click', onTap));
         feedbackGen++;                       /* a "Try again" still typing stops here */
         chip.classList.add('correct');
         if (!auto) {
@@ -2997,7 +3313,7 @@
       const onTap = e => {
         const chip = e.currentTarget;
         if (!interactive || chip.classList.contains('spent')) return;
-        if (chip.dataset.answer === PARA_ANSWER) { finish(chip, false); return; }
+        if (chip.dataset.answer === answer) { finish(chip, false); return; }
         sfx('wrong', .6);
         feedback(FEEDBACK.wrong);
         swiftee.play('confused', 1);
@@ -3007,11 +3323,20 @@
           chip.classList.add('spent');
         }, 440);
       };
-      const fill = () => finish(paraChips.find(c => c.dataset.answer === PARA_ANSWER), true);
+      const fill = () => finish(chips.find(c => c.dataset.answer === answer), true);
       skipFills.add(fill);
-      paraChips.forEach(c => c.addEventListener('click', onTap));
+      chips.forEach(c => c.addEventListener('click', onTap));
       lockInput(false);
     });
+  }
+
+  /* the chips fade up one after another */
+  async function dealChips(chips) {
+    for (const chip of chips) {
+      chip.classList.add('reveal');
+      await wait(150);
+    }
+    sfx('click', .3);
   }
 
   /* ---------- showing the two facts ---------- */
@@ -3096,7 +3421,7 @@
 
   async function paraSection() {
     lockInput(true);
-    sceneStart();
+    sceneStart(paraSection);
 
     /* 1. the aside ends: the bubble pops away and Swiftee drops out of the
           frame, as it did before the board first arrived */
@@ -3110,7 +3435,8 @@
        it while it is still invisible, and the heading's ghost takes the
        longest line of this scene while there is nothing on the board to move */
     board.classList.add('sec4');
-    promptGhost.textContent = longest([PARA.ask, PARA.right, PARA.look1, PARA.never, PARA.look2, PARA.measure, PARA.fit1, PARA.fit2]);
+    promptGhost.textContent = longest([PARA.ask, PARA.right, PARA.look1, PARA.never, PARA.look2, PARA.measure, PARA.fit1, PARA.fit2]
+      .concat(Object.keys(PARA2).map(k => PARA2[k]), PARA3.turn));
     buildPara();
     await wait(200);
     await showBoard();
@@ -3127,14 +3453,10 @@
           names appear, and the question is asked */
     await mascotJumpIn();
     await wait(260);
-    for (const chip of paraChips) {
-      chip.classList.add('reveal');
-      await wait(150);
-    }
-    sfx('click', .3);
+    await dealChips(paraChips);
     await wait(200);
     await heading(PARA.ask);
-    await askName();
+    await askChips(paraChips, PARA_ANSWER);
     await heading(PARA.right);
     await wait(1500);
 
@@ -3190,7 +3512,231 @@
     await hopBetween(factMascot, boardMascot);
     await wait(300);
     await showNext();
-    /* section 5 continues here */
+    await paraArea();
+  }
+
+  /* ---------- the area of the parallelogram ----------
+   * The marks and the facts clear, leaving Swiftee and the shape. The base
+   * is drawn under it and the height dropped onto it, each named as it
+   * comes; the diagonal cuts the shape into two triangles, the second base
+   * and height appear, and the shape moves aside for the working: half of
+   * b times h, twice over, is b times h. Then the shape is put back together
+   * in the middle for the quiz: which of three formulas is its area. */
+
+  /* a key word of the working lands: light what it names */
+  function onParaWord(w) {
+    if (w === 'green' || w === 'purple') { pulseTri(paraShape, w); return; }
+    if (w === 'b' || w === 'h') { paraShape.classList.add('lit-' + w); return; }
+    /* the whole shape: both halves swell and the outline glows */
+    pulseTri(paraShape, 'purple');
+    pulseTri(paraShape, 'green');
+    paraShape.classList.remove('lit-quad');
+    void paraShape.offsetWidth;
+    paraShape.classList.add('lit-quad');
+  }
+
+  const dimGroup = cls => paraDims.querySelector('.' + cls);
+
+  /* the arrow grows from its left end, then the heads and the label come on */
+  async function drawBase(cls) {
+    const g = dimGroup(cls);
+    await growLine(g.querySelector('.d-arrow'), 720);
+    g.classList.add('on');
+    sfx('click', .35);
+    await wait(REDUCED ? 160 : 520);
+  }
+
+  /* the dotted height drops from the corner, then the mark and the label */
+  async function drawHeight(cls) {
+    const g = dimGroup(cls);
+    await growLine(g.querySelector('.d-height'), 640);
+    g.classList.add('on');
+    sfx('click', .35);
+    await wait(REDUCED ? 160 : 520);
+  }
+
+  /* the diagonal draws, the two colours shade in, and the second base and
+     height arrive with it */
+  async function dividePara() {
+    paraShape.classList.add('divided');
+    const diag = paraDims.querySelector('.join-line');
+    await growLine(diag, 700);
+    diag.classList.add('done');
+    await wait(300);
+    if (paraFill) paraFill.style.opacity = '';
+    paraShape.classList.add('split');
+    await wait(REDUCED ? 300 : 800);
+    await drawBase('d-top');
+    await drawHeight('d-right');
+  }
+
+  /* the shape is put back together: the working leaves, the cut and the
+     second pair fade, the colour comes back */
+  async function mendPara() {
+    paraLines.classList.add('off');
+    await wait(450);
+    paraShape.classList.remove('split', 'divided', 'lit-b', 'lit-h', 'lit-quad');
+    if (paraFill) paraFill.style.opacity = 1;
+    await wait(600);
+    await layoutWide(para, paraSvg, false);
+    paraLines.textContent = '';
+    paraLines.classList.remove('off');
+  }
+
+  async function paraArea() {
+    lockInput(true);
+    sceneStart(paraArea);
+
+    /* 1. the marks and the facts clear: Swiftee and the shape alone */
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    paraEx.classList.add('gone');
+    facts.classList.remove('show');
+    await wait(560);
+    await heading(PARA2.here);
+    await wait(1000);
+
+    /* 2. the base, named as it is drawn */
+    let said = heading(PARA2.base);
+    await wait(500);
+    await drawBase('d-bottom');
+    await said;
+    await wait(700);
+
+    /* 3. the height, dropped from the corner; then both take their letters */
+    said = heading(PARA2.height);
+    await wait(400);
+    await drawHeight('d-left');
+    await said;
+    await wait(300);
+    paraShape.classList.add('syms');
+    await wait(900);
+
+    /* 4. the cut */
+    await heading(PARA2.divide);
+    await wait(300);
+    await dividePara();
+    await wait(500);
+
+    /* 5. the shape moves to the left, and the working follows on the right:
+          each triangle, their sum, and what that comes to */
+    await layoutWide(para, paraSvg);
+    await wait(300);
+    await showTypedLine(PARA_LINES[0], paraLines, onParaWord);
+    await wait(760);
+    await showTypedLine(PARA_LINES[1], paraLines, onParaWord);
+    await wait(760);
+    await showTypedLine(PARA_LINES[2], paraLines, onParaWord);
+    await wait(760);
+    await showTypedLine(PARA_LINES[3], paraLines, onParaWord);
+    feedback(FEEDBACK.done);
+    swiftee.play('proud', 1);
+    skyConfetti(120, 3200);
+    sfx('confetti', .8);
+    await wait(2600);
+    await showNext();
+    await paraAreaQuestion();
+  }
+
+  /* ---- the question the whole section was building to ----
+     Its own function so that it, like every other scene, has a re-entry point
+     Replay can call. */
+  async function paraAreaQuestion() {
+    lockInput(true);
+    sceneStart(paraAreaQuestion);
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    await mendPara();
+    await wait(300);
+    await dealChips(areaChips);
+    await wait(200);
+    await heading(PARA2.which);
+    await askChips(areaChips, AREA_ANSWER);
+    await heading(PARA2.right);
+    await wait(1800);
+    await showNext();
+    await paraCheck();
+  }
+
+  /* ---------- the learner's own go ----------
+   * The formula chips leave and the labels on the shape swap their letters
+   * for measurements. The shape moves aside, as the quadrilateral did, and
+   * the learner reads the base and the height off it from drop-downs -- both
+   * live at once -- then works out the area. Then Swiftee's aside. */
+
+  /* "Base (b)" and "Height (h)" become "8 cm" and "5 cm": each label fades,
+     is re-lettered, and fades back in */
+  async function measurePara() {
+    const swaps = [['d-bottom', PARA3.base], ['d-left', PARA3.height]];
+    const labels = swaps.map(([cls]) => dimGroup(cls).querySelector('.d-label'));
+    labels.forEach(l => l.classList.add('swap'));
+    paraShape.classList.remove('syms');
+    await wait(REDUCED ? 100 : 460);
+    labels.forEach((l, i) => { l.textContent = swaps[i][1]; l.classList.remove('swap'); });
+    await wait(REDUCED ? 100 : 560);
+  }
+
+  async function paraCheck() {
+    lockInput(true);
+    sceneStart(paraCheck);
+
+    /* the chips go, and the shape is measured */
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    areaTray.classList.add('off');
+    await wait(460);
+    await measurePara();
+    await heading(PARA3.turn);
+    await wait(300);
+
+    /* aside for the questions */
+    await layoutWide(para, paraSvg);
+    await wait(300);
+
+    /* two questions at once: the base and the height, read off the shape;
+       the part named lights up as it is got right */
+    const right = () => feedback(FEEDBACK.right);
+    const wrong = () => feedback(FEEDBACK.wrong);
+    const q1 = questionLine('The base of the parallelogram is',
+      [{ v: '8', t: '8 cm' }, { v: '5', t: '5 cm' }, { v: '13', t: '13 cm' }]);
+    const q2 = questionLine('The height is',
+      [{ v: '5', t: '5 cm' }, { v: '8', t: '8 cm' }, { v: '3', t: '3 cm' }]);
+    await showLine(q1.line, paraLines);
+    await showLine(q2.line, paraLines);
+    lockInput(false);
+    await Promise.all([
+      q1.dd.ask(v => v === '8', () => { right(); paraShape.classList.add('lit-b'); }, wrong),
+      q2.dd.ask(v => v === '5', () => { right(); paraShape.classList.add('lit-h'); }, wrong)
+    ]);
+    lockInput(true);
+    await wait(700);
+
+    /* then the area itself */
+    const q3 = questionLine('The area of the parallelogram is',
+      [{ v: '40', t: '40 sq. cm' }, { v: '13', t: '13 sq. cm' }, { v: '20', t: '20 sq. cm' }]);
+    await showLine(q3.line, paraLines);
+    lockInput(false);
+    await q3.dd.ask(v => v === '40', right, wrong);
+    lockInput(true);
+    feedback(FEEDBACK.done);
+    onParaWord('para');
+    swiftee.play('proud', 1);
+    skyConfetti(120, 3200);
+    sfx('confetti', .8);
+    await wait(2600);
+    await showNext();
+    await paraAside();
+  }
+
+  /* the board goes, and Swiftee looks ahead from its bubble. Its own scene,
+     so Replay can re-enter it. */
+  async function paraAside() {
+    await boardAside(PARA_ASIDE, paraAside);
+    /* the special parallelogram continues here: it takes the aside's stage
+       down first, as paraSection does */
   }
 
   async function introScene() {
@@ -3238,12 +3784,31 @@
     await welcomeScreen();
     lockTrayHeight();
 
-    sceneStart();
+    sceneStart(sceneIntro);
+    await sceneIntro();
+  }
+
+  /* Swiftee's greeting, and the board arriving behind it. Replaying it starts
+     from a bare landscape again, so the board has to be taken back down: the
+     one bit of undoing that belongs to a scene rather than to the generic
+     teardown, since showBoard() is a no-op once the board is already up. */
+  async function sceneIntro() {
+    board.classList.remove('show');
+    boardMascot.classList.remove('in');
     await introScene();
 
-    /* the intro is over and the warm-up owns the board from here: a skip of
-       the intro stops on this boundary */
-    sceneStart();
+    /* The hand-off belongs to the scene, not to whoever called it: a replay
+       re-enters this function directly, so anything sequenced by an enclosing
+       function would be lost the moment the replay retired it. Every other
+       scene chains to the next the same way. */
+    sceneStart(sceneWarmUp);
+    await sceneWarmUp();
+  }
+
+  /* The warm-up: the three shapes draw themselves, Swiftee names what they
+     are, and round 1 opens. */
+  async function sceneWarmUp() {
+    lockInput(true);
 
     for (const shape of shapes) {
       await revealShape(shape);

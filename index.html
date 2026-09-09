@@ -310,12 +310,18 @@
     <section class="para" id="para" aria-hidden="true">
       <div class="para-stage">
         <div class="para-shape" id="paraShape" role="img" aria-label="A parallelogram">
-          <svg class="para-svg" id="paraSvg" viewBox="-44 -16 452 236" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <!-- room above and below the shape for the base arrows and their
+               labels, so switching them on moves nothing -->
+          <svg class="para-svg" id="paraSvg" viewBox="-44 -46 452 300" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
             <defs>
-              <clipPath id="wipePara"><rect class="wipe" x="-44" y="-16" width="452" height="236" /></clipPath>
+              <clipPath id="wipePara"><rect class="wipe" x="-44" y="-46" width="452" height="300" /></clipPath>
             </defs>
-            <!-- built by script.js from the shape's corners -->
+            <!-- built by script.js from the shape's corners: the fill, the two
+                 triangles it will be cut into, and the outline -->
             <g class="art"></g>
+            <!-- the base and height, the diagonal, and the second pair -->
+            <g class="para-dims" id="paraDims"></g>
+            <!-- the opposite-sides explanation -->
             <g class="para-ex" id="paraEx"></g>
           </svg>
         </div>
@@ -328,6 +334,17 @@
           <button class="chip" type="button" data-answer="parallelogram"><span>Parallelogram</span></button>
           <button class="chip" type="button" data-answer="trapezium"><span>Trapezium</span></button>
         </div>
+
+        <!-- the area quiz: three formulas, tap the right one -->
+        <div class="para-tray area-tray" id="areaTray">
+          <button class="chip formula" type="button" data-answer="half"><span>½ (base &times; height)</span></button>
+          <button class="chip formula" type="button" data-answer="bh"><span>base &times; height</span></button>
+          <button class="chip formula" type="button" data-answer="double"><span>2(base &times; height)</span></button>
+        </div>
+
+        <!-- the working, beside the shape once it has moved left; script.js
+             builds each line -->
+        <div class="area-lines" id="paraLines" aria-live="polite"></div>
 
         <!-- the facts, stated one at a time with Swiftee standing beside them -->
         <div class="facts" id="facts">
@@ -429,20 +446,32 @@
   <!-- swallows every pointer event while an intro or a voice-over is running -->
   <div class="input-lock" id="inputLock" aria-hidden="true"></div>
 
-  <!-- Skip: small and quiet in the screen's bottom-right corner. A sibling of
-       the input lock, and stacked above it, because the lock is what makes
-       every other control dead while a scene is playing -- and this is the one
-       control that has to stay live exactly then. Anchored to the viewport
-       rather than to the board, so it is in the same place during the intro,
-       when there is no board on screen yet. -->
-  <button class="skip-btn" id="skipBtn" type="button" hidden
-          aria-label="Skip this section" title="Skip this section">
-    <span>Skip</span>
-    <svg class="skip-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M6 5l7 7-7 7" />
-      <path d="M14 5l7 7-7 7" />
-    </svg>
-  </button>
+  <!-- The two scene tools, bottom-right. Siblings of the input lock and
+       stacked above it, because the lock is what makes every other control
+       dead while a scene is playing -- and these are the two that have to stay
+       live exactly then. Anchored to the viewport rather than to the board, so
+       they keep the same corner during the intro, when there is no board on
+       screen yet.
+         Skip    -- take me to the end of this scene
+         Replay  -- play this scene again from its first frame -->
+  <div class="hud-tools">
+    <button class="tool-btn" id="skipBtn" type="button" hidden
+            aria-label="Skip this section" title="Skip this section">
+      <span>Skip</span>
+      <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 5l7 7-7 7" />
+        <path d="M14 5l7 7-7 7" />
+      </svg>
+    </button>
+    <button class="tool-btn" id="resetBtn" type="button" hidden
+            aria-label="Replay this section" title="Replay this section">
+      <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <polyline points="2 4 2 10 8 10" />
+        <path d="M4.6 15a8.5 8.5 0 1 0 2-8.8L2 10" />
+      </svg>
+      <span>Replay</span>
+    </button>
+  </div>
 
   <!-- only shown if the browser refuses to auto-play the briefing audio -->
   <div class="tap-start" id="tapStart" hidden>
