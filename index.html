@@ -216,6 +216,110 @@
       </div>
     </section>
 
+    <!-- ---------- section 3: the quadrilateral ----------
+         Shares the middle cell with the bay and the lesson, and is invisible
+         until the lesson has cleared away. One quadrilateral, built like every
+         other shape here (an outline that draws itself, a fill that pours in
+         behind a clip), plus everything the scene will add to it later: the
+         two triangles it splits into, the diagonal the learner draws, the
+         dotted heights, and the four corner dots. Under it, three things take
+         turns in one grid cell: the name quiz, Swiftee's aside, and the area
+         working. -->
+    <section class="quad" id="quad" aria-hidden="true">
+      <div class="quad-stage">
+        <div class="quad-shape" id="quadShape" role="img" aria-label="A quadrilateral">
+          <svg class="quad-svg" id="quadSvg" viewBox="0 0 333 272" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <defs>
+              <clipPath id="wipeQuad"><rect class="wipe" x="0" y="0" width="333" height="272" /></clipPath>
+            </defs>
+            <g class="art">
+              <polygon class="shape-fill" clip-path="url(#wipeQuad)" points="165,10 323,151 73,262 10,151" />
+              <!-- the two halves, shaded in once the diagonal is drawn -->
+              <polygon class="tri-fill tri-1" points="10,151 165,10 323,151" />
+              <polygon class="tri-fill tri-2" points="10,151 323,151 73,262" />
+              <path class="shape-outline" d="M165 10 L323 151 L73 262 L10 151 Z" fill="none" stroke-width="5" />
+            </g>
+            <!-- the learner's diagonal: left corner to right corner -->
+            <line class="join-line" id="joinLine" x1="10" y1="151" x2="10" y2="151" />
+            <g class="dims">
+              <line class="dim h1" x1="165" y1="10"  x2="165" y2="151" />
+              <line class="dim h2" x1="73"  y1="262" x2="73"  y2="151" />
+              <path class="dim-mark mark-1" d="M165 139 H177 V151" />
+              <path class="dim-mark mark-2" d="M73 163 H85 V151" />
+              <text class="dim-label lbl-base" x="245" y="145" font-size="13" text-anchor="middle">base</text>
+              <text class="dim-label lbl-height lbl-h1" x="179" y="80" font-size="13" text-anchor="middle"
+                    dominant-baseline="middle" transform="rotate(-90 179 80)">height</text>
+              <text class="dim-label lbl-height lbl-h2" x="87" y="207" font-size="13" text-anchor="middle"
+                    dominant-baseline="middle" transform="rotate(-90 87 207)">height</text>
+            </g>
+            <!-- the hint: a dotted line and a finger travelling left to right -->
+            <g class="demo" id="demoJoin">
+              <line class="demo-line" id="demoLine" x1="10" y1="151" x2="10" y2="151" />
+              <g class="demo-hand" id="demoHand">
+                <path d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z" />
+              </g>
+            </g>
+            <!-- the corners; the hit circle is bigger than the dot it serves -->
+            <g class="dots" id="dots">
+              <g class="corner" data-corner="T"><circle class="dot" cx="165" cy="10"  r="7" /><circle class="dot-hit" cx="165" cy="10"  r="22" /></g>
+              <g class="corner" data-corner="R"><circle class="dot" cx="323" cy="151" r="7" /><circle class="dot-hit" cx="323" cy="151" r="22" /></g>
+              <g class="corner" data-corner="B"><circle class="dot" cx="73"  cy="262" r="7" /><circle class="dot-hit" cx="73"  cy="262" r="22" /></g>
+              <g class="corner" data-corner="L"><circle class="dot" cx="10"  cy="151" r="7" /><circle class="dot-hit" cx="10"  cy="151" r="22" /></g>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- three occupants of one cell, so the shape above never moves -->
+      <div class="quad-foot">
+        <!-- the name quiz: "This is a [ v ]", Swiftee beside it, its remark under -->
+        <div class="quiz-block" id="quizBlock">
+          <div class="quiz-row">
+            <div class="quiz-sentence">
+              <span class="quiz-label">This is a</span>
+              <div class="dd" id="dd">
+                <button class="dd-btn" id="ddBtn" type="button" aria-haspopup="listbox" aria-expanded="false"
+                        aria-label="Choose the name of the shape">
+                  <span class="dd-value" id="ddValue"></span>
+                  <svg class="dd-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-8 10z" /></svg>
+                </button>
+                <div class="dd-menu" id="ddMenu" role="listbox">
+                  <button class="dd-opt" type="button" role="option" data-value="triangle">Triangle</button>
+                  <button class="dd-opt" type="button" role="option" data-value="quadrilateral">Quadrilateral</button>
+                  <button class="dd-opt" type="button" role="option" data-value="pentagon">Pentagon</button>
+                </div>
+              </div>
+            </div>
+            <div class="mascot" id="quizMascot" aria-hidden="true"></div>
+          </div>
+          <p class="quiz-note" id="quizNote" aria-live="polite">
+            <span class="type-wrap">
+              <span class="type-ghost" id="noteGhost"></span>
+              <span class="type" id="noteType"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+            </span>
+          </p>
+        </div>
+
+        <!-- Swiftee's aside, standing to the left of what it says -->
+        <div class="say-row" id="sayRow">
+          <div class="mascot" id="sideMascot" aria-hidden="true"></div>
+          <p class="say-text" id="sayText" aria-live="polite">
+            <span class="type-wrap">
+              <span class="type-ghost" id="sayGhost"></span>
+              <span class="type" id="sayType"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+            </span>
+          </p>
+        </div>
+
+        <!-- the area working, one line at a time; script.js fills the ghosts -->
+        <div class="area-lines" id="areaLines" aria-live="polite">
+          <div class="area-line"><span class="type-wrap"><span class="type-ghost"></span><span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span></div>
+          <div class="area-line"><span class="type-wrap"><span class="type-ghost"></span><span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span></div>
+          <div class="area-line"><span class="type-wrap"><span class="type-ghost"></span><span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span></div>
+        </div>
+      </div>
+    </section>
+
     <!-- One console band, two decks of cards stacked in it: round 2's deck is
          laid over round 1's, so the band is the same height all level long. -->
     <div class="tray-area" id="trayArea">
@@ -240,6 +344,11 @@
 
   </main>
   </div>
+
+  <!-- Swiftee's stand-in for a hop from one spot on the board to another: it
+       sits after the stage, so it paints over the board, and script.js hands
+       the sprite to it for the length of the arc. -->
+  <div class="flyer" id="flyer" aria-hidden="true"></div>
 
   <!-- ---------- intro ----------
        Between the Start button and the board: Swiftee hops to the middle of

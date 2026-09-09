@@ -35,6 +35,24 @@
  *   6. the area formula types itself out under them; as "Base" and then
  *      "Height" land, the matching lines on every triangle light up
  *   7. Next
+ *
+ * Section 3, the quadrilateral, once that Next is pressed:
+ *   1. Swiftee jumps back behind the board and the lesson fades off it
+ *   2. one quadrilateral draws itself in the middle of the empty board
+ *   3. "This is a [ v ]" with a drop-down; Swiftee jumps in beside it, says
+ *      "Tap here!", and answers each choice -- a wrong name is turned down
+ *      with how many sides that shape has, the right one is cheered
+ *   4. the sentence goes; Swiftee hops to the left: "This is a general
+ *      quadrilateral." / "Let's try and find its area!"
+ *   5. Swiftee hops up to the heading; four dots appear on the corners and
+ *      "Join the corners to divide the quadrilateral into two parts." types
+ *      while a finger traces the diagonal, left to right
+ *   6. the learner draws it: "The quadrilateral is divided into two
+ *      triangles."
+ *   7. the halves shade in two colours; each height drops in turn and its
+ *      area line types out under the shape, lighting what it names; the last
+ *      line adds the two up
+ *   8. Next
  */
 
 (function () {
@@ -142,7 +160,8 @@
    * swiftee-sheets.js, generated from the pipeline's manifest. */
   const swiftee = (function () {
     const S = window.SWIFTEE;
-    const nodes = ['mascot', 'welcomeMascot', 'introMascot', 'hopper']
+    const nodes = ['mascot', 'welcomeMascot', 'introMascot', 'hopper',
+                   'quizMascot', 'sideMascot', 'flyer']
       .map(id => document.getElementById(id))
       .filter(Boolean);
 
@@ -431,6 +450,10 @@
     });
   }
 
+  /* A scene waiting on the learner for something other than a round -- the
+     drop-down, the diagonal -- leaves its answer here, and a skip puts it in. */
+  let skipFill = null;
+
   /* A round waiting on the learner would stall a skip forever, so the answers
      go in for them -- no coaching, no confetti out of the cards, no chime. */
   const roundWaiting = function () {
@@ -467,6 +490,7 @@
       flushAnimations();
       releaseWaiters();
       if (roundWaiting()) fillRound();
+      if (skipFill) { const fill = skipFill; skipFill = null; fill(); }
       await new Promise(function (r) { requestAnimationFrame(r); });
     }
     flushAnimations();
@@ -1309,10 +1333,11 @@
      in-board sprite does the falling half over it. They swap at the top of the
      arc, where both are fully clear of the board, and since one player paints
      both, the cut is invisible. */
-  async function mascotJumpIn() {
-    const m = boardMascot.getBoundingClientRect();     /* its spot on the board */
+  async function mascotJumpIn(target) {
+    const spot = target || boardMascot;         /* the heading's, unless told otherwise */
+    const m = spot.getBoundingClientRect();
     const b = board.getBoundingClientRect();
-    if (!m.width || REDUCED) { boardMascot.classList.add('in'); return; }
+    if (!m.width || REDUCED) { spot.classList.add('in'); return; }
 
     const apexTop = b.top - m.height * .9 - 8;         /* the whole bird above the edge */
     const hideTop = b.top + 14;                        /* tucked just under it, covered */
@@ -1329,14 +1354,14 @@
     try { await rise.finished; } catch (e) {}
 
     /* ...hand over, and drop onto the spot with a little squash */
-    boardMascot.classList.add('in');
+    spot.classList.add('in');
     hopper.classList.remove('on');
     rise.cancel();
-    const fall = boardMascot.animate([
+    const fall = spot.animate([
       { transform: 'translateY(' + (apexTop - m.top) + 'px)', easing: 'cubic-bezier(.45, 0, .85, .5)' },
       { transform: 'translateY(0) scale(1.06, .92)', offset: .8, easing: 'ease-out' },
       { transform: 'none' }
-    ], { duration: 440 });
+    ], { duration: Math.min(760, 320 + (m.top - apexTop) * .5) });   /* longer drop, longer fall */
     try { await fall.finished; } catch (e) {}
   }
 
@@ -1344,15 +1369,16 @@
      over the board, hands over to the hopper there, and the hopper drops
      behind the board's top edge. Same two sprites, same swap point, same
      shared clock as the jump in, so the cut is just as invisible. */
-  async function mascotJumpOut() {
-    const m = boardMascot.getBoundingClientRect();
+  async function mascotJumpOut(source) {
+    const spot = source || boardMascot;
+    const m = spot.getBoundingClientRect();
     const b = board.getBoundingClientRect();
-    if (!m.width || REDUCED) { boardMascot.classList.remove('in'); return; }
+    if (!m.width || REDUCED) { spot.classList.remove('in'); return; }
 
     const apexTop = b.top - m.height * .9 - 8;
     const hideTop = b.top + 14;
 
-    const rise = boardMascot.animate([
+    const rise = spot.animate([
       { transform: 'none', easing: 'ease-in' },
       { transform: 'translateY(6%) scale(1.06, .92)', offset: .24, easing: 'cubic-bezier(.2, .6, .35, 1)' },
       { transform: 'translateY(' + (apexTop - m.top) + 'px)' }
@@ -1363,7 +1389,7 @@
       left: m.left + 'px', top: apexTop + 'px', width: m.width + 'px', height: m.height + 'px'
     });
     hopper.classList.add('on');
-    boardMascot.classList.remove('in');
+    spot.classList.remove('in');
     rise.cancel();
     const fall = hopper.animate(
       [{ transform: 'translateY(0)' }, { transform: 'translateY(' + (hideTop - apexTop) + 'px)' }],
@@ -1484,7 +1510,7 @@
     return new Promise(resolve => {
       const t0 = performance.now();
       (function step(t) {
-        const p = Math.min(1, (t - t0) / ms);
+        const p = fastForward ? 1 : Math.min(1, (t - t0) / ms);
         const e = 1 - Math.pow(1 - p, 3);                 /* ease-out cubic */
         line.setAttribute('x2', x1 + (X2 - x1) * e);
         line.setAttribute('y2', y1 + (Y2 - y1) * e);
@@ -1600,7 +1626,678 @@
     /* 7. two seconds to take it in, then on */
     await wait(2000);
     await showNext();
-    /* section 3 continues here */
+    await sectionThree();
+  }
+
+  /* ---------- section 3: the quadrilateral ---------- */
+  const quad       = document.getElementById('quad');
+  const quadShape  = document.getElementById('quadShape');
+  const quadSvg    = document.getElementById('quadSvg');
+  const quadFill   = quadShape.querySelector('.shape-fill');
+  const joinLine   = document.getElementById('joinLine');
+  const demoG      = document.getElementById('demoJoin');
+  const demoLine   = document.getElementById('demoLine');
+  const demoHand   = document.getElementById('demoHand');
+  const corners    = Array.from(quadSvg.querySelectorAll('.corner'));
+  const quizBlock  = document.getElementById('quizBlock');
+  const quizMascot = document.getElementById('quizMascot');
+  const dd         = document.getElementById('dd');
+  const ddBtn      = document.getElementById('ddBtn');
+  const ddValue    = document.getElementById('ddValue');
+  const ddOpts     = Array.from(dd.querySelectorAll('.dd-opt'));
+  const noteGhost  = document.getElementById('noteGhost');
+  const noteType   = document.getElementById('noteType');
+  const noteTxt    = noteType.querySelector('.txt');
+  const noteCaret  = noteType.querySelector('.caret');
+  const sayRow     = document.getElementById('sayRow');
+  const sideMascot = document.getElementById('sideMascot');
+  const sayGhost   = document.getElementById('sayGhost');
+  const sayType    = document.getElementById('sayType');
+  const sayTxt     = sayType.querySelector('.txt');
+  const sayCaret   = sayType.querySelector('.caret');
+  const areaLines  = Array.from(document.querySelectorAll('.area-line'));
+  const flyer      = document.getElementById('flyer');
+
+  /* Swiftee's lines in the quadrilateral scene */
+  const QUAD = {
+    tap:       'Tap here!',
+    answer:    'quadrilateral',
+    notes: {
+      triangle:      'A triangle has 3 sides. Check again!',
+      pentagon:      'A pentagon has 5 sides. Check again!',
+      quadrilateral: 'Correct! A quadrilateral has 4 sides.'
+    },
+    general:   'This is a general quadrilateral.',
+    area:      'Let’s try and find its area!',
+    join:      'Join the corners to divide the quadrilateral into two parts.',
+    joinWrong: 'Try again! Join the left and right corners.',
+    divided:   'The quadrilateral is divided into two triangles.'
+  };
+
+  /* The working under the shape, in pieces: every word that names a part of
+     the drawing is its own span, so it can light up -- and light the part it
+     names -- the moment it has finished typing. */
+  const AREA_LINES = [
+    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 't1' }, { t: ' = ½ × ' }, { t: 'base', w: 'base' }, { t: ' × ' }, { t: 'height', w: 'h1' }],
+    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 't2' }, { t: ' = ½ × ' }, { t: 'base', w: 'base' }, { t: ' × ' }, { t: 'height', w: 'h2' }],
+    /* the no-break spaces keep "= Area of" and "+ Area of" whole, so the long
+       line wraps before an operator rather than leaving one dangling */
+    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = Area of ' }, { t: 'Triangle 1', w: 't1' }, { t: ' + Area of ' }, { t: 'Triangle 2', w: 't2' }]
+  ];
+  const AREA_MS    = 64;       /* per character */
+  const AREA_PAUSE = 560;      /* a beat after each key word, for the highlight to land */
+
+  /* the corners, in the svg's own units, read off the dots themselves */
+  const CORNERS = {};
+  corners.forEach(c => {
+    const d = c.querySelector('.dot');
+    CORNERS[c.dataset.corner] = { x: +d.getAttribute('cx'), y: +d.getAttribute('cy') };
+  });
+  const HIT = 24;              /* how near a corner a release counts, in svg units */
+
+  const longest = list => list.reduce((a, b) => (b.length > a.length ? b : a), '');
+
+  /* every ghost holds its longest line from the first frame, so no box under
+     the shape changes size once it is on screen */
+  noteGhost.textContent = longest([QUAD.tap].concat(Object.keys(QUAD.notes).map(k => QUAD.notes[k])));
+  sayGhost.textContent  = longest([QUAD.general, QUAD.area]);
+
+  function segSpans(root, segs) {
+    root.textContent = '';
+    return segs.map(seg => {
+      const el = document.createElement('span');
+      if (seg.w) el.className = 'w w-' + seg.w;
+      root.appendChild(el);
+      return el;
+    });
+  }
+  areaLines.forEach((line, i) => {
+    segSpans(line.querySelector('.type-ghost'), AREA_LINES[i])
+      .forEach((el, j) => { el.textContent = AREA_LINES[i][j].t; });
+  });
+
+  /* A typewriter bound to one box. A line that comes in while an earlier one
+     is still typing takes the box over from it, as feedback() does above. */
+  function typer(txt, blink, perChar) {
+    let gen = 0;
+    return async function (text) {
+      const g = ++gen;
+      txt.textContent = '';
+      blink.hidden = false;
+      const t0 = performance.now();
+      for (let i = 0; i < text.length; i++) {
+        if (g !== gen) return;
+        txt.textContent = text.slice(0, i + 1);
+        const left = t0 + (i + 1) * perChar - performance.now();
+        if (left > 0) await wait(left);
+      }
+      if (g === gen) blink.hidden = true;
+    };
+  }
+  const note  = typer(noteTxt, noteCaret, 55);        /* Swiftee's remark on an answer */
+  const aside = typer(sayTxt, sayCaret, TYPE_MS);     /* Swiftee's line beside itself */
+
+  /* the formula typewriter, generalised: a line in segments, with a pause
+     and a callback each time a key word completes */
+  async function typeSegments(txt, blink, segs, perChar, pause, onWord) {
+    const spans = segSpans(txt, segs);
+    blink.hidden = false;
+    let due = performance.now();
+    for (let i = 0; i < segs.length; i++) {
+      const seg = segs[i];
+      for (let c = 0; c < seg.t.length; c++) {
+        spans[i].textContent = seg.t.slice(0, c + 1);
+        due += perChar;
+        const left = due - performance.now();
+        if (left > 0) await wait(left);
+      }
+      if (seg.w) {
+        spans[i].classList.add('lit');
+        if (onWord) onWord(seg.w);
+        due += pause;
+        const left = due - performance.now();
+        if (left > 0) await wait(left);
+      }
+    }
+    blink.hidden = true;
+  }
+
+  /* an eased 0 -> 1 over ms, driven by the frame clock; a skip lands it at 1 */
+  function tween(ms, step) {
+    if (REDUCED || fastForward) { step(1); return wait(0); }
+    return new Promise(resolve => {
+      const t0 = performance.now();
+      (function f(t) {
+        const p = fastForward ? 1 : Math.min(1, (t - t0) / ms);
+        step(1 - Math.pow(1 - p, 3));                       /* ease-out cubic */
+        if (p < 1) requestAnimationFrame(f);
+        else resolve();
+      })(t0);
+    });
+  }
+
+  function setLine(line, a, b) {
+    line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
+    line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+  }
+  function setEnd(line, b) {
+    line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+  }
+  /* a screen position in the svg's units */
+  function svgPoint(x, y) {
+    const pt = quadSvg.createSVGPoint();
+    pt.x = x; pt.y = y;
+    const m = quadSvg.getScreenCTM();
+    return m ? pt.matrixTransform(m.inverse()) : pt;
+  }
+  function nearCorner(p, except) {
+    let best = null, bd = HIT;
+    Object.keys(CORNERS).forEach(k => {
+      if (k === except) return;
+      const c = CORNERS[k];
+      const d = Math.hypot(c.x - p.x, c.y - p.y);
+      if (d < bd) { bd = d; best = k; }
+    });
+    return best;
+  }
+  const cornerEl = k => corners.find(c => c.dataset.corner === k);
+
+  /* ---------- a hop from one spot on the board to another ----------
+   * Over the board this time, so the flyer carries the sprite: it takes over
+   * at the first spot, flies the arc, and hands back at the second. All the
+   * spots are the same size, so the box is simply moved. The arc is a
+   * parabola on a linear clock -- the way a real jump moves -- with the
+   * height of the spring scaled to how far it has to go. */
+  async function hopBetween(fromEl, toEl) {
+    const a = fromEl.getBoundingClientRect();
+    const b = toEl.getBoundingClientRect();
+    if (!a.width || !b.width || REDUCED) {
+      fromEl.classList.remove('in');
+      toEl.classList.add('in');
+      return;
+    }
+
+    /* a crouch before the spring */
+    const crouch = fromEl.animate(
+      [{ transform: 'none' }, { transform: 'translateY(5%) scale(1.06, .92)' }],
+      { duration: 150, easing: 'ease-in', fill: 'forwards' }
+    );
+    try { await crouch.finished; } catch (e) {}
+    crouch.cancel();
+
+    Object.assign(flyer.style, {
+      left: a.left + 'px', top: a.top + 'px', width: a.width + 'px', height: a.height + 'px'
+    });
+    flyer.classList.add('on');
+    fromEl.classList.remove('in');
+
+    const dx = b.left - a.left;
+    const dy = b.top - a.top;
+    const arc = Math.min(170, Math.max(70, Math.abs(dx) * .3 + Math.max(0, -dy) * .2));
+    const N = 18;
+    const kf = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N;
+      kf.push({ transform: 'translate(' + (dx * t) + 'px, ' + (dy * t - arc * 4 * t * (1 - t)) + 'px)' });
+    }
+    const fly = flyer.animate(kf, {
+      duration: Math.min(900, 480 + Math.hypot(dx, dy) * .35), easing: 'linear', fill: 'forwards'
+    });
+    try { await fly.finished; } catch (e) {}
+
+    toEl.classList.add('in');
+    flyer.classList.remove('on');
+    fly.cancel();
+    const land = toEl.animate(
+      [{ transform: 'scale(1.06, .92)' }, { transform: 'none' }],
+      { duration: 220, easing: 'ease-out' }
+    );
+    try { await land.finished; } catch (e) {}
+  }
+
+  /* ---------- the drop-down ----------
+   * A custom one, so the box can be a slot, shake, go green, and open with a
+   * pop: a native select can do none of that. */
+  let quizLive = false;
+  let quizResolve = null;
+  let ddReset = null;
+
+  function openMenu(on) {
+    dd.classList.toggle('open', !!on);
+    ddBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+  ddBtn.addEventListener('click', e => {
+    if (!interactive || !quizLive) return;
+    e.stopPropagation();
+    openMenu(!dd.classList.contains('open'));
+    sfx('click', .5);
+  });
+  ddOpts.forEach(opt => opt.addEventListener('click', e => {
+    if (!interactive || !quizLive) return;
+    e.stopPropagation();
+    chooseOption(opt, false);
+  }));
+  document.addEventListener('click', () => { if (dd.classList.contains('open')) openMenu(false); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && dd.classList.contains('open')) openMenu(false);
+  });
+
+  /* an answer goes in; `auto` is true when a skip put it there */
+  function chooseOption(opt, auto) {
+    if (!quizLive || !opt) return;
+    openMenu(false);
+    clearTimeout(ddReset);
+    const v = opt.dataset.value;
+    ddValue.textContent = opt.textContent;
+    dd.classList.remove('hint', 'reject');
+    dd.classList.add('chosen');
+    sfx('click', .5);
+
+    /* ---- wrong name: red shake, Swiftee says how many sides it has ---- */
+    if (v !== QUAD.answer) {
+      sfx('wrong');
+      swiftee.play('confused', 1);
+      note(QUAD.notes[v] || QUAD.notes.triangle);
+      void ddBtn.offsetWidth;                            /* restart the shake */
+      dd.classList.add('reject');
+      setTimeout(() => dd.classList.remove('reject'), 430);
+      /* then the box empties again, so it reads as a question once more */
+      ddReset = setTimeout(() => {
+        if (!quizLive) return;
+        ddValue.textContent = '';
+        dd.classList.remove('chosen');
+      }, 1500);
+      return;
+    }
+
+    /* ---- right: the slot closes up green, confetti out of it ---- */
+    quizLive = false;
+    skipFill = null;
+    lockInput(true);
+    dd.classList.add('correct');
+    sfx('correct', auto ? .55 : 1);
+    if (!auto) {
+      swiftee.play('happy', 1);
+      sfx('confetti', .55);
+      requestAnimationFrame(() => burst(ddBtn));
+    }
+    note(QUAD.notes[v]);
+    if (quizResolve) quizResolve();
+  }
+
+  function awaitQuiz() {
+    return new Promise(resolve => {
+      quizResolve = resolve;
+      quizLive = true;
+      lockInput(false);
+      skipFill = () => chooseOption(ddOpts.find(o => o.dataset.value === QUAD.answer), true);
+    });
+  }
+
+  /* ---------- joining the corners ----------
+   * Drag from one corner to another, or tap one and then the other. The
+   * diagonal the scene is built around runs left to right; the other pair is
+   * turned down gently and the learner pointed back at it. */
+  let joinLive = false;
+  let joinResolve = null;
+  let joinSignal = null;
+  let jdrag = null;            /* { from, start } while a corner is being dragged from */
+  let armed = null;            /* a corner tapped once, waiting for its partner */
+
+  function setArmed(k) {
+    corners.forEach(c => c.classList.toggle('armed', c.dataset.corner === k));
+    armed = k;
+  }
+  function setHot(k) {
+    corners.forEach(c => c.classList.toggle('hot', c.dataset.corner === k));
+  }
+  function hideDemo() { demoG.classList.remove('on'); }
+
+  corners.forEach(c => c.addEventListener('pointerdown', onCornerDown));
+
+  function onCornerDown(e) {
+    if (!interactive || !joinLive) return;
+    if (e.button !== undefined && e.button !== 0) return;
+    e.preventDefault();
+    const k = e.currentTarget.dataset.corner;
+
+    /* the learner has taken hold: the hint has done its job */
+    if (joinSignal) joinSignal.done = true;
+    hideDemo();
+
+    if (armed && armed !== k) {
+      const from = armed;
+      setArmed(null);
+      return tryPair(from, k);
+    }
+    setArmed(null);
+
+    const p = CORNERS[k];
+    jdrag = { from: k, start: svgPoint(e.clientX, e.clientY) };
+    setLine(joinLine, p, p);
+    joinLine.classList.remove('bad', 'done');
+    joinLine.classList.add('live');
+    sfx('click', .5);
+
+    window.addEventListener('pointermove', onJoinMove);
+    window.addEventListener('pointerup', onJoinUp);
+    window.addEventListener('pointercancel', onJoinUp);
+  }
+
+  function onJoinMove(e) {
+    if (!jdrag) return;
+    const q = svgPoint(e.clientX, e.clientY);
+    setEnd(joinLine, q);
+    setHot(nearCorner(q, jdrag.from));
+  }
+
+  async function onJoinUp(e) {
+    if (!jdrag) return;
+    window.removeEventListener('pointermove', onJoinMove);
+    window.removeEventListener('pointerup', onJoinUp);
+    window.removeEventListener('pointercancel', onJoinUp);
+
+    const { from, start } = jdrag;
+    jdrag = null;
+    setHot(null);
+
+    const q = svgPoint(e.clientX, e.clientY);
+    const to = nearCorner(q, from);
+    if (to) return tryPair(from, to);
+
+    /* a tap, not a drag: the corner waits for its partner */
+    if (Math.hypot(q.x - start.x, q.y - start.y) < 6) {
+      joinLine.classList.remove('live');
+      setArmed(from);
+      return;
+    }
+
+    /* let go in the open: the line runs back into its corner */
+    const a = CORNERS[from];
+    const x = +joinLine.getAttribute('x2'), y = +joinLine.getAttribute('y2');
+    await tween(260, p => setEnd(joinLine, { x: x + (a.x - x) * p, y: y + (a.y - y) * p }));
+    if (!jdrag) joinLine.classList.remove('live');
+  }
+
+  function tryPair(a, b) {
+    const ok = (a === 'L' && b === 'R') || (a === 'R' && b === 'L');
+    if (ok) return completeJoin(false, a);
+    return wrongJoin(a, b);
+  }
+
+  /* the other diagonal: shown red for a beat, then drawn back in */
+  async function wrongJoin(a, b) {
+    const A = CORNERS[a], B = CORNERS[b];
+    setLine(joinLine, A, B);
+    joinLine.classList.remove('live');
+    joinLine.classList.add('bad');
+    sfx('wrong');
+    swiftee.play('confused', 1);
+    feedback(QUAD.joinWrong);
+    [cornerEl(a), cornerEl(b)].forEach(c => c.classList.add('hot'));
+    await wait(520);
+    [cornerEl(a), cornerEl(b)].forEach(c => c.classList.remove('hot'));
+    if (!joinLive || jdrag) return;        /* completed, or a new drag has begun */
+    await tween(260, p => setEnd(joinLine, { x: B.x + (A.x - B.x) * p, y: B.y + (A.y - B.y) * p }));
+    if (!jdrag) joinLine.classList.remove('bad');
+  }
+
+  /* the diagonal is in; `auto` is true when a skip drew it */
+  async function completeJoin(auto, from) {
+    if (!joinLive) return;
+    joinLive = false;
+    skipFill = null;
+    lockInput(true);
+    if (joinSignal) joinSignal.done = true;
+    hideDemo();
+    setArmed(null);
+    setHot(null);
+    quadShape.classList.remove('live');
+
+    const a = from || 'L', b = a === 'L' ? 'R' : 'L';
+    const A = CORNERS[a], B = CORNERS[b];
+    joinLine.classList.remove('bad');
+    if (auto) {
+      /* nobody drew it: the line draws itself, corner to corner */
+      setLine(joinLine, A, A);
+      joinLine.classList.add('live');
+      await tween(620, p => setEnd(joinLine, { x: A.x + (B.x - A.x) * p, y: A.y + (B.y - A.y) * p }));
+    } else {
+      setLine(joinLine, A, B);
+    }
+    joinLine.classList.remove('live');
+    joinLine.classList.add('done');
+    quadShape.classList.add('joined');
+    sfx('correct', auto ? .55 : 1);
+    if (!auto) swiftee.play('happy', 1);
+    if (joinResolve) joinResolve();
+  }
+
+  function awaitJoin(signal) {
+    return new Promise(resolve => {
+      joinResolve = resolve;
+      joinSignal = signal;
+      joinLive = true;
+      quadShape.classList.add('live');
+      lockInput(false);
+      skipFill = () => completeJoin(true);
+    });
+  }
+
+  /* ---------- the hint under the instruction ----------
+   * A dotted line grows from the left corner to the right with a finger
+   * riding its tip, again and again, until the learner takes hold of a
+   * corner -- the way the ghost chip demonstrates a drag in the warm-up. */
+  function demoJoin(signal) {
+    const A = CORNERS.L, B = CORNERS.R;
+    const S = 1.7;                 /* the hand glyph's scale; its fingertip is at (11.5, 3) */
+    const handAt = (x, y) => demoHand.setAttribute('transform',
+      'translate(' + (x - 11.5 * S) + ' ' + (y - 3 * S) + ') scale(' + S + ')');
+
+    if (REDUCED) {
+      /* no motion: the whole line, held, until the learner starts */
+      return (async () => {
+        setLine(demoLine, A, B); handAt(B.x, B.y);
+        demoG.classList.add('on');
+        while (!signal.done && !fastForward) await wait(200);
+        demoG.classList.remove('on');
+      })();
+    }
+
+    async function pass() {
+      setLine(demoLine, A, A); handAt(A.x, A.y);
+      demoG.classList.add('on');
+      await wait(200);
+      await new Promise(resolve => {
+        const t0 = performance.now(), ms = 1300;
+        (function f(t) {
+          if (signal.done || fastForward) return resolve();
+          const p = Math.min(1, (t - t0) / ms);
+          const e = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;   /* ease-in-out */
+          const x = A.x + (B.x - A.x) * e, y = A.y + (B.y - A.y) * e;
+          setEnd(demoLine, { x: x, y: y }); handAt(x, y);
+          if (p < 1) requestAnimationFrame(f);
+          else resolve();
+        })(t0);
+      });
+      if (signal.done) return;
+      await wait(380);
+      demoG.classList.remove('on');
+      await wait(300);
+    }
+
+    return (async () => {
+      await wait(350);
+      while (!signal.done && !fastForward) {
+        await pass();
+        if (signal.done) break;
+        await wait(550);
+      }
+      demoG.classList.remove('on');
+    })();
+  }
+
+  /* ---------- the working ---------- */
+
+  /* The board's middle cell goes from one column to two: the shape to the
+     left two fifths, the working to the right three fifths. A grid cannot
+     animate that change, so the shape's box is measured before and after and
+     the move is played back as a transform from the old place to the new. */
+  async function layoutWide() {
+    const before = quadSvg.getBoundingClientRect();
+    quad.classList.add('wide');
+    const after = quadSvg.getBoundingClientRect();
+    if (REDUCED || !before.width || !after.width) return wait(120);
+
+    const dx = before.left - after.left;
+    const dy = before.top - after.top;
+    const s  = before.width / after.width;
+    quadSvg.style.transformOrigin = '0 0';
+    const a = quadSvg.animate(
+      [{ transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + s + ')' }, { transform: 'none' }],
+      { duration: 760, easing: 'cubic-bezier(.4, 0, .2, 1)' }
+    );
+    try { await a.finished; } catch (e) {}
+    quadSvg.style.transformOrigin = '';
+  }
+
+  /* the perpendicular drops from the apex to the base, then its right-angle
+     mark appears at the foot */
+  async function dropHeight(n) {
+    await growLine(quadSvg.querySelector('.h' + n), 640);
+    quadShape.classList.add('marked-' + n);
+    await wait(260);
+  }
+
+  /* a key word has landed in the working: light the part of the drawing it
+     names -- a triangle swells once, a line stays lit */
+  function onAreaWord(w) {
+    if (w === 't1' || w === 't2') {
+      const cls = 'pulse-' + w;
+      quadShape.classList.remove(cls);
+      void quadShape.offsetWidth;
+      quadShape.classList.add(cls);
+      setTimeout(() => quadShape.classList.remove(cls), 700);
+      return;
+    }
+    quadShape.classList.add('lit-' + w);
+  }
+
+  async function showAreaLine(i) {
+    const line = areaLines[i];
+    line.classList.add('show');
+    sfx('click', .3);
+    await wait(REDUCED ? 160 : 460);
+    await typeSegments(line.querySelector('.txt'), line.querySelector('.caret'),
+      AREA_LINES[i], AREA_MS, AREA_PAUSE, onAreaWord);
+  }
+
+  async function sectionThree() {
+    lockInput(true);
+    sceneStart();
+
+    /* 1. Swiftee ducks back behind the board, and the lesson clears away
+          while it is mid-air; the empty footer band draws in too */
+    const out = mascotJumpOut();
+    await wait(260);
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    board.classList.add('sec3');
+    trayArea.style.minHeight = '';
+    await out;
+    await wait(520);
+
+    /* the heading's ghost takes this section's longest line; the board is
+       blank, so the row can re-measure with nothing on it to move */
+    promptGhost.textContent = longest([QUAD.join, QUAD.joinWrong, QUAD.divided]);
+
+    /* 2. the quadrilateral: outline first, then the colour */
+    quad.classList.add('on');
+    quad.setAttribute('aria-hidden', 'false');
+    await wait(80);
+    await revealShape(quadShape);
+    await wait(360);
+
+    /* 3. "This is a ..." with a drop-down; Swiftee jumps in beside it and
+          points the learner at the arrow */
+    quizBlock.classList.add('show');
+    await wait(REDUCED ? 200 : 440);
+    await mascotJumpIn(quizMascot);
+    await wait(200);
+    dd.classList.add('hint');
+    swiftee.hold('talking');
+    await note(QUAD.tap);
+    swiftee.release();
+    await awaitQuiz();
+    await wait(1900);
+
+    /* 4. the sentence goes; Swiftee hops to the left and names the shape */
+    quizBlock.classList.add('off');
+    await wait(380);
+    sayRow.classList.add('show');
+    await hopBetween(quizMascot, sideMascot);
+    quizBlock.classList.remove('show');
+    await wait(220);
+    swiftee.hold('talking');
+    await aside(QUAD.general);
+    swiftee.release();
+    await wait(1400);
+    swiftee.hold('talking');
+    await aside(QUAD.area);
+    swiftee.release();
+    await wait(1100);
+
+    /* 5. up to the heading; the corners light up, and the instruction types
+          while a finger shows the line to draw */
+    sayRow.classList.add('off');
+    await wait(320);
+    await hopBetween(sideMascot, boardMascot);
+    sayRow.classList.remove('show');
+    await wait(240);
+    quadShape.classList.add('dots');
+    await wait(560);
+    const signal = { done: false };
+    const demo = demoJoin(signal);
+    swiftee.hold('talking');
+    await typewrite(QUAD.join, QUAD.join.length * TYPE_MS);
+    swiftee.release();
+    await awaitJoin(signal);
+    await demo;
+
+    /* 6. joined */
+    await wait(360);
+    feedbackGen++;
+    swiftee.hold('talking');
+    await typewrite(QUAD.divided, QUAD.divided.length * TYPE_MS);
+    swiftee.release();
+    await wait(520);
+
+    /* 7. the shape moves to the left, making room for the working on the
+          right; then two colours, two heights, two areas, and their sum */
+    await layoutWide();
+    await wait(300);
+    quadFill.style.opacity = '';
+    quadShape.classList.add('split');
+    await wait(REDUCED ? 300 : 900);
+
+    await dropHeight(1);
+    await showAreaLine(0);
+    await wait(760);
+    await dropHeight(2);
+    await showAreaLine(1);
+    await wait(760);
+    await showAreaLine(2);
+    onAreaWord('t1');
+    onAreaWord('t2');
+    swiftee.play('proud', 1);
+    skyConfetti(120, 3200);
+    sfx('confetti', .8);
+
+    /* a few seconds to take it in, then on */
+    await wait(2600);
+    await showNext();
+    /* section 4 continues here */
   }
 
   async function introScene() {

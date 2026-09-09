@@ -56,6 +56,14 @@
   --tri-c-fill:   var(--tri-fill);
   --tri-c-border: var(--tri-border);
 
+  /* Section 3 -- the quadrilateral is the warm-up's peach, and the two
+     triangles it is cut into take the other two pairs, so the split reads at
+     a glance and the lesson is re-skinned by the same edit as the game. */
+  --quad-fill:    var(--rect-fill);
+  --quad-border:  var(--rect-border);
+  --quad-t1-fill: var(--square-fill);
+  --quad-t2-fill: var(--tri-fill);
+
   /* The two hues the formula's words -- and the matching dotted lines under
      every triangle -- light up in. Neither is a shape colour, so a lit line
      always reads against whichever fill it crosses. */
@@ -263,7 +271,8 @@ body {
    cell. The lesson is laid out from the first frame, hidden, so the swap
    between the two moves nothing on the board. */
 .bay,
-.lesson { grid-area: 2 / 1; }
+.lesson,
+.quad { grid-area: 2 / 1; }
 
 .bay {
   position: relative;
@@ -546,6 +555,435 @@ body {
 }
 .formula-box .w.lit.w-base   { background: var(--base-hl);   color: var(--rock-dark); }
 .formula-box .w.lit.w-height { background: var(--height-hl); color: var(--board-highlight); }
+
+/* ---------- section 3: the quadrilateral ---------- */
+.quad {
+  position: relative;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: clamp(6px, 1.6vh, 16px);
+  /* laid out from the first frame, painted only once the lesson has gone */
+  visibility: hidden;
+}
+.quad.on { visibility: visible; }
+
+/* ---------- clearing the board for section 3 ----------
+ * The lesson fades and then gives up hit-testing, keeping its box, so the
+ * heading above and the footer below stay put while the board is blank. The
+ * transition sits on the target state only: the lesson's own reveal must not
+ * inherit a delay. The empty card decks no longer need a full console band
+ * under them, so the footer is drawn in and the shape gets the room. */
+.board.sec3 .lesson {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .45s ease, visibility 0s linear .45s;
+}
+.board.sec3 .tray-area { padding: clamp(10px, 3vh, 28px) 0 clamp(12px, 3.2vh, 30px); }
+.board.sec3 .tray[data-round="2"] { inset: clamp(10px, 3vh, 28px) 0 clamp(12px, 3.2vh, 30px) 0; }
+
+/* Same anchoring as .shape: the artwork is fitted into its box and centred. */
+.quad-stage {
+  position: relative;
+  min-height: 0;
+}
+.quad-shape {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  --shape-fill: var(--quad-fill);
+  --shape-border: var(--quad-border);
+}
+.quad-shape svg {
+  display: block;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  /* the learner drags between corners: the browser must not pan instead */
+  touch-action: none;
+}
+.quad-shape .art { filter: drop-shadow(0 3px 5px var(--shadow-soft)); }
+
+/* the two halves: shaded in, one hue each, when the diagonal is drawn; the
+   whole-shape fill fades out under them. The fill's inline opacity (set by
+   the draw) is cleared by script.js in the same frame. */
+.tri-fill {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: opacity .7s ease;
+}
+.tri-1 { fill: var(--quad-t1-fill); }
+.tri-2 { fill: var(--quad-t2-fill); }
+.quad-shape.split .tri-fill { opacity: 1; }
+.quad-shape.split .shape-fill { opacity: 0; transition: opacity .7s ease; }
+
+/* a formula names a triangle: that half swells once */
+.quad-shape.pulse-t1 .tri-1,
+.quad-shape.pulse-t2 .tri-2 { animation: tri-pulse .62s cubic-bezier(.2, .9, .3, 1.3); }
+@keyframes tri-pulse {
+  0%, 100% { transform: scale(1);    filter: none; }
+  50%      { transform: scale(1.05); filter: brightness(1.08); }
+}
+
+/* the sum lands: the outline glows, as a whole, twice */
+.quad-shape.lit-quad .shape-outline { animation: outline-glow 1.1s ease-in-out 2; }
+@keyframes outline-glow {
+  0%, 100% { filter: none; }
+  50%      { filter: drop-shadow(0 0 5px var(--glow-correct)) drop-shadow(0 0 12px var(--glow-correct)); }
+}
+
+/* ---------- the diagonal ----------
+ * Dashed while it is being drawn, solid once it joins the corners, and lit
+ * up as "base" when the formula names it. */
+.join-line {
+  opacity: 0;
+  fill: none;
+  stroke: var(--quad-border);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 10 8;
+  pointer-events: none;
+  transition: stroke .4s ease, stroke-width .4s ease, filter .4s ease;
+}
+.join-line.live { opacity: 1; }
+.join-line.bad  { opacity: 1; stroke: var(--wrong); }
+.join-line.done { opacity: 1; stroke-dasharray: none; }
+.quad-shape.lit-base .join-line {
+  stroke: var(--base-hl);
+  stroke-width: 5.5;
+  filter: drop-shadow(0 0 3px var(--glow-base));
+}
+
+/* the heights reuse the lesson's dotted-line language */
+.quad-shape.lit-h1 .h1,
+.quad-shape.lit-h2 .h2 {
+  stroke: var(--height-hl);
+  stroke-width: 4.6;
+  filter: drop-shadow(0 0 3px var(--glow-height));
+}
+.quad-shape.marked-1 .mark-1,
+.quad-shape.marked-2 .mark-2 { opacity: 1; }
+.quad-shape.lit-base .lbl-base,
+.quad-shape.lit-h1 .lbl-h1,
+.quad-shape.lit-h2 .lbl-h2 { opacity: 1; }
+
+/* ---------- the corner dots ----------
+ * Pop in one after another, and take the pointer only while the join is the
+ * learner's to make. */
+.corner { pointer-events: none; }
+.quad-shape.live .corner { pointer-events: all; cursor: pointer; }
+.dot {
+  fill: var(--base-hl);
+  stroke: var(--heading);
+  stroke-width: 2.5;
+  opacity: 0;
+  transform: scale(0);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform .42s cubic-bezier(.2, .9, .3, 1.45), opacity .2s ease, stroke .2s ease, filter .2s ease;
+}
+.corner:nth-child(2) .dot { transition-delay: .09s; }
+.corner:nth-child(3) .dot { transition-delay: .18s; }
+.corner:nth-child(4) .dot { transition-delay: .27s; }
+.quad-shape.dots .dot { opacity: 1; transform: none; transition-delay: inherit; }
+.dot-hit { fill: transparent; }
+.quad-shape.live .corner:hover .dot,
+.quad-shape.live .corner.hot .dot {
+  transform: scale(1.35);
+  filter: drop-shadow(0 0 4px var(--glow-base));
+  transition-delay: 0s;
+}
+/* a corner tapped once and waiting for its partner */
+.quad-shape.live .corner.armed .dot {
+  stroke: var(--height-hl);
+  stroke-width: 4;
+  filter: drop-shadow(0 0 4px var(--glow-height));
+  transition-delay: 0s;
+}
+.quad-shape.joined .dot { animation: dot-pop .5s cubic-bezier(.2, .9, .3, 1.4); }
+@keyframes dot-pop {
+  0%, 100% { transform: scale(1); }
+  45%      { transform: scale(1.5); }
+}
+
+/* ---------- the hint ----------
+ * A dotted line grows from the left corner to the right with a finger
+ * riding its tip, over and over, until the learner takes hold of a corner. */
+.demo {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .28s ease;
+}
+.demo.on { opacity: 1; }
+.demo-line {
+  fill: none;
+  stroke: var(--text-primary);
+  stroke-width: 3.5;
+  stroke-dasharray: 0 9;
+  stroke-linecap: round;
+  opacity: .8;
+}
+.demo-hand path {
+  fill: var(--heading);
+  stroke: var(--board-highlight);
+  stroke-width: 1.2;
+  paint-order: stroke;
+}
+
+/* ---------- under the shape ----------
+ * The quiz, Swiftee's aside and the area working share one cell, so the
+ * height of the foot -- and the room left for the shape -- is the same from
+ * the first frame to the last. Two of them are never touched, so they never
+ * shadow the one that is. */
+.quad-foot {
+  display: grid;
+  justify-items: center;
+  align-items: center;
+}
+.quad-foot > * { grid-area: 1 / 1; }
+.say-row,
+.area-lines { pointer-events: none; }
+
+.quiz-block {
+  display: grid;
+  justify-items: center;
+  gap: clamp(2px, .6vh, 6px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .4s ease, visibility 0s linear .4s;
+}
+.quiz-block.show { opacity: 1; visibility: visible; transition: opacity .4s ease; }
+/* the sentence and the remark go; Swiftee stays until it has hopped away */
+.quiz-block .quiz-sentence,
+.quiz-block .quiz-note { transition: opacity .36s ease, transform .36s ease; }
+.quiz-block.off .quiz-sentence,
+.quiz-block.off .quiz-note { opacity: 0; transform: translateY(8px); }
+
+.quiz-row {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 2.2vw, 30px);
+}
+.quiz-sentence {
+  display: inline-flex;
+  align-items: stretch;
+  font-weight: 800;
+  font-size: clamp(15px, 2.7vh, 26px);
+  line-height: 1.15;
+}
+/* "This is a": the same card as a chip, with its right edge open to the box */
+.quiz-label {
+  display: inline-flex;
+  align-items: center;
+  padding: clamp(6px, 1.3vh, 12px) clamp(12px, 1.8vw, 22px);
+  border: 2px solid var(--button-border);
+  border-right: 0;
+  border-radius: 15px 0 0 15px;
+  background: var(--button-bg);
+  color: var(--button-text);
+  letter-spacing: .2px;
+  white-space: nowrap;
+}
+
+/* ---------- drop-down ----------
+ * The box is a slot -- dashed, pale -- until an answer is in it. */
+.dd { position: relative; }
+.dd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6em;
+  height: 100%;
+  min-width: clamp(150px, 16vw, 250px);
+  padding: clamp(6px, 1.3vh, 12px) clamp(10px, 1.4vw, 16px);
+  border: 2.5px dashed var(--drop-border);
+  border-radius: 0 15px 15px 0;
+  background: var(--drop-bg);
+  color: var(--heading);
+  font: inherit;
+  letter-spacing: .2px;
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.dd-btn:hover,
+.dd-btn:focus-visible {
+  border-color: var(--shape-border);
+  background: var(--board-highlight);
+  outline: none;
+}
+.dd-value { white-space: nowrap; }
+.dd-chev {
+  flex: none;
+  width: .78em;
+  height: .78em;
+  fill: var(--heading);
+  transition: transform .25s ease;
+}
+.dd.open .dd-chev { transform: rotate(180deg); }
+/* "Tap here!": the arrow bobs until the first answer goes in */
+.dd.hint .dd-chev { animation: chev-bob .9s ease-in-out infinite; }
+@keyframes chev-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(.18em); }
+}
+
+.dd-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 6;
+  display: grid;
+  border: 2px solid var(--button-border);
+  border-radius: 12px;
+  background: var(--board-highlight);
+  box-shadow: 0 10px 22px var(--shadow-deep);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-6px) scale(.98);
+  transform-origin: top;
+  pointer-events: none;
+  transition: opacity .2s ease, transform .25s cubic-bezier(.2, .9, .3, 1.3);
+}
+.dd.open .dd-menu { opacity: 1; transform: none; pointer-events: auto; }
+.dd-opt {
+  font: inherit;
+  font-weight: 700;
+  font-size: clamp(14px, 2.4vh, 22px);
+  color: var(--button-text);
+  text-align: left;
+  padding: .38em .9em;
+  border: 0;
+  border-bottom: 1.5px solid var(--drop-border);
+  background: transparent;
+  cursor: pointer;
+}
+.dd-opt:last-child { border-bottom: 0; }
+.dd-opt:hover,
+.dd-opt:focus-visible { background: var(--button-bg); outline: none; }
+
+/* an answer is in: the slot closes up around it */
+.dd.chosen .dd-btn { border-style: solid; border-color: var(--button-border); }
+.dd.correct .dd-btn {
+  border-style: solid;
+  border-color: var(--correct);
+  background: var(--board-highlight);
+  box-shadow: 0 0 0 4px var(--tint-correct);
+}
+.dd.reject .dd-btn {
+  animation: shake .42s cubic-bezier(.36, .07, .19, .97);
+  border-style: solid;
+  border-color: var(--wrong);
+  background: var(--tint-wrong);
+  box-shadow: 0 0 0 4px var(--glow-wrong);
+}
+
+/* Swiftee's remark on the answer, under the sentence */
+.quiz-note {
+  margin: 0;
+  color: var(--heading);
+  font-weight: 800;
+  font-size: clamp(15px, 2.6vh, 25px);
+  line-height: 1.3;
+  letter-spacing: .1px;
+}
+.quiz-note .type-wrap { display: inline-block; vertical-align: top; }
+.quiz-note .type { white-space: nowrap; }
+
+/* ---------- Swiftee's aside ---------- */
+.say-row {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1.6vw, 22px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .4s ease, visibility 0s linear .4s;
+}
+.say-row.show { opacity: 1; visibility: visible; transition: opacity .4s ease; }
+.say-text {
+  margin: 0;
+  color: var(--heading);
+  font-weight: 800;
+  font-size: clamp(16px, 3vh, 28px);
+  line-height: 1.3;
+  letter-spacing: .1px;
+  transition: opacity .36s ease;
+}
+.say-row.off .say-text { opacity: 0; }
+.say-text .type-wrap { display: inline-block; vertical-align: top; }
+.say-text .type { white-space: nowrap; }
+
+/* ---------- the area working ----------
+ * Three lines, each popping up and typing itself out in turn. The words the
+ * working is about carry the highlight of the thing they name: the triangle's
+ * own shade, the base's orange, the height's blue. */
+.area-lines {
+  display: grid;
+  justify-items: center;
+  gap: clamp(3px, .9vh, 9px);
+}
+.area-line {
+  white-space: nowrap;
+  color: var(--heading);
+  font-weight: 800;
+  font-size: clamp(14px, 2.5vh, 23px);
+  line-height: 1.3;
+  letter-spacing: .1px;
+  opacity: 0;
+  transform: translateY(10px) scale(.86);
+  transition: opacity .3s ease, transform .48s cubic-bezier(.2, .9, .3, 1.4);
+}
+.area-line.show { opacity: 1; transform: none; }
+.area-line .type-wrap { display: inline-block; vertical-align: top; }
+.area-line .type { white-space: nowrap; }
+
+/* ---------- the working, side by side ----------
+ * Once the diagonal is in, the board's middle cell turns into two columns:
+ * the shape slides to the left two fifths (script.js animates the move) and
+ * the working takes the right three fifths at a larger size, wrapping where
+ * it must. The quiz and the aside are finished by then, so they are taken
+ * out of the flow rather than left to set the column's minimum width. */
+.quad.wide {
+  grid-template-columns: 2fr 3fr;
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  gap: clamp(12px, 2.4vw, 34px);
+}
+.quad.wide .quad-foot { align-self: center; justify-items: start; min-width: 0; }
+.quad.wide .quiz-block,
+.quad.wide .say-row { display: none; }
+.quad.wide .area-lines {
+  justify-items: start;
+  gap: clamp(8px, 2.2vh, 22px);
+  width: 100%;
+  min-width: 0;
+}
+.quad.wide .area-line {
+  font-size: clamp(17px, 3.2vh, 31px);
+  line-height: 1.35;
+  max-width: 100%;
+}
+.quad.wide .area-line .type-wrap { max-width: 100%; }
+.quad.wide .area-line .type { white-space: pre-wrap; }
+
+.area-line .w {
+  display: inline-block;
+  padding: 0 .18em;
+  border-radius: .32em;
+  transition: background-color .4s ease, color .4s ease;
+}
+.area-line .w.lit.w-base { background: var(--base-hl);      color: var(--rock-dark); }
+.area-line .w.lit.w-h1,
+.area-line .w.lit.w-h2   { background: var(--height-hl);    color: var(--board-highlight); }
+.area-line .w.lit.w-t1   { background: var(--quad-t1-fill); color: var(--rock-dark); }
+.area-line .w.lit.w-t2   { background: var(--quad-t2-fill); color: var(--rock-dark); }
+.area-line .w.lit.w-quad { background: var(--quad-fill);    color: var(--rock-dark); }
 
 /* ---------- skip button ----------
  * Understated on purpose: it is a way past a scene, not a thing to press. It
@@ -902,7 +1340,8 @@ body {
    board (it comes before the stage in the document). It does the rising half
    of the jump in, which starts hidden behind the board. script.js sizes and
    places it from the in-board sprite's box. */
-.hopper {
+.hopper,
+.flyer {
   position: fixed;
   display: none;
   pointer-events: none;
@@ -913,7 +1352,11 @@ body {
   filter: drop-shadow(0 5px 8px var(--shadow-soft));
   will-change: transform;
 }
-.hopper.on { display: block; }
+.hopper.on,
+.flyer.on { display: block; }
+/* over the board (which has no z-index of its own) and under the input lock
+   at 900 -- which is transparent, so nothing is hidden by the order */
+.flyer { z-index: 800; }
 
 /* ---------- intro: Swiftee greets from the middle of the landscape ----------
  * Positions are taken off the reference frame: Swiftee's feet on the ground
@@ -1320,7 +1763,9 @@ body {
   .loader-fill::after,
   .board.cheer,
   .next-btn.in,
-  .start-btn.in { animation: none; }
+  .start-btn.in,
+  .dd.hint .dd-chev,
+  .quad-shape.lit-quad .shape-outline { animation: none; }
   .intro-mascot { transform: none; opacity: 1; }
   .bubble { transition: opacity .2s ease; }
   .loader-label .dots i { animation: none; opacity: 1; }
