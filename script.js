@@ -5,7 +5,8 @@
  *      from a speech bubble ("Hey there", then "Let's do a quick warm-up!"),
  *      jumps to its place beside the board's heading, and the board fades in
  *      behind it
- *   0b. each shape draws its own outline, then the colour pours in
+ *   0b. each shape draws its own outline, then the colour pours in, and the
+ *      heading types "Here are a few common shapes."
  *
  * Then every round runs the same beats:
  *   1. that round's slots fade up
@@ -48,7 +49,7 @@
 
   const ROUNDS = {
     1: {
-      text: 'Drag each name to its shape.',
+      text: 'Drag each block to the matching shape.',
       src:  'assets/audio/Drag each block to the matching shape.mp3'
     },
     2: {
@@ -58,11 +59,15 @@
   };
   const LAST_ROUND = 2;
 
+  /* said once the three shapes have drawn, before round 1 opens */
+  const SHAPES_READY = 'Here are a few common shapes.';
+
   /* The heading's ghost holds the longest line of the level from the first
      frame, so the heading -- and Swiftee standing beside it -- keeps one width
      and one place for the whole mission. */
   promptGhost.textContent = Object.keys(ROUNDS)
     .map(n => ROUNDS[n].text)
+    .concat(SHAPES_READY)
     .reduce((a, b) => (b.length > a.length ? b : a), '');
 
   const slotsOf = n => allSlots.filter(s => s.dataset.round === String(n));
@@ -1169,6 +1174,14 @@
       await wait(200);
     }
     await wait(180);
+
+    /* the shapes are on the board: Swiftee names what the learner is looking
+       at, then the round takes the heading over with its own instruction */
+    prompt.classList.add('show');
+    swiftee.hold('talking');
+    await typewrite(SHAPES_READY, SHAPES_READY.length * TYPE_MS);
+    swiftee.release();
+    await wait(1600);
 
     await startRound(1);
   }
