@@ -76,6 +76,16 @@
   --pair-a: var(--height-hl);
   --pair-b: var(--square-border);
 
+  /* Section 5 -- the rhombus starts life as a second parallelogram, in sky
+     blue so it cannot be taken for the amber one before it. The two sides
+     the learner can move, and the points that move them, borrow the base
+     highlight's orange; the angle marks at the crossing of the diagonals are
+     inked in the heading colour and go green the moment they are right
+     angles. */
+  --rhom-fill:   #9FD4F3;
+  --rhom-border: #1F6E9C;
+  --rhom-live:   var(--base-hl);
+
   /* The two hues the formula's words -- and the matching dotted lines under
      every triangle -- light up in. Neither is a shape colour, so a lit line
      always reads against whichever fill it crosses. */
@@ -132,6 +142,9 @@
   --glow-pair-b:     rgba(124, 51, 189, .55);  /* --pair-b        */
   --tint-pair-a:     rgba(46, 134, 222, .18);  /* --pair-a        */
   --tint-pair-b:     rgba(124, 51, 189, .18);  /* --pair-b        */
+  --tint-heading:    rgba(133, 52, 94, .14);    /* --heading       */
+  --glow-heading:    rgba(133, 52, 94, .45);    /* --heading       */
+  --tint-rhom:       rgba(31, 110, 156, .18);   /* --rhom-border   */
 
   /* ---- speech bubble ----
    * The one white in the game: the small catch-light in the bubble's corner,
@@ -291,7 +304,8 @@ body {
 .bay,
 .lesson,
 .quad,
-.para { grid-area: 2 / 1; }
+.para,
+.rhom { grid-area: 2 / 1; }
 
 .bay {
   position: relative;
@@ -652,7 +666,9 @@ body {
 .quad-shape.pulse-purple .c-purple,
 .quad-shape.pulse-green  .c-green,
 .para-shape.pulse-purple .c-purple,
-.para-shape.pulse-green  .c-green { animation: tri-pulse .62s cubic-bezier(.2, .9, .3, 1.3); }
+.para-shape.pulse-green  .c-green,
+.rhom-shape.pulse-purple .c-purple,
+.rhom-shape.pulse-green  .c-green { animation: tri-pulse .62s cubic-bezier(.2, .9, .3, 1.3); }
 @keyframes tri-pulse {
   0%, 100% { transform: scale(1);    filter: none; }
   50%      { transform: scale(1.05); filter: brightness(1.08); }
@@ -660,7 +676,8 @@ body {
 
 /* the sum lands: the outline glows, as a whole, twice */
 .quad-shape.lit-quad .shape-outline,
-.para-shape.lit-quad .shape-outline { animation: outline-glow 1.1s ease-in-out 2; }
+.para-shape.lit-quad .shape-outline,
+.rhom-shape.lit-quad .shape-outline { animation: outline-glow 1.1s ease-in-out 2; }
 @keyframes outline-glow {
   0%, 100% { filter: none; }
   50%      { filter: drop-shadow(0 0 5px var(--glow-correct)) drop-shadow(0 0 12px var(--glow-correct)); }
@@ -988,32 +1005,41 @@ body {
  * it must. The quiz and the aside are finished by then, so they are taken
  * out of the flow rather than left to set the column's minimum width. */
 .quad.wide,
-.para.wide {
+.para.wide,
+.rhom.wide {
   grid-template-columns: 2fr 3fr;
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   gap: clamp(12px, 2.4vw, 34px);
 }
 .quad.wide .quad-foot,
-.para.wide .para-foot { align-self: center; justify-items: start; min-width: 0; }
+.para.wide .para-foot,
+.rhom.wide .rhom-foot { align-self: center; justify-items: start; min-width: 0; }
 .quad.wide .quiz-block,
 .quad.wide .say-row,
 .para.wide .para-tray,
-.para.wide .facts { display: none; }
+.para.wide .facts,
+.rhom.wide .rhom-say,
+.rhom.wide .rhom-tray { display: none; }
 /* the parallelogram's working only exists while the shape is aside; back in
    the middle the cell is the quiz's again */
-.para .area-lines { display: none; }
-.para.wide .area-lines { display: grid; }
-.para.wide .para-shape svg { max-width: 100%; }
+.para .area-lines,
+.rhom .area-lines { display: none; }
+.para.wide .area-lines,
+.rhom.wide .area-lines { display: grid; }
+.para.wide .para-shape svg,
+.rhom.wide .rhom-shape svg { max-width: 100%; }
 .quad.wide .area-lines,
-.para.wide .area-lines {
+.para.wide .area-lines,
+.rhom.wide .area-lines {
   justify-items: start;
   gap: clamp(8px, 2.2vh, 22px);
   width: 100%;
   min-width: 0;
 }
 .quad.wide .area-line,
-.para.wide .area-line {
+.para.wide .area-line,
+.rhom.wide .area-line {
   font-size: clamp(17px, 3.2vh, 31px);
   line-height: 1.35;
   max-width: 100%;
@@ -1022,9 +1048,11 @@ body {
   white-space: normal;
 }
 .quad.wide .area-line .type-wrap,
-.para.wide .area-line .type-wrap { max-width: 100%; }
+.para.wide .area-line .type-wrap,
+.rhom.wide .area-line .type-wrap { max-width: 100%; }
 .quad.wide .area-line .type,
-.para.wide .area-line .type { white-space: pre-wrap; }
+.para.wide .area-line .type,
+.rhom.wide .area-line .type { white-space: pre-wrap; }
 /* the working leaves before the shape comes back to the middle */
 .area-lines { transition: opacity .4s ease; }
 .area-lines.off { opacity: 0; }
@@ -1046,6 +1074,11 @@ body {
 .area-line .w.lit.w-b        { background: var(--base-hl);          color: var(--rock-dark); }
 .area-line .w.lit.w-h        { background: var(--height-hl);        color: var(--board-highlight); }
 .area-line .w.lit.w-para     { background: var(--para-fill);        color: var(--rock-dark); }
+/* section 5: the diagonals and the half-diagonals that are the heights */
+.area-line .w.lit.w-d1       { background: var(--base-hl);          color: var(--rock-dark); }
+.area-line .w.lit.w-h1,
+.area-line .w.lit.w-h2       { background: var(--height-hl);        color: var(--board-highlight); }
+.area-line .w.lit.w-rhom     { background: var(--rhom-fill);        color: var(--rock-dark); }
 
 /* ---------- lines with drop-downs in them ----------
  * A formula line runs as one sentence -- words, coloured chips and two small
@@ -1412,6 +1445,305 @@ body {
 .fact .w.lit.w-par { background: var(--tint-pair-a); color: var(--pair-a); }
 .fact .w.lit.w-eq  { background: var(--tint-pair-b); color: var(--pair-b); }
 
+/* ---------- section 5: the rhombus ---------- */
+.rhom {
+  position: relative;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: clamp(6px, 1.6vh, 16px);
+  /* laid out from the first frame, painted only once the board is back */
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity .45s ease, visibility 0s linear .45s;
+}
+.rhom.on { visibility: visible; opacity: 1; transition: opacity .45s ease; }
+
+/* ---------- clearing the board for section 5 ----------
+ * The parallelogram scenes are finished: their section keeps its box but
+ * gives up painting and hit-testing, so nothing above or below it moves. */
+.board.sec5 .para {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Same anchoring as .para-shape: the artwork is fitted into its box and
+   centred. The viewBox already holds room for the tallest and widest shape
+   the points can make, so nothing on the board moves while it is dragged. */
+.rhom-stage {
+  position: relative;
+  min-height: 0;
+}
+.rhom-shape {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  --shape-fill: var(--rhom-fill);
+  --shape-border: var(--rhom-border);
+}
+.rhom-shape svg {
+  display: block;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 100%;
+  height: 100%;
+  max-width: 86%;
+  overflow: visible;
+}
+.rhom-shape .art { filter: drop-shadow(0 3px 5px var(--shadow-soft)); }
+
+/* the diagonals, grown corner to corner in the shape's own border colour */
+.rhom-diag-line {
+  opacity: 0;
+  fill: none;
+  stroke: var(--rhom-border);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+/* ---------- the angles at the crossing ----------
+ * Four marks, one in each angle the diagonals make. script.js redraws every
+ * one each frame: an arc between the diagonals while the angle is anything
+ * else, two sides of a small square once it is a right angle, and the
+ * in-between shapes as one becomes the other. Each pops in from its own
+ * centre when first shown. */
+.ang {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(.4);
+  transition: opacity .3s ease, transform .45s cubic-bezier(.2, .9, .3, 1.4);
+}
+.ang.show { opacity: 1; transform: none; }
+.ang-fill {
+  fill: var(--tint-heading);
+  transition: fill .35s ease;
+}
+.ang-stroke {
+  fill: none;
+  stroke: var(--heading);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke .35s ease, stroke-width .35s ease, filter .35s ease;
+}
+/* how big each angle is, set just outside its mark */
+.ang-lbl {
+  opacity: 0;
+  font-family: inherit;
+  font-weight: 800;
+  fill: var(--heading);
+  stroke: var(--board-highlight);
+  stroke-width: 3;
+  paint-order: stroke;
+  transition: opacity .45s ease, fill .35s ease;
+}
+.rhom-shape.degrees .ang-lbl { opacity: 1; }
+.rhom-shape.clean   .ang-lbl { opacity: 0; }
+
+/* the moment the diagonals are perpendicular: every mark goes green */
+.rhom-shape.square .ang-stroke {
+  stroke: var(--correct);
+  stroke-width: 3.6;
+  filter: drop-shadow(0 0 3px var(--glow-correct));
+}
+.rhom-shape.square .ang-fill { fill: var(--tint-correct); }
+.rhom-shape.square .ang-lbl  { fill: var(--correct); }
+/* and swell once when the showcase points at them */
+.rhom-shape.pulse-sq .ang { animation: ang-pop .7s cubic-bezier(.2, .9, .3, 1.4); }
+@keyframes ang-pop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- the two sides that move, and the points that move them ----------
+ * The top and the right side glow while the learner can move them; each has
+ * a point on its far corner. A point is a dot with a ring breathing round
+ * it, and swells under the pointer. */
+.live-side {
+  opacity: 0;
+  fill: none;
+  stroke: var(--rhom-live);
+  stroke-width: 7;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px var(--glow-base));
+  transition: opacity .4s ease;
+}
+.rhom-shape.live .live-side { opacity: 1; }
+
+.handle {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .35s ease;
+}
+.rhom-shape.live .handle {
+  opacity: 1;
+  pointer-events: all;
+  cursor: grab;
+}
+.handle.grab { cursor: grabbing; }
+.h-hit { fill: transparent; }
+.h-dot {
+  fill: var(--rhom-live);
+  stroke: var(--board-highlight);
+  stroke-width: 3;
+  filter: drop-shadow(0 2px 3px var(--shadow-soft));
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform .2s ease;
+}
+.rhom-shape.live .handle:hover .h-dot,
+.handle.grab .h-dot { transform: scale(1.2); }
+.h-ring {
+  fill: none;
+  stroke: var(--rhom-live);
+  stroke-width: 2.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ring-pulse 1.6s ease-out infinite;
+}
+.handle.grab .h-ring { animation: none; opacity: 0; }
+@keyframes ring-pulse {
+  0%   { transform: scale(.55); opacity: .85; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* the hint: the finger that takes hold of the right-hand point */
+.rhom-hint {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s ease;
+}
+.rhom-hint.on { opacity: 1; }
+.rhom-hint path {
+  fill: var(--heading);
+  stroke: var(--board-highlight);
+  stroke-width: 1.2;
+  paint-order: stroke;
+}
+
+/* ---------- the showcase ----------
+ * A glow runs right round the shape, and leaves a tick on the middle of
+ * each side as it passes: four sides, one length. The ticks are the
+ * parallelogram's own equal marks, inked here in the heading colour. */
+.rhom-sweep {
+  opacity: 0;
+  fill: none;
+  stroke: var(--heading);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px var(--glow-heading));
+  transition: opacity .45s ease;
+}
+.rhom-sweep.on { opacity: 1; }
+.rhom-ex { --pair: var(--heading); }
+.rhom-ex .eq-mark.on { opacity: 1; transform: none; }
+/* the sides are shown equal: the outline glows, as a whole, twice */
+.rhom-shape.equal .shape-outline { animation: outline-glow 1.1s ease-in-out 2; }
+
+/* ---------- the area lesson ----------
+ * The shape has been tilted so its diagonals lie flat and upright. d1 is
+ * drawn along the long diagonal in the base hue and d2 up the short one in
+ * the height hue, with a right-angle mark at their crossing; each half of d2
+ * is later drawn again as a height, dotted, from the crossing to a corner.
+ * The two halves of the shape are shaded green (lower) and purple (upper)
+ * as each is asked about. */
+.rhom-shape .tri-fill { transition: opacity .7s ease; }
+.rhom-shape.fill-green  .rt-green  { opacity: 1; }
+.rhom-shape.quiet-green .rt-green  { opacity: .38; }
+.rhom-shape.fill-purple .rt-purple { opacity: 1; }
+
+/* the tilt: the marks of the last scene leave, the plain diagonals with them */
+.rhom-shape.tilt .ang,
+.rhom-shape.tilt .rhom-ex { opacity: 0; transition: opacity .5s ease; }
+.rhom-diag-line { transition: opacity .5s ease; }
+
+.rd {
+  opacity: 0;
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: opacity .5s ease, stroke-width .4s ease, filter .4s ease;
+}
+.rd-d1 { stroke: var(--base-hl); }
+.rd-d2 { stroke: var(--height-hl); }
+.rd-h {
+  stroke: var(--height-hl);
+  stroke-width: 3.4;
+  stroke-dasharray: 0 8;
+}
+.rd-lbl {
+  opacity: 0;
+  font-family: inherit;
+  font-weight: 800;
+  font-style: italic;
+  fill: var(--heading);
+  stroke: var(--board-highlight);
+  stroke-width: 3;
+  paint-order: stroke;
+  transition: opacity .45s ease, fill .4s ease;
+}
+.rd-lbl.on { opacity: 1; }
+.rd-lbl.lbl-d1 { fill: var(--base-hl); }
+.rd-lbl.lbl-d2,
+.rd-lbl.lbl-h  { fill: var(--height-hl); }
+.rmark {
+  opacity: 0;
+  fill: none;
+  stroke: var(--heading);
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+  transition: opacity .4s ease;
+}
+.rmark.on { opacity: 1; }
+
+/* the working names them: the line swells and glows */
+.rhom-shape.lit-d1 .rd-d1,
+.rhom-shape.lit-h1 .rd-h1,
+.rhom-shape.lit-h2 .rd-h2 {
+  stroke-width: 6;
+}
+.rhom-shape.lit-d1 .rd-d1 { filter: drop-shadow(0 0 3px var(--glow-base)); }
+.rhom-shape.lit-h1 .rd-h1,
+.rhom-shape.lit-h2 .rd-h2 { filter: drop-shadow(0 0 3px var(--glow-height)); }
+
+/* ---------- under the shape ----------
+ * Swiftee hops down to the left of the line it says about the rhombus. The
+ * row keeps its box from the first frame (the ghost holds the whole line),
+ * so its arrival moves nothing. */
+.rhom-foot {
+  display: grid;
+  justify-items: center;
+  align-items: center;
+}
+.rhom-say {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 2.2vw, 30px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .4s ease, visibility 0s linear .4s;
+}
+.rhom-say.show { opacity: 1; visibility: visible; transition: opacity .4s ease; }
+/* the name lands in bold, with a highlighter in the shape's own hue */
+.rhom-say .w {
+  display: inline-block;
+  padding: 0 .12em;
+  margin: 0 -.12em;
+  border-radius: .3em;
+  transition: background .4s ease, color .4s ease;
+}
+.rhom-say .w.lit.w-rhom {
+  font-weight: 900;
+  background: var(--tint-rhom);
+  color: var(--rhom-border);
+}
+
 /* ---------- scene tools ----------
  * Skip and Replay. Understated on purpose: they are ways around a scene, not
  * things to press, so they sit at three quarters opacity until hovered and are
@@ -1483,9 +1815,18 @@ body {
   stroke-linejoin: round;
 }
 
-/* the replay arrow spins once as the scene is put back */
-.tool-btn.working .tool-icon { animation: tool-spin .7s cubic-bezier(.4, 0, .3, 1); }
+/* a tool that is fetching a scene says so: the replay arrow turns once, and
+   the back chevrons slide the way they point */
+#resetBtn.working .tool-icon { animation: tool-spin .7s cubic-bezier(.4, 0, .3, 1); }
 @keyframes tool-spin { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+
+#backBtn.working .tool-icon { animation: tool-back .7s cubic-bezier(.4, 0, .3, 1); }
+@keyframes tool-back {
+  0%   { transform: translateX(0); }
+  45%  { transform: translateX(-40%); opacity: .35; }
+  55%  { transform: translateX(40%); opacity: .35; }
+  100% { transform: translateX(0); }
+}
 
 /* ---------- next button ----------
  * Lives in the footer band's grid cell, centred, over the card decks. */
@@ -1688,6 +2029,7 @@ body {
    size to stay on one line inside the same chip. */
 .chip.formula { font-size: clamp(13px, 2.1vh, 20px); }
 .chip.formula sup { font-size: .68em; vertical-align: super; line-height: 0; }
+.chip.formula sub { font-size: .68em; vertical-align: sub; line-height: 0; }
 
 .chip.reveal:hover,
 .chip.reveal:focus-visible {
@@ -2232,7 +2574,10 @@ body {
   .next-btn.in,
   .start-btn.in,
   .dd.hint .dd-chev,
-  .quad-shape.lit-quad .shape-outline { animation: none; }
+  .quad-shape.lit-quad .shape-outline,
+  .h-ring,
+  .rhom-shape.pulse-sq .ang,
+  .rhom-shape.equal .shape-outline { animation: none; }
   .intro-mascot { transform: none; opacity: 1; }
   .bubble { transition: opacity .2s ease; }
   .loader-label .dots i { animation: none; opacity: 1; }

@@ -373,6 +373,80 @@
       </div>
     </section>
 
+    <!-- ---------- section 5: the rhombus ----------
+         The special parallelogram. Shares the middle cell with everything
+         before it, and is invisible until the board comes back after
+         Swiftee's aside. A second parallelogram, in a colour of its own, is
+         built by script.js from its corners and then handed to the learner:
+         two of its corners carry points that can be dragged, and every
+         frame the shape, its two diagonals and the four angle marks at
+         their crossing are redrawn from the two side lengths. The marks are
+         arcs until the sides come out equal, when they morph into little
+         squares. Under it, one row: Swiftee, hopped down, and the line it
+         says about the rhombus. -->
+    <section class="rhom" id="rhom" aria-hidden="true">
+      <div class="rhom-stage">
+        <div class="rhom-shape" id="rhomShape" role="img" aria-label="A parallelogram that becomes a rhombus">
+          <svg class="rhom-svg" id="rhomSvg" viewBox="0 14 440 268" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <defs>
+              <clipPath id="wipeRhom"><rect class="wipe" x="0" y="14" width="440" height="268" /></clipPath>
+            </defs>
+            <!-- built by script.js from the shape's corners: the fill and the
+                 outline that draws itself -->
+            <g class="art"></g>
+            <!-- the two sides the points move, lit while they can be moved -->
+            <g class="rhom-live" id="rhomLive"></g>
+            <!-- the diagonals, and the four angles at their crossing -->
+            <g class="rhom-diag" id="rhomDiag"></g>
+            <g class="rhom-marks" id="rhomMarks"></g>
+            <!-- the showcase: the glow that runs round the equal sides, and
+                 the tick marks it leaves on them -->
+            <g class="rhom-ex" id="rhomEx"></g>
+            <!-- the area lesson, once the shape has been tilted: the two
+                 diagonals with their names, the right angle between them,
+                 and the two half-diagonals that are the triangles' heights -->
+            <g class="rhom-area" id="rhomArea"></g>
+            <!-- the two draggable points -->
+            <g class="rhom-handles" id="rhomHandles"></g>
+            <!-- the hint: a finger that takes hold of a point and nudges it -->
+            <g class="rhom-hint" id="rhomHint">
+              <path d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z" />
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- four occupants of one cell, so the shape above never moves:
+           Swiftee's line about the rhombus, the two formula quizzes, and the
+           working beside the shape once it has moved left -->
+      <div class="rhom-foot">
+        <div class="rhom-say" id="rhomSay">
+          <div class="mascot" id="rhomMascot" aria-hidden="true"></div>
+          <p class="say-text" id="rhomText" aria-live="polite">
+            <span class="type-wrap">
+              <span class="type-ghost"></span>
+              <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+            </span>
+          </p>
+        </div>
+
+        <!-- the area of the green (lower) triangle: two formulas, tap the right one -->
+        <div class="para-tray rhom-tray" id="rhomTray1">
+          <button class="chip formula" type="button" data-answer="half"><span>½ × d₁ × h₁</span></button>
+          <button class="chip formula" type="button" data-answer="double"><span>2 × d₁ × h₁</span></button>
+        </div>
+
+        <!-- the area of the purple (upper) triangle -->
+        <div class="para-tray rhom-tray" id="rhomTray2">
+          <button class="chip formula" type="button" data-answer="plain"><span>d₁ × h₂</span></button>
+          <button class="chip formula" type="button" data-answer="half"><span>½ × d₁ × h₂</span></button>
+        </div>
+
+        <!-- the working, beside the shape once it has moved left -->
+        <div class="area-lines" id="rhomLines" aria-live="polite"></div>
+      </div>
+    </section>
+
     <!-- One console band, two decks of cards stacked in it: round 2's deck is
          laid over round 1's, so the band is the same height all level long. -->
     <div class="tray-area" id="trayArea">
@@ -452,9 +526,18 @@
        live exactly then. Anchored to the viewport rather than to the board, so
        they keep the same corner during the intro, when there is no board on
        screen yet.
+         Back    -- go back to the scene before this one
          Skip    -- take me to the end of this scene
          Replay  -- play this scene again from its first frame -->
   <div class="hud-tools">
+    <button class="tool-btn" id="backBtn" type="button" hidden
+            aria-label="Back to the previous section" title="Back to the previous section">
+      <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18 5l-7 7 7 7" />
+        <path d="M10 5l-7 7 7 7" />
+      </svg>
+      <span>Back</span>
+    </button>
     <button class="tool-btn" id="skipBtn" type="button" hidden
             aria-label="Skip this section" title="Skip this section">
       <span>Skip</span>

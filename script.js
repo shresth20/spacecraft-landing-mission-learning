@@ -88,6 +88,33 @@
  *      the base, the height and then the area are picked from drop-downs
  *   8. Next -- the board goes and Swiftee says from its bubble that a
  *      special parallelogram is next
+ *
+ * Section 7, the rhombus (the special parallelogram):
+ *   1. the board comes back and a second parallelogram, in a colour of its
+ *      own, draws itself on it
+ *   2. its two diagonals draw corner to corner; the obtuse angle at their
+ *      crossing takes an arc, then the other three do, and each is labelled
+ *      with its size
+ *   3. Swiftee jumps up to the heading: "Drag the points to make each angle
+ *      90 degrees." The top and right sides light up with a point on each;
+ *      one slides the top side up and down its slant, the other the right
+ *      side left and right, and the shape, its diagonals and the four angles
+ *      follow every frame. The moment the sides come out equal the four arcs
+ *      morph together into little squares and go green
+ *   4. the showcase: a glow runs right round the shape and leaves a tick on
+ *      each side ("All four sides are equal in length!"), the squares swell
+ *      ("And the diagonals meet at a right angle (90°)."), and the heading
+ *      names it: a parallelogram with these properties is called a rhombus
+ *   5. Swiftee hops down beside the shape: "This is the special
+ *      parallelogram called Rhombus." -- and Next
+ *   6. Next -- the same rhombus tilts until its long diagonal lies flat; d1
+ *      and d2 draw along the diagonals with a right angle marked between
+ *      them, and Swiftee jumps up to the heading: "Here, is a Rhombus."
+ *   7. d2 leaves; the lower half shades green and its height drops from the
+ *      crossing: which of two formulas is its area? Then the upper half in
+ *      purple, with its own height, and the same question. Next
+ *   8. the shape moves left and the working types out beside it: each
+ *      triangle's area, and the rhombus as the sum of the two. Next
  */
 
 (function () {
@@ -220,7 +247,7 @@
   const swiftee = (function () {
     const S = window.SWIFTEE;
     const nodes = ['mascot', 'welcomeMascot', 'introMascot', 'hopper',
-                   'quizMascot', 'sideMascot', 'factMascot', 'flyer']
+                   'quizMascot', 'sideMascot', 'factMascot', 'rhomMascot', 'flyer']
       .map(id => document.getElementById(id))
       .filter(Boolean);
 
@@ -447,6 +474,7 @@
    * end of this bit" rather than "take me somewhere else": the learner is
    * handed the same Next button they would have reached by playing it.
    */
+  const backBtn  = document.getElementById('backBtn');
   const skipBtn  = document.getElementById('skipBtn');
   const resetBtn = document.getElementById('resetBtn');
 
@@ -459,12 +487,21 @@
   /* the Next the mission is waiting on, if it is waiting on one */
   let pendingNext = null;
 
-  /* how to re-enter the scene in play, so Replay runs the same code that
-     played it the first time rather than a second, "from the top" path */
+  /* How to re-enter the scene in play, so Replay runs the same code that
+     played it the first time rather than a second, "from the top" path. */
   let sceneAgain = null;
   let replaying = false;
 
-  const TOOLS = [skipBtn, resetBtn];
+  /* The scenes played so far, most recent last: { entry, stage }.
+     `stage` is what the board looked like as the scene opened -- which is to
+     say, what the scene before it left behind. Recording it is what makes Back
+     possible: a scene's own code sets up its own stage, but only some scenes
+     do (section 4 inherits the quadrilateral stage from section 3 and takes it
+     as given), so where a scene starts from cannot be worked out from the
+     scene alone. Taking the snapshot at the door is exact for all of them. */
+  const sceneHistory = [];
+
+  const TOOLS = [backBtn, skipBtn, resetBtn];
 
   function showTools() {
     TOOLS.forEach(function (b) {
@@ -474,17 +511,33 @@
     });
   }
 
-  /* Both tools stay up from the first scene to the last, the hand-offs
-     included: with a Next waiting, Skip still means "move on" and Replay still
-     means "play that again", so there is nothing to be gained by taking them
-     away at exactly the moment a learner might want either.
+  /* Which tools are any use right now. Replay needs somewhere to go back to
+     in the scene itself; Back needs a scene behind this one. */
+  function armTools() {
+    resetBtn.disabled = !sceneAgain;
+    backBtn.disabled = sceneHistory.length < 2;
+  }
+
+  /* The tools stay up from the first scene to the last, the hand-offs
+     included: with a Next waiting, Skip still means "move on", Replay still
+     means "play that again" and Back still means "go back", so there is
+     nothing to be gained by taking them away at exactly the moment a learner
+     might want one.
      `again` is the scene's own re-entry point; a scene that passes none cannot
      be replayed, and Replay stays down for it. */
   function sceneStart(again) {
     sceneSeq++;
     sceneAgain = again || null;
+
+    /* A re-entry is not a step forward, so replaying a scene or going back to
+       one must not stack another copy of it on the history. */
+    if (again && (!sceneHistory.length ||
+                  sceneHistory[sceneHistory.length - 1].entry !== again)) {
+      sceneHistory.push({ entry: again, stage: stageNow() });
+    }
+
     showTools();
-    resetBtn.disabled = !sceneAgain;
+    armTools();
   }
 
   /* A scene has reached its hand-off. Only the counter moves, which is what
@@ -618,7 +671,7 @@
    * The board itself, Swiftee and the mission chrome are left alone: Replay
    * re-enters one scene, not the whole mission.
    */
-  const SCENE_ROOTS = ['bay', 'trayArea', 'lesson', 'quad', 'para', 'intro']
+  const SCENE_ROOTS = ['bay', 'trayArea', 'lesson', 'quad', 'para', 'rhom', 'intro']
     .map(function (id) { return document.getElementById(id); })
     .filter(Boolean);
 
@@ -713,18 +766,39 @@
     fx.textContent = '';                  /* confetti still on the way down */
   }
 
-  async function replayScene() {
-    if (replaying || !sceneAgain) return;
-    const again = sceneAgain;
+  /* Which stage is on the board: which of the scene containers are up, and
+     the board's own class, which is what decides between them. */
+  function stageNow() {
+    return {
+      board: board.getAttribute('class') || '',
+      roots: SCENE_ROOTS.map(function (r) {
+        return { cls: r.getAttribute('class') || '', aria: r.getAttribute('aria-hidden') };
+      })
+    };
+  }
 
+  function restoreStage(stage) {
+    board.setAttribute('class', stage.board);
+    SCENE_ROOTS.forEach(function (r, i) {
+      const was = stage.roots[i];
+      if (was.cls) r.setAttribute('class', was.cls); else r.removeAttribute('class');
+      if (was.aria === null) r.removeAttribute('aria-hidden');
+      else r.setAttribute('aria-hidden', was.aria);
+    });
+  }
+
+  /* Re-enter a scene on the stage it originally opened on. Both tools that go
+     somewhere -- Replay and Back -- are this, and only differ in which scene
+     they hand it. */
+  async function enterScene(entry, stage) {
     replaying = true;
-    resetBtn.disabled = true;
-    resetBtn.classList.add('working');
+    TOOLS.forEach(function (b) { b.disabled = true; });
     fastForward = false;
     lockInput(true);
 
     runToken++;                           /* retire the scene that is running */
     clearStage();
+    restoreStage(stage);
     lockTrayHeight();
 
     /* one turn of the loop, so the retired chain has rejected and unwound
@@ -732,15 +806,34 @@
     await new Promise(function (r) { setTimeout(r, 0); });
 
     replaying = false;
-    resetBtn.classList.remove('working');
-    resetBtn.disabled = false;      /* the scene we just re-entered is still replayable */
+    sceneAgain = entry;
+    skipBtn.disabled = false;
+    armTools();
 
     /* not awaited: a scene runs on past its own function, carried by the
        learner's answers, so there is nothing here to wait for */
-    again().catch(function (e) { if (e !== CANCELLED) throw e; });
+    entry().catch(function (e) { if (e !== CANCELLED) throw e; });
+  }
+
+  async function replayScene() {
+    if (replaying || !sceneHistory.length) return;
+    const here = sceneHistory[sceneHistory.length - 1];
+    resetBtn.classList.add('working');
+    await enterScene(here.entry, here.stage);
+    resetBtn.classList.remove('working');
+  }
+
+  async function backScene() {
+    if (replaying || sceneHistory.length < 2) return;
+    sceneHistory.pop();                   /* step out of the scene we are in */
+    const prev = sceneHistory[sceneHistory.length - 1];
+    backBtn.classList.add('working');
+    await enterScene(prev.entry, prev.stage);
+    backBtn.classList.remove('working');
   }
 
   resetBtn.addEventListener('click', replayScene);
+  backBtn.addEventListener('click', backScene);
 
   /* ---------- opening: draw each shape, then pour the colour in ---------- */
   async function revealShape(shape) {
@@ -3299,6 +3392,7 @@
         if (over) return;
         over = true;
         skipFills.delete(fill);
+        sceneWaiters.delete(teardown);
         lockInput(true);
         chips.forEach(c => c.removeEventListener('click', onTap));
         feedbackGen++;                       /* a "Try again" still typing stops here */
@@ -3324,6 +3418,17 @@
         }, 440);
       };
       const fill = () => finish(chips.find(c => c.dataset.answer === answer), true);
+      /* A replay retires the scene while the question is open. The chips
+         stay on the page, so the listeners must come off them here -- left
+         on, the retired question would answer the fresh one's tap first and
+         lock the input under it. The promise is simply never settled. */
+      const teardown = () => {
+        sceneWaiters.delete(teardown);
+        over = true;
+        skipFills.delete(fill);
+        chips.forEach(c => c.removeEventListener('click', onTap));
+      };
+      sceneWaiters.add(teardown);
       skipFills.add(fill);
       chips.forEach(c => c.addEventListener('click', onTap));
       lockInput(false);
@@ -3735,8 +3840,803 @@
      so Replay can re-enter it. */
   async function paraAside() {
     await boardAside(PARA_ASIDE, paraAside);
-    /* the special parallelogram continues here: it takes the aside's stage
-       down first, as paraSection does */
+    await rhombusSection();
+  }
+
+  /* ---------- section 7: the rhombus ----------
+   * The special parallelogram. Swiftee's aside is over: the bird drops out
+   * of the frame, the board comes back blank, and a second parallelogram --
+   * sky blue, so it cannot be taken for the amber one -- draws itself in the
+   * middle of it. Its two diagonals draw corner to corner and the four
+   * angles at their crossing are marked: the obtuse one first, as the
+   * lesson is about angles, then the other three, each with its size.
+   *
+   * Then the learner takes over. The shape is pinned at its bottom-left
+   * corner: the bottom runs to the right and the left side up a fixed slant,
+   * so two lengths describe it -- a, the top and bottom, and b, the left and
+   * right. The point on the top-right corner slides the top side up and
+   * down the slant (changing b); the point on the bottom-right corner slides
+   * the right side left and right (changing a). Everything is redrawn from a
+   * and b every frame: the shape, the diagonals, the four angle marks and
+   * their labels. The diagonals of a parallelogram are perpendicular exactly
+   * when its sides are all equal, so the moment a and b come within a whisker
+   * of each other they lock together and the arcs morph into squares, all
+   * four at once, and go green; drag away and they unlock and morph back.
+   *
+   * Once the learner lets go with them locked: a glow runs right round the
+   * shape and leaves a tick on each side, the squares swell, the heading
+   * names the shape, and Swiftee hops down to say so. Then Next. */
+  const rhom       = document.getElementById('rhom');
+  const rhomShape  = document.getElementById('rhomShape');
+  const rhomSvg    = document.getElementById('rhomSvg');
+  const rhomArt    = rhomSvg.querySelector('.art');
+  const rhomLiveG  = document.getElementById('rhomLive');
+  const rhomDiagG  = document.getElementById('rhomDiag');
+  const rhomMarks  = document.getElementById('rhomMarks');
+  const rhomEx     = document.getElementById('rhomEx');
+  const rhomHands  = document.getElementById('rhomHandles');
+  const rhomHint   = document.getElementById('rhomHint');
+  const rhomSay    = document.getElementById('rhomSay');
+  const rhomArea   = document.getElementById('rhomArea');
+  const rhomTray1  = document.getElementById('rhomTray1');
+  const rhomTray2  = document.getElementById('rhomTray2');
+  const rhomChips1 = Array.from(rhomTray1.querySelectorAll('.chip'));
+  const rhomChips2 = Array.from(rhomTray2.querySelectorAll('.chip'));
+  const rhomLines  = document.getElementById('rhomLines');
+  const rhomMascot = document.getElementById('rhomMascot');
+  const rhomText   = document.getElementById('rhomText');
+  const rhomTxt    = rhomText.querySelector('.txt');
+  const rhomCaret  = rhomText.querySelector('.caret');
+
+  const RHOM = {
+    drag:  'Drag the points to make each angle 90 degrees.',
+    sides: 'All four sides are equal in length!',
+    right: 'And the diagonals meet at a right angle (90°).',
+    named: 'A parallelogram with these properties is called a rhombus.',
+    final: [{ t: 'This is the special parallelogram called ' }, { t: 'Rhombus', w: 'rhom' }, { t: '.' }]
+  };
+
+  /* the say line's ghost holds its whole line from the first frame */
+  segSpans(rhomText.querySelector('.type-ghost'), RHOM.final).forEach((el, j) => { el.textContent = RHOM.final[j].t; });
+
+  /* the geometry, in the svg's units: the pinned corner, the slant of the
+     left side as a unit vector, the two lengths the shape opens with, how
+     far each may be dragged, and how close they must come to lock */
+  const RH_BL    = { x: 30, y: 262 };
+  const RH_V     = (() => { const l = Math.hypot(60, 150); return { x: 60 / l, y: -150 / l }; })();
+  const RH_A0    = 250, RH_B0 = 170;
+  const RH_RANGE = { a: [100, 290], b: [100, 258] };
+  const RH_SNAP  = 7;
+  /* the angle marks: the arc's radius, the square's side (its far corner
+     lands about where the arc was) and how many points draw each */
+  const ARC_R = 27, SQ_S = 18, ARC_N = 12;
+  /* the four angles, each named by the two corners it opens toward,
+     clockwise round the crossing */
+  const ANGLES = { top: ['TL', 'TR'], right: ['TR', 'BR'], bottom: ['BR', 'BL'], left: ['BL', 'TL'] };
+  const ANGLE_KEYS = ['top', 'right', 'bottom', 'left'];
+  const RH_ORDER = ['TL', 'TR', 'BR', 'BL'];
+
+  /* what the shape is right now: the two lengths, how far the marks have
+     morphed from arc (0) to square (1), and whether the lengths are locked.
+     `pose` is null while the shape stands as drawn; the area lesson gives it
+     one -- a turn about the crossing of the diagonals, a scale, and where
+     the crossing is put -- and everything is drawn through it. */
+  let rh = { a: RH_A0, b: RH_B0, morph: 0, snapped: false, pose: null };
+  let rhomEls = null;          /* the built pieces, looked up once per build */
+  let rhomLive = false;        /* the points can be dragged */
+  let rhomDone = null;         /* how the activity is finished, while it is live */
+  let rdrag = null;            /* { key, g, off } while a point is held */
+  let hintSignal = null;       /* the hint stops when this is marked done */
+  let morphGen = 0;
+
+  const rhLerp = (p, q, t) => ({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t });
+  const rhUnit = (p, o) => { const l = Math.hypot(p.x - o.x, p.y - o.y) || 1; return { x: (p.x - o.x) / l, y: (p.y - o.y) / l }; };
+  const rhClamp = (v, r) => Math.min(r[1], Math.max(r[0], v));
+
+  /* the four corners and the crossing of the diagonals, from a and b */
+  function rhomPts() {
+    const BL = RH_BL;
+    const BR = { x: BL.x + rh.a, y: BL.y };
+    const TL = { x: BL.x + RH_V.x * rh.b, y: BL.y + RH_V.y * rh.b };
+    const TR = { x: TL.x + rh.a, y: TL.y };
+    const O = { x: (TL.x + BR.x) / 2, y: (TL.y + BR.y) / 2 };
+    if (!rh.pose) return { TL: TL, TR: TR, BR: BR, BL: BL, O: O };
+    const q = rh.pose, c = Math.cos(q.rot), s = Math.sin(q.rot);
+    const tf = p => ({
+      x: q.cx + ((p.x - O.x) * c - (p.y - O.y) * s) * q.scale,
+      y: q.cy + ((p.x - O.x) * s + (p.y - O.y) * c) * q.scale
+    });
+    return { TL: tf(TL), TR: tf(TR), BR: tf(BR), BL: tf(BL), O: { x: q.cx, y: q.cy } };
+  }
+
+  /* One angle at the crossing, as a run of points: along an arc between the
+     two diagonals when morph is 0, along two sides of a small square when it
+     is 1, and part way between for anything else. The same number of points
+     draw both, so one becomes the other point for point. Also hands back the
+     angle's size and the direction of its middle, for the label. */
+  function anglePoints(P, key, morph) {
+    const O = P.O;
+    const d1 = rhUnit(P[ANGLES[key][0]], O), d2 = rhUnit(P[ANGLES[key][1]], O);
+    const f1 = Math.atan2(d1.y, d1.x);
+    let delta = Math.atan2(d2.y, d2.x) - f1;
+    while (delta > Math.PI) delta -= 2 * Math.PI;
+    while (delta < -Math.PI) delta += 2 * Math.PI;
+    const P1 = { x: O.x + d1.x * SQ_S, y: O.y + d1.y * SQ_S };
+    const P2 = { x: O.x + d2.x * SQ_S, y: O.y + d2.y * SQ_S };
+    const C  = { x: O.x + (d1.x + d2.x) * SQ_S, y: O.y + (d1.y + d2.y) * SQ_S };
+    const pts = [];
+    for (let i = 0; i <= ARC_N; i++) {
+      const t = i / ARC_N;
+      const f = f1 + delta * t;
+      const arc = { x: O.x + Math.cos(f) * ARC_R, y: O.y + Math.sin(f) * ARC_R };
+      const sq = t < .5 ? rhLerp(P1, C, t * 2) : rhLerp(C, P2, (t - .5) * 2);
+      pts.push(rhLerp(arc, sq, morph));
+    }
+    return {
+      pts: pts,
+      deg: Math.abs(delta) * 180 / Math.PI,
+      bis: { x: Math.cos(f1 + delta / 2), y: Math.sin(f1 + delta / 2) }
+    };
+  }
+
+  /* everything on the board that depends on a and b, redrawn */
+  function renderRhom() {
+    if (!rhomEls) return;
+    const P = rhomPts();
+    const E = rhomEls;
+    E.fill.setAttribute('points', RH_ORDER.map(k => pt(P[k])).join(' '));
+    E.outline.setAttribute('d', 'M' + RH_ORDER.map(k => fmt(P[k].x) + ' ' + fmt(P[k].y)).join(' L') + ' Z');
+    setLine(E.liveTop, P.TL, P.TR);
+    setLine(E.liveRight, P.TR, P.BR);
+    setLine(E.diag1, P.BL, P.TR);
+    setLine(E.diag2, P.TL, P.BR);
+    ANGLE_KEYS.forEach(k => {
+      const m = anglePoints(P, k, rh.morph);
+      const run = m.pts.map(q => fmt(q.x) + ' ' + fmt(q.y)).join(' L');
+      E.ang[k].stroke.setAttribute('d', 'M' + run);
+      E.ang[k].fill.setAttribute('d', 'M' + fmt(P.O.x) + ' ' + fmt(P.O.y) + ' L' + run + ' Z');
+      const L = { x: P.O.x + m.bis.x * (ARC_R + 16), y: P.O.y + m.bis.y * (ARC_R + 16) };
+      E.ang[k].lbl.setAttribute('x', fmt(L.x));
+      E.ang[k].lbl.setAttribute('y', fmt(L.y));
+      E.ang[k].lbl.textContent = Math.round(m.deg) + '°';
+    });
+    E.handles.TR.setAttribute('transform', 'translate(' + fmt(P.TR.x) + ' ' + fmt(P.TR.y) + ')');
+    E.handles.BR.setAttribute('transform', 'translate(' + fmt(P.BR.x) + ' ' + fmt(P.BR.y) + ')');
+  }
+
+  /* the shape and everything drawn over it, from the opening lengths -- or,
+     with `keep`, from the lengths the learner left it with */
+  function buildRhom(keep) {
+    rh = keep ? { a: rh.a, b: rh.b, morph: rh.morph, snapped: rh.snapped, pose: null }
+              : { a: RH_A0, b: RH_B0, morph: 0, snapped: false, pose: null };
+    rhomLive = false;
+    rhomDone = null;
+    rdrag = null;
+    morphGen++;
+
+    rhomArt.innerHTML =
+      '<polygon class="shape-fill" clip-path="url(#wipeRhom)" points="" />' +
+      '<path class="shape-outline" d="" fill="none" stroke-width="5" />';
+    rhomLiveG.innerHTML = '<line class="live-side" /><line class="live-side" />';
+    rhomDiagG.innerHTML = '<line class="rhom-diag-line" /><line class="rhom-diag-line" />';
+    rhomMarks.innerHTML = ANGLE_KEYS.map(k =>
+      '<g class="ang ang-' + k + '" data-angle="' + k + '">' +
+        '<path class="ang-fill" /><path class="ang-stroke" />' +
+        '<text class="ang-lbl" font-size="12" text-anchor="middle" dominant-baseline="middle"></text>' +
+      '</g>').join('');
+    rhomEx.innerHTML = '';
+    rhomArea.innerHTML = '';
+    /* the hit circle is bigger than the dot it serves */
+    rhomHands.innerHTML = ['TR', 'BR'].map(k =>
+      '<g class="handle" data-h="' + k + '"><circle class="h-ring" r="15" /><circle class="h-dot" r="8" /><circle class="h-hit" r="26" /></g>').join('');
+    rhomHint.classList.remove('on');
+
+    const live = rhomLiveG.querySelectorAll('.live-side');
+    const diag = rhomDiagG.querySelectorAll('.rhom-diag-line');
+    const ang = {};
+    ANGLE_KEYS.forEach(k => {
+      const g = rhomMarks.querySelector('.ang-' + k);
+      ang[k] = { g: g, fill: g.querySelector('.ang-fill'), stroke: g.querySelector('.ang-stroke'), lbl: g.querySelector('.ang-lbl') };
+    });
+    rhomEls = {
+      fill: rhomArt.querySelector('.shape-fill'),
+      outline: rhomArt.querySelector('.shape-outline'),
+      liveTop: live[0], liveRight: live[1],
+      diag1: diag[0], diag2: diag[1],
+      ang: ang,
+      handles: { TR: rhomHands.querySelector('[data-h="TR"]'), BR: rhomHands.querySelector('[data-h="BR"]') }
+    };
+    renderRhom();
+    rhomShape.className = 'rhom-shape';
+  }
+
+  /* a screen position in the rhombus svg's units */
+  function rhomPoint(x, y) {
+    const p = rhomSvg.createSVGPoint();
+    p.x = x; p.y = y;
+    const m = rhomSvg.getScreenCTM();
+    return m ? p.matrixTransform(m.inverse()) : p;
+  }
+
+  /* the lengths lock or unlock: the marks morph between arc and square, all
+     four together, and take or lose their green */
+  function setSnapped(on) {
+    if (rh.snapped === on) return;
+    rh.snapped = on;
+    rhomShape.classList.toggle('square', on);
+    if (on) sfx('click', .5);
+    const g = ++morphGen;
+    const from = rh.morph, to = on ? 1 : 0;
+    tween(380, e => {
+      if (g !== morphGen) return;
+      rh.morph = from + (to - from) * e;
+      renderRhom();
+    }, easeInOut);
+  }
+
+  /* one of the two lengths has been set by a drag: lock it to the other if
+     it is close enough, and redraw */
+  function settle(key) {
+    if (Math.abs(rh.a - rh.b) < RH_SNAP) {
+      if (key === 'a') rh.a = rh.b; else rh.b = rh.a;
+      setSnapped(true);
+    } else {
+      setSnapped(false);
+    }
+    renderRhom();
+  }
+
+  function onHandleDown(e) {
+    if (!interactive || !rhomLive || rdrag) return;
+    if (e.button !== undefined && e.button !== 0) return;
+    e.preventDefault();
+    const g = e.currentTarget;
+    const key = g.dataset.h;
+    const P = rhomPts();
+    const q = rhomPoint(e.clientX, e.clientY);
+    /* the point is held where it was touched, not by its centre */
+    rdrag = { key: key, g: g, off: { x: q.x - P[key].x, y: q.y - P[key].y } };
+    g.classList.add('grab');
+    /* the learner has taken hold: the hint has done its job */
+    if (hintSignal) hintSignal.done = true;
+    rhomHint.classList.remove('on');
+    sfx('click', .4);
+    window.addEventListener('pointermove', onHandleMove);
+    window.addEventListener('pointerup', onHandleUp);
+    window.addEventListener('pointercancel', onHandleUp);
+  }
+
+  function onHandleMove(e) {
+    if (!rdrag) return;
+    const q = rhomPoint(e.clientX, e.clientY);
+    const x = q.x - rdrag.off.x, y = q.y - rdrag.off.y;
+    if (rdrag.key === 'BR') {
+      /* the right side slides left and right: the top and bottom change length */
+      rh.a = rhClamp(x - RH_BL.x, RH_RANGE.a);
+      settle('a');
+    } else {
+      /* the top side slides up and down its slant: the left and right change length */
+      const P = rhomPts();
+      const t = (x - P.BR.x) * RH_V.x + (y - P.BR.y) * RH_V.y;
+      rh.b = rhClamp(t, RH_RANGE.b);
+      settle('b');
+    }
+  }
+
+  function onHandleUp() {
+    if (!rdrag) return;
+    window.removeEventListener('pointermove', onHandleMove);
+    window.removeEventListener('pointerup', onHandleUp);
+    window.removeEventListener('pointercancel', onHandleUp);
+    rdrag.g.classList.remove('grab');
+    rdrag = null;
+    /* let go with the lengths locked: the shape is a rhombus */
+    if (rh.snapped && rhomDone) rhomDone(false);
+  }
+
+  /* the hint: a finger takes hold of the right-hand point and nudges it to
+     the left and back, twice, unless the learner takes hold first */
+  async function hintRhom(signal) {
+    const S = 1.5;                                  /* the hand's scale */
+    const at = (x, y) => rhomHint.setAttribute('transform',
+      'translate(' + fmt(x - 11.5 * S) + ' ' + fmt(y - 3 * S) + ') scale(' + S + ')');
+    await wait(900);
+    for (let pass = 0; pass < 2 && !signal.done; pass++) {
+      const P = rhomPts();
+      const x0 = P.BR.x, y0 = P.BR.y + 4;           /* the fingertip on the point */
+      at(x0, y0);
+      rhomHint.classList.add('on');
+      await wait(320);
+      if (signal.done) break;
+      await tween(1100, e => at(x0 - 48 * Math.sin(e * Math.PI), y0), easeInOut);
+      await wait(200);
+    }
+    rhomHint.classList.remove('on');
+  }
+
+  /* The drag activity. Resolves once the learner lets go with the lengths
+     locked; a skip slides the right side across itself. Registered with the
+     scene's own waiters, so a replay can let go of it. */
+  function awaitRhombus() {
+    return waitForScene(resolve => {
+      const handles = Array.from(rhomHands.querySelectorAll('.handle'));
+      const finish = auto => {
+        if (!rhomLive) return;
+        rhomLive = false;
+        rhomDone = null;
+        skipFills.delete(fill);
+        lockInput(true);
+        if (hintSignal) hintSignal.done = true;
+        rhomHint.classList.remove('on');
+        handles.forEach(h => h.removeEventListener('pointerdown', onHandleDown));
+        rhomShape.classList.remove('live');
+        rhomShape.classList.add('done');
+        sfx('correct', auto ? .55 : 1);
+        if (!auto) swiftee.play('happy', 1);
+        resolve();
+      };
+      const fill = async () => {
+        if (!rhomLive) return;
+        if (rdrag) onHandleUp();
+        const from = rh.a, to = rh.b;
+        await tween(700, e => { rh.a = from + (to - from) * e; renderRhom(); }, easeInOut);
+        setSnapped(true);
+        finish(true);
+      };
+      rhomLive = true;
+      rhomDone = finish;
+      skipFills.add(fill);
+      handles.forEach(h => h.addEventListener('pointerdown', onHandleDown));
+      lockInput(false);
+    });
+  }
+
+  /* the sides are shown equal: a glow runs right round the shape from the
+     pinned corner, and as it passes the middle of each side a tick lands
+     there; then the outline glows as a whole and the glow fades */
+  async function sweepSides() {
+    const P = rhomPts();
+    const order = ['BL', 'TL', 'TR', 'BR'];
+    let ex = '<path class="rhom-sweep" d="M' + order.map(k => fmt(P[k].x) + ' ' + fmt(P[k].y)).join(' L') + ' Z" />';
+    order.forEach((k, i) => {
+      const A = P[k], B = P[order[(i + 1) % 4]];
+      const u = rhUnit(B, A), n = { x: -u.y, y: u.x };
+      const C = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 }, t = 10;
+      const d = 'M' + fmt(C.x + n.x * t) + ' ' + fmt(C.y + n.y * t) + ' L' + fmt(C.x - n.x * t) + ' ' + fmt(C.y - n.y * t);
+      ex += '<g class="eq-mark"><path class="halo" d="' + d + '" /><path class="ink" d="' + d + '" /></g>';
+    });
+    rhomEx.innerHTML = ex;
+    const sweep = rhomEx.querySelector('.rhom-sweep');
+    const ticks = Array.from(rhomEx.querySelectorAll('.eq-mark'));
+    let total = 1000;
+    try { total = sweep.getTotalLength() || total; } catch (e) { /* keep guard */ }
+    sweep.style.strokeDasharray = total;
+    sweep.style.strokeDashoffset = total;
+    sweep.classList.add('on');
+    let landed = 0;
+    await tween(2200, e => {
+      sweep.style.strokeDashoffset = total * (1 - e);
+      while (landed < ticks.length && e >= (landed + .5) / ticks.length) {
+        ticks[landed].classList.add('on');
+        sfx('click', .3);
+        landed++;
+      }
+    }, easeInOut);
+    ticks.forEach(t => t.classList.add('on'));
+    rhomShape.classList.add('equal');
+    await wait(REDUCED ? 200 : 700);
+    sweep.classList.remove('on');
+    await wait(500);
+  }
+
+  async function rhombusSection() {
+    lockInput(true);
+    sceneStart(rhombusSection);
+    const mine = runToken;
+
+    /* 1. the aside ends: the bubble pops away and Swiftee drops out of the
+          frame, as it did before the board first arrived */
+    bubble.classList.add('out');
+    bubble.classList.remove('show');
+    await wait(300);
+    await introExit();
+    intro.classList.remove('on', 'aside');
+
+    /* the board comes back blank: the parallelogram scenes are cleared off
+       it while it is still invisible, and the heading's ghost takes the
+       longest line of this scene while there is nothing on the board to move */
+    board.classList.add('sec5');
+    promptGhost.textContent = longest([RHOM.drag, RHOM.sides, RHOM.right, RHOM.named]);
+    buildRhom();
+    await wait(200);
+    await showBoard();
+    await wait(300);
+
+    /* 2. the parallelogram: outline first, then the colour. The outline is
+          about to change shape under the learner's hand, so the dash the
+          reveal drew it with is lifted -- a dash sized to the old perimeter
+          would open a gap in the new one. */
+    rhom.classList.add('on');
+    rhom.setAttribute('aria-hidden', 'false');
+    await wait(120);
+    await revealShape(rhomShape);
+    rhomEls.outline.style.strokeDasharray = 'none';
+    rhomEls.outline.style.strokeDashoffset = '0';
+    await wait(500);
+
+    /* 3. the diagonals, corner to corner; then the obtuse angle takes its
+          arc, then the other three, and each is labelled with its size */
+    await growLine(rhomEls.diag1, 720);
+    await wait(140);
+    await growLine(rhomEls.diag2, 720);
+    await wait(420);
+    rhomEls.ang.top.g.classList.add('show');
+    sfx('click', .4);
+    await wait(REDUCED ? 300 : 1000);
+    for (const k of ['right', 'bottom', 'left']) {
+      rhomEls.ang[k].g.classList.add('show');
+      sfx('click', .3);
+      await wait(180);
+    }
+    await wait(420);
+    rhomShape.classList.add('degrees');
+    await wait(REDUCED ? 300 : 900);
+
+    /* 4. Swiftee jumps up from behind the board to the heading; the two
+          sides light up with their points, and the learner is asked to
+          make the angles right angles. A finger shows the first nudge. */
+    await mascotJumpIn();
+    await wait(260);
+    rhomShape.classList.add('live');
+    await wait(300);
+    await heading(RHOM.drag);
+    /* the finger shows the first nudge once the learner is free to move,
+       and stands down the moment they take hold themselves */
+    hintSignal = { done: false };
+    hintRhom(hintSignal);
+    await awaitRhombus();
+    /* A replay (or Back) lets go of the wait above too, having already
+       retired this run of the scene -- so a wait() from here on would take
+       the fresh token as its own and carry on. The retired frame unwinds
+       here instead, before it can start the celebration on the fresh scene. */
+    if (mine !== runToken) throw CANCELLED;
+
+    /* 5. a rhombus: "Well Done!", confetti, and Swiftee is proud */
+    feedback(FEEDBACK.done);
+    swiftee.play('proud', 1);
+    skyConfetti(100, 3000);
+    sfx('confetti', .7);
+    await wait(2200);
+
+    /* 6. the showcase: the rhombus settles to one size in the middle of
+          the board, whichever point made it; then the sides are shown
+          equal, the right angles are pointed at, and the shape is named */
+    feedbackGen++;
+    rhomShape.classList.add('clean');
+    await wait(300);
+    await poseTo(settledPose(0), 1100);
+    await wait(300);
+    let say = heading(RHOM.sides);
+    await wait(300);
+    await sweepSides();
+    await say;
+    await wait(700);
+    say = heading(RHOM.right);
+    await wait(500);
+    rhomShape.classList.remove('pulse-sq');
+    void rhomShape.offsetWidth;
+    rhomShape.classList.add('pulse-sq');
+    sfx('click', .45);
+    await say;
+    await wait(1100);
+    await heading(RHOM.named);
+    await wait(1400);
+
+    /* 7. Swiftee hops down beside the shape and says so */
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    rhomSay.classList.add('show');
+    await hopBetween(boardMascot, rhomMascot);
+    await wait(240);
+    swiftee.hold('talking');
+    await typeSegments(rhomTxt, rhomCaret, RHOM.final, TYPE_MS, 320, null);
+    swiftee.release();
+    await wait(300);
+    swiftee.play('happy', 1);
+    await wait(1400);
+
+    /* 8. the activity is complete: Next */
+    await showNext();
+    await rhombusArea();
+  }
+
+  /* ---------- the area of the rhombus ----------
+   * The same rhombus the learner made, carried on with. Swiftee ducks
+   * behind the board and the shape turns about the crossing of its
+   * diagonals until the long one lies flat, growing or shrinking to one
+   * size on the way, so whatever rhombus was made the lesson is laid out
+   * the same. The long diagonal is drawn as d1 and the short one as d2,
+   * with the right angle between them marked, and Swiftee jumps up to the
+   * heading. Then d2 leaves: the lower half shades green and its height --
+   * half of d2 -- drops from the crossing, and the learner picks its area
+   * from two formulas; the upper half in purple, with its own height, and
+   * the same question. Then the shape moves left and the working types out
+   * beside it: the two triangles, and the rhombus as their sum. */
+  const RHOM2 = {
+    here:   'Here, is a Rhombus.',
+    askG:   'Choose the correct area of the green triangle.',
+    rightG: 'That’s Correct! Area of the green triangle = ½ × d₁ × h₁.',
+    askP:   'Choose the correct area of the purple triangle.',
+    rightP: 'That’s Correct! Area of the purple triangle = ½ × d₁ × h₂.',
+    sum:    'Let’s find the area of the whole rhombus.'
+  };
+  const RHOM_D1 = 330;                    /* how long the long diagonal is shown, once settled */
+  const RHOM_CENTRE = { x: 220, y: 148 }; /* where the crossing is put: the middle of the viewBox */
+
+  /* the long diagonal (bottom-left to top-right) as the shape stands, before
+     any pose */
+  function rawDiag() {
+    return { dx: rh.a + RH_V.x * rh.b, dy: RH_V.y * rh.b };
+  }
+
+  /* the pose that shows the shape at one size in the middle of the board,
+     turned by `rot` */
+  function settledPose(rot) {
+    const d = rawDiag();
+    return { rot: rot || 0, scale: RHOM_D1 / Math.hypot(d.dx, d.dy), cx: RHOM_CENTRE.x, cy: RHOM_CENTRE.y };
+  }
+
+  /* glide from the pose the shape has to another */
+  async function poseTo(target, ms) {
+    let from = rh.pose;
+    if (!from) { const O = rhomPts().O; from = { rot: 0, scale: 1, cx: O.x, cy: O.y }; }
+    await tween(ms, e => {
+      rh.pose = {
+        rot:   from.rot   + (target.rot   - from.rot)   * e,
+        scale: from.scale + (target.scale - from.scale) * e,
+        cx:    from.cx    + (target.cx    - from.cx)    * e,
+        cy:    from.cy    + (target.cy    - from.cy)    * e
+      };
+      renderRhom();
+    }, easeInOut);
+  }
+
+  /* the working: every word that names a part of the drawing is its own
+     span, so it lights up -- and lights the part it names -- as it lands */
+  const RHOM_LINES = [
+    [{ t: 'Area of ' }, { t: 'Green Triangle', w: 'green' },  { t: ' = ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × ' }, { t: 'h₁', w: 'h1' }],
+    [{ t: 'Area of ' }, { t: 'Purple Triangle', w: 'purple' }, { t: ' = ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × ' }, { t: 'h₂', w: 'h2' }],
+    [{ t: 'Area of ' }, { t: 'Rhombus', w: 'rhom' }, { t: ' = Area of ' }, { t: 'Green Triangle', w: 'green' }, { t: ' + Area of ' }, { t: 'Purple Triangle', w: 'purple' }],
+    [{ t: 'Area of ' }, { t: 'Rhombus', w: 'rhom' }, { t: ' = ½ × d₁ × h₁ + ½ × d₁ × h₂' }]
+  ];
+
+  const areaEl = cls => rhomArea.querySelector('.' + cls);
+
+  /* the lesson's marks, laid over the tilted shape: the diagonals with their
+     names, a right angle in the upper-right corner of the crossing and one in
+     the lower-right, and the two heights with theirs. The halves of the
+     shape go into the art, under the outline. */
+  function buildRhomArea() {
+    const P = rhomPts();
+    const O = P.O, M = 12;
+    const ln = (cls, a, b) => '<line class="' + cls + '" x1="' + fmt(a.x) + '" y1="' + fmt(a.y) + '" x2="' + fmt(b.x) + '" y2="' + fmt(b.y) + '" />';
+    const lbl = (cls, x, y, anchor, text) => '<text class="rd-lbl ' + cls + '" x="' + fmt(x) + '" y="' + fmt(y) + '" font-size="17" text-anchor="' + anchor + '" dominant-baseline="middle">' + text + '</text>';
+    rhomArea.innerHTML =
+      ln('rd rd-d1', P.BL, P.TR) +
+      ln('rd rd-d2', P.BR, P.TL) +
+      ln('rd rd-h rd-h1', O, P.BR) +
+      ln('rd rd-h rd-h2', O, P.TL) +
+      '<path class="rmark mark-up" d="M' + fmt(O.x) + ' ' + fmt(O.y - M) + ' H' + fmt(O.x + M) + ' V' + fmt(O.y) + '" />' +
+      '<path class="rmark mark-down" d="M' + fmt(O.x) + ' ' + fmt(O.y + M) + ' H' + fmt(O.x + M) + ' V' + fmt(O.y) + '" />' +
+      lbl('lbl-d1', O.x - 62, O.y + 18, 'middle', 'd₁') +
+      lbl('lbl-d2', O.x + 14, (O.y + P.TL.y) / 2, 'start', 'd₂') +
+      lbl('lbl-h lbl-h1', O.x + 14, (O.y + P.BR.y) / 2, 'start', 'h₁') +
+      lbl('lbl-h lbl-h2', O.x + 14, (O.y + P.TL.y) / 2, 'start', 'h₂');
+
+    const outline = rhomEls.outline;
+    const half = (cls, a, b, c) => {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      el.setAttribute('class', 'tri-fill ' + cls);
+      el.setAttribute('points', pt(a) + ' ' + pt(b) + ' ' + pt(c));
+      outline.parentNode.insertBefore(el, outline);
+    };
+    half('c-green rt-green',   P.BL, P.BR, P.TR);
+    half('c-purple rt-purple', P.BL, P.TL, P.TR);
+  }
+
+  /* the diagonal, or a height, grows along its line and takes its name */
+  async function drawDiag(cls, label, ms) {
+    await growLine(areaEl(cls), ms || 700);
+    areaEl(label).classList.add('on');
+    sfx('click', .35);
+    await wait(REDUCED ? 160 : 480);
+  }
+
+  /* a key word of the working lands: light what it names */
+  function onRhomWord(w) {
+    if (w === 'green' || w === 'purple') { pulseTri(rhomShape, w); return; }
+    if (w === 'd1' || w === 'h1' || w === 'h2') { rhomShape.classList.add('lit-' + w); return; }
+    /* the whole shape: both halves swell and the outline glows */
+    pulseTri(rhomShape, 'purple');
+    pulseTri(rhomShape, 'green');
+    rhomShape.classList.remove('lit-quad');
+    void rhomShape.offsetWidth;
+    rhomShape.classList.add('lit-quad');
+  }
+
+  /* the shape turns about the crossing of its diagonals until the long one
+     lies flat, is brought to one size, and is put in the middle */
+  async function tiltRhom() {
+    const d = rawDiag();
+    await poseTo(settledPose(-Math.atan2(d.dy, d.dx)), 1600);
+  }
+
+  async function rhombusArea() {
+    lockInput(true);
+    sceneStart(rhombusArea);
+    const mine = runToken;
+    promptGhost.textContent = longest(Object.keys(RHOM2).map(k => RHOM2[k]));
+
+    /* 1. the last scene clears: Swiftee ducks behind the board from beside
+          the shape, its line goes, and the shape stands alone */
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    rhom.classList.remove('wide');
+    rhomLines.textContent = '';
+    /* a replay has taken the built shape away: it is built again from the
+       lengths the learner left it with, already revealed */
+    if (!rhomEls || !rhomArt.contains(rhomEls.outline)) {
+      buildRhom(true);
+      rhomEls.fill.style.opacity = 1;
+      rhomEls.outline.style.strokeDasharray = 'none';
+      rhomEls.outline.style.strokeDashoffset = '0';
+      rhomEls.diag1.style.opacity = 1;
+      rhomEls.diag2.style.opacity = 1;
+      rhomShape.classList.add('square', 'done', 'clean');
+      ANGLE_KEYS.forEach(k => rhomEls.ang[k].g.classList.add('show'));
+      rh.pose = settledPose(0);
+      renderRhom();
+    } else {
+      rhomArea.innerHTML = '';
+      rhomArt.querySelectorAll('.tri-fill').forEach(el => el.remove());
+      renderRhom();
+    }
+    if (rhomMascot.classList.contains('in')) await mascotJumpOut(rhomMascot);
+    rhomSay.classList.remove('show');
+    await wait(500);
+
+    /* 2. the tilt: the marks of the last scene fade as the shape turns */
+    rhomShape.classList.add('tilt');
+    rhomEls.diag1.style.opacity = '';
+    rhomEls.diag2.style.opacity = '';
+    await wait(200);
+    await tiltRhom();
+    await wait(400);
+
+    /* 3. d1 along the flat diagonal, d2 up the other, the right angle
+          between them; Swiftee jumps up and names the shape */
+    buildRhomArea();
+    await drawDiag('rd-d1', 'lbl-d1', 760);
+    await drawDiag('rd-d2', 'lbl-d2', 620);
+    areaEl('mark-up').classList.add('on');
+    sfx('click', .4);
+    await wait(REDUCED ? 200 : 700);
+    await mascotJumpIn();
+    await wait(240);
+    await heading(RHOM2.here);
+    await wait(1400);
+
+    /* 4. d2 leaves; the lower half shades green and its height drops from
+          the crossing; which formula is its area? */
+    areaEl('rd-d2').style.opacity = '';
+    areaEl('lbl-d2').classList.remove('on');
+    areaEl('mark-up').classList.remove('on');
+    await wait(560);
+    rhomShape.classList.add('fill-green');
+    pulseTri(rhomShape, 'green');
+    await wait(700);
+    await drawDiag('rd-h1', 'lbl-h1', 560);
+    areaEl('mark-down').classList.add('on');
+    await wait(400);
+    await dealChips(rhomChips1);
+    await wait(200);
+    await heading(RHOM2.askG);
+    await askChips(rhomChips1, 'half');
+    if (mine !== runToken) throw CANCELLED;
+    await heading(RHOM2.rightG);
+    await wait(1600);
+
+    /* 5. the green steps back; the upper half shades purple with its own
+          height, and the same question */
+    rhomTray1.classList.add('off');
+    rhomShape.classList.add('quiet-green');
+    areaEl('mark-down').classList.remove('on');
+    areaEl('rd-h1').style.opacity = '';
+    areaEl('lbl-h1').classList.remove('on');
+    await wait(560);
+    rhomShape.classList.add('fill-purple');
+    pulseTri(rhomShape, 'purple');
+    await wait(700);
+    await drawDiag('rd-h2', 'lbl-h2', 560);
+    areaEl('mark-up').classList.add('on');
+    await wait(400);
+    await dealChips(rhomChips2);
+    await wait(200);
+    await heading(RHOM2.askP);
+    await askChips(rhomChips2, 'half');
+    if (mine !== runToken) throw CANCELLED;
+    await heading(RHOM2.rightP);
+    swiftee.play('happy', 1);
+    await wait(1800);
+    await showNext();
+    await rhombusSum();
+  }
+
+  /* ---- the sum ----
+     Its own function so that it, like every other scene, has a re-entry
+     point Replay can call. The chips go, both halves come fully on with
+     both heights, the shape moves to the left, and the working types out
+     on the right. */
+  async function rhombusSum() {
+    lockInput(true);
+    sceneStart(rhombusSum);
+    promptGhost.textContent = longest(Object.keys(RHOM2).map(k => RHOM2[k]));
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+
+    /* a replay comes back to a bare shape: everything the lesson drew is put
+       back as it stood at the hand-off */
+    if (!rhomEls || !rhomArt.contains(rhomEls.outline) || !rhomArea.firstChild) {
+      if (!rhomEls || !rhomArt.contains(rhomEls.outline)) {
+        buildRhom(true);
+        rhomEls.fill.style.opacity = 1;
+        rhomEls.outline.style.strokeDasharray = 'none';
+        rhomEls.outline.style.strokeDashoffset = '0';
+      }
+      const d = rawDiag();
+      rh.pose = settledPose(-Math.atan2(d.dy, d.dx));
+      renderRhom();
+      rhomShape.classList.add('tilt', 'done', 'clean');
+      buildRhomArea();
+      ['rd-d1', 'rd-h2'].forEach(c => { areaEl(c).style.opacity = 1; });
+      ['lbl-d1', 'lbl-h2', 'mark-up'].forEach(c => areaEl(c).classList.add('on'));
+      rhomShape.classList.add('fill-green', 'quiet-green', 'fill-purple');
+      if (!rhomMascot.classList.contains('in') && !boardMascot.classList.contains('in')) boardMascot.classList.add('in');
+    }
+    rhomTray2.classList.add('off');
+    rhom.classList.remove('wide');
+    rhomLines.textContent = '';
+    rhomLines.classList.remove('off');
+    await wait(460);
+
+    /* 1. both halves fully on, both heights in */
+    rhomShape.classList.remove('quiet-green');
+    await drawDiag('rd-h1', 'lbl-h1', 520);
+    areaEl('mark-down').classList.add('on');
+    await heading(RHOM2.sum);
+    await wait(600);
+
+    /* 2. the shape moves to the left, and the working follows on the right:
+          each triangle, and the rhombus as the two together */
+    await layoutWide(rhom, rhomSvg);
+    await wait(300);
+    await showTypedLine(RHOM_LINES[0], rhomLines, onRhomWord);
+    await wait(760);
+    await showTypedLine(RHOM_LINES[1], rhomLines, onRhomWord);
+    await wait(760);
+    await showTypedLine(RHOM_LINES[2], rhomLines, onRhomWord);
+    await wait(760);
+    await showTypedLine(RHOM_LINES[3], rhomLines, onRhomWord);
+    feedback(FEEDBACK.done);
+    swiftee.play('proud', 1);
+    skyConfetti(120, 3200);
+    sfx('confetti', .8);
+    await wait(2600);
+    await showNext();
+    /* the next screens continue here */
   }
 
   async function introScene() {
