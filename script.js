@@ -1,10 +1,10 @@
-/* Shape Docking Bay.
+/* Spacecraft Mission Learning.
  *
  * Opening, once:
- *   0. Swiftee jumps up into the middle of the landscape and greets the learner
+ *   0. Swiftee jumps up into the middle of the landscape, greets the learner
  *      from a speech bubble ("Hey there", then "Let's do a quick warm-up!"),
- *      jumps to its place beside the board's heading, and the board fades in
- *      behind it
+ *      and jumps away off the bottom of the screen; the board fades in, and
+ *      Swiftee jumps up from behind it to its place beside the heading
  *   0b. each shape draws its own outline, then the colour pours in, and the
  *      heading types "Here are a few common shapes."
  *
@@ -14,8 +14,10 @@
  *   3. the prompt types itself out in step with the voice-over -- Swiftee
  *      talking along with it -- while a half-transparent chip demonstrates
  *      the drag; the screen is dead to input the whole time
- *   4. the voice-over ends, the prompt stays put, play begins
- *   5. all three docked -> confetti from the sky, then the next round
+ *   4. the voice-over ends, the prompt stays put, play begins; every drop is
+ *      answered in the heading ("That's Correct" / "Try again")
+ *   5. all three docked -> "Well Done!", confetti from the sky, then the next
+ *      round
  *
  * Round 2 also coaches: one wrong drop labels the sides of every shape, a
  * second wrong drop concedes and flies the formulas into place itself.
@@ -102,10 +104,11 @@
     .filter(Boolean);
 
   /* ---------- Swiftee ----------
-   * One player driving the welcome cut-out, the intro's centre-stage bird and
-   * the board's corner; at most one is visible at a time, so they can share a
-   * clock -- and the moment two overlap (the hand-off to the corner) they are
-   * painting the very same frame.
+   * One player driving the welcome cut-out, the intro's centre-stage bird, the
+   * bird beside the board's heading and the hopper that stands in for it
+   * behind the board; at most one is visible at a time, so they can share a
+   * clock -- and the moment two swap (the top of the jump) they are painting
+   * the very same frame.
    *
    * Every sheet is a uniform grid whose frames all pivot on the cell centre,
    * which is what lets one expression cut to another without the character
@@ -117,7 +120,7 @@
    * swiftee-sheets.js, generated from the pipeline's manifest. */
   const swiftee = (function () {
     const S = window.SWIFTEE;
-    const nodes = ['mascot', 'welcomeMascot', 'introMascot']
+    const nodes = ['mascot', 'welcomeMascot', 'introMascot', 'hopper']
       .map(id => document.getElementById(id))
       .filter(Boolean);
 
@@ -384,6 +387,33 @@
   }
   const typewrite = (text, totalMs) => typeInto(promptTxt, caret, text, totalMs);
 
+  /* ---------- feedback in the heading ----------
+   * Swiftee's reaction to a drop, typed where the instruction was: a quick
+   * "That's Correct" or "Try again", and "Well Done!" when the last block
+   * lands. A drop that comes in while an earlier line is still typing takes
+   * the heading over from it, and a new briefing does the same. */
+  const FEEDBACK = {
+    right: 'That’s Correct',
+    wrong: 'Try again',
+    done:  'Well Done!'
+  };
+  const FEEDBACK_MS = 45;            /* per character: snappier than a briefing */
+  let feedbackGen = 0;
+
+  async function feedback(text) {
+    const gen = ++feedbackGen;
+    promptTxt.textContent = '';
+    caret.hidden = false;
+    const t0 = performance.now();
+    for (let i = 0; i < text.length; i++) {
+      if (gen !== feedbackGen) return;               /* superseded */
+      promptTxt.textContent = text.slice(0, i + 1);
+      const left = t0 + (i + 1) * FEEDBACK_MS - performance.now();
+      if (left > 0) await wait(left);
+    }
+    if (gen === feedbackGen) caret.hidden = true;
+  }
+
   /* ---------- the ghost chip that demonstrates the drag ---------- */
   function demoDrag(signal) {
     const slot = roundSlots[0];
@@ -445,6 +475,7 @@
   async function briefing(spec) {
     const vo = spec.audio;
 
+    feedbackGen++;                  /* a feedback line still typing stops here */
     promptTxt.textContent = '';
     caret.hidden = true;
     prompt.classList.add('show');
@@ -750,6 +781,7 @@
     /* ---- wrong block: red shake + buzzer, the chip stays in the tray ---- */
     if (slot.dataset.accept !== chip.dataset.word) {
       sfx('wrong');
+      feedback(FEEDBACK.wrong);
       slot.classList.add('reject');
       chip.classList.add('reject');
       setTimeout(() => {
@@ -776,9 +808,9 @@
     /* ---- right block: dock it, chime, confetti out of the chip ---- */
     dock(chip, slot, true);
 
-    if (roundSlots.every(s => s.classList.contains('filled'))) {
-      setTimeout(finishRound, 420);
-    }
+    const done = roundSlots.every(s => s.classList.contains('filled'));
+    feedback(done ? FEEDBACK.done : FEEDBACK.right);
+    if (done) setTimeout(finishRound, 420);
     return true;
   }
 
@@ -1001,9 +1033,9 @@
   /* ---------- intro: Swiftee's greeting ----------
    * Swiftee jumps up into the middle of the landscape, waves, and
    * says two lines from a speech bubble, each typed out. Then the bubble pops
-   * away, the bird jumps to its place to the left of the board's heading --
-   * shrinking to exactly that sprite's box on the way -- and the board fades
-   * up around it. */
+   * away, the bird jumps off the bottom of the screen, the board fades up, and
+   * the bird jumps back in from behind the board to its place to the left of
+   * the heading. */
   const intro       = document.getElementById('intro');
   const introMascot = document.getElementById('introMascot');
   const bubble      = document.getElementById('bubble');
@@ -1011,7 +1043,8 @@
   const bubbleType  = document.getElementById('bubbleType');
   const bubbleTxt   = bubbleType.querySelector('.txt');
   const bubbleCaret = bubbleType.querySelector('.caret');
-  const cornerMascot = document.getElementById('mascot');
+  const boardMascot = document.getElementById('mascot');
+  const hopper      = document.getElementById('hopper');
 
   const GREETING = ['Hey there', 'Let’s do a quick warm-up!'];
   const TYPE_MS  = 72;              /* per character, no voice-over to pace against */
@@ -1090,39 +1123,69 @@
     await typeInto(bubbleTxt, bubbleCaret, text, text.length * TYPE_MS);
   }
 
-  /* Swiftee leaves centre stage for its spot beside the heading: the same FLIP
-     as a chip docking, from this sprite's box to the board sprite's. Both boxes
-     are painted by one player, so at touchdown the swap is invisible. */
-  async function flyToCorner() {
-    const from = introMascot.getBoundingClientRect();
-    const to   = cornerMascot.getBoundingClientRect();
-    if (!from.width || !to.width || REDUCED) return;
+  /* Swiftee leaves centre stage: a crouch, a spring, and a drop straight out
+     of the bottom of the frame. */
+  async function introExit() {
+    const r = introMascot.getBoundingClientRect();
+    if (!r.width || REDUCED) return;
+    const drop = window.innerHeight - r.top + 40;      /* clear of the bottom edge */
 
-    const dx = to.left - from.left;
-    const dy = to.top  - from.top;
-    const s  = to.width / from.width;
-
-    introMascot.style.transformOrigin = 'top left';
     const a = introMascot.animate([
-      { transform: 'translate(0px, 0px) scale(1)' },
-      { transform: 'translate(' + (dx * .5) + 'px,' + (dy * .5 - 70) + 'px) scale(' + ((1 + s) / 2) + ')', offset: .55 },
-      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + s + ')' }
-    ], { duration: 820, easing: 'cubic-bezier(.35, .05, .25, 1)', fill: 'forwards' });
-
-    /* the board starts fading up while the bird is still on approach, so it
-       is there to land on */
-    setTimeout(showBoard, 420);
+      { transform: 'translate(0, 0)', easing: 'ease-in' },
+      { transform: 'translate(0, 5%) scale(1.06, .92)', offset: .2, easing: 'cubic-bezier(.2, .6, .35, 1)' },
+      { transform: 'translate(0, -30%) scale(1)', offset: .52, easing: 'cubic-bezier(.45, 0, .85, .5)' },
+      { transform: 'translate(0, ' + drop + 'px) scale(1)' }
+    ], { duration: 980, fill: 'forwards' });
     try { await a.finished; } catch (e) { /* cancelled */ }
   }
 
-  function showBoard() {
+  async function showBoard() {
     if (board.classList.contains('show')) return;
     board.classList.add('show');
-    if (REDUCED) return;
-    board.animate([
+    if (REDUCED) return wait(500);
+    const a = board.animate([
       { transform: 'translateY(26px) scale(.955)', opacity: 0 },
       { transform: 'none', opacity: 1 }
     ], { duration: 640, easing: 'cubic-bezier(.2, .9, .3, 1.15)' });
+    try { await a.finished; } catch (e) { /* cancelled */ }
+  }
+
+  /* Swiftee arrives on the board by jumping up from behind it and dropping
+     onto its spot to the left of the heading.
+     Two sprites share the jump: the hopper, painted under the board, does the
+     rising half that starts hidden behind the board's top edge, and the
+     in-board sprite does the falling half over it. They swap at the top of the
+     arc, where both are fully clear of the board, and since one player paints
+     both, the cut is invisible. */
+  async function mascotJumpIn() {
+    const m = boardMascot.getBoundingClientRect();     /* its spot on the board */
+    const b = board.getBoundingClientRect();
+    if (!m.width || REDUCED) { boardMascot.classList.add('in'); return; }
+
+    const apexTop = b.top - m.height * .9 - 8;         /* the whole bird above the edge */
+    const hideTop = b.top + 14;                        /* tucked just under it, covered */
+
+    /* up from behind the board to the apex... */
+    Object.assign(hopper.style, {
+      left: m.left + 'px', top: hideTop + 'px', width: m.width + 'px', height: m.height + 'px'
+    });
+    hopper.classList.add('on');
+    const rise = hopper.animate(
+      [{ transform: 'translateY(0)' }, { transform: 'translateY(' + (apexTop - hideTop) + 'px)' }],
+      { duration: 380, easing: 'cubic-bezier(.2, .6, .35, 1)', fill: 'forwards' }
+    );
+    try { await rise.finished; } catch (e) {}
+
+    /* ...hand over, and drop onto the spot with a little squash */
+    boardMascot.classList.add('in');
+    hopper.classList.remove('on');
+    rise.cancel();
+    const fall = boardMascot.animate([
+      { transform: 'translateY(' + (apexTop - m.top) + 'px)', easing: 'cubic-bezier(.45, 0, .85, .5)' },
+      { transform: 'translateY(0) scale(1.06, .92)', offset: .8, easing: 'ease-out' },
+      { transform: 'none' }
+    ], { duration: 440 });
+    try { await fall.finished; } catch (e) {}
   }
 
   async function introScene() {
@@ -1151,11 +1214,14 @@
     bubble.classList.remove('show');
     await wait(300);
 
-    await flyToCorner();
-    showBoard();                         /* reduced motion skips the flight */
-
+    await introExit();
     intro.classList.remove('on');
-    await wait(REDUCED ? 500 : 260);
+
+    /* the board arrives, and Swiftee jumps up from behind it to its spot */
+    await showBoard();
+    await wait(160);
+    await mascotJumpIn();
+    await wait(220);
   }
 
   /* ---------- go ---------- */

@@ -179,7 +179,7 @@ body {
 
   /* Laid out from the first frame but invisible until Swiftee's greeting is
      over; script.js animates it in. Opacity only -- a transform here would
-     shift the spot beside the heading that the intro Swiftee flies to. */
+     shift the spot beside the heading that Swiftee jumps to. */
   opacity: 0;
   transition: opacity .5s ease;
 }
@@ -584,10 +584,28 @@ body {
   background-position: var(--sw-pos);
   filter: drop-shadow(0 5px 8px var(--shadow-soft));
 
+  /* no fade: it arrives by jumping, and the hand-off from the hopper below
+     has to be a hard cut on the very same frame */
   opacity: 0;
-  transition: opacity .45s ease;
 }
-.mascot.show { opacity: 1; }
+.mascot.in { opacity: 1; }
+
+/* The hopper: the same sprite, fixed to the screen and painted under the
+   board (it comes before the stage in the document). It does the rising half
+   of the jump in, which starts hidden behind the board. script.js sizes and
+   places it from the in-board sprite's box. */
+.hopper {
+  position: fixed;
+  display: none;
+  pointer-events: none;
+  background-image: var(--sw-img);
+  background-repeat: no-repeat;
+  background-size: var(--sw-size);
+  background-position: var(--sw-pos);
+  filter: drop-shadow(0 5px 8px var(--shadow-soft));
+  will-change: transform;
+}
+.hopper.on { display: block; }
 
 /* ---------- intro: Swiftee greets from the middle of the landscape ----------
  * Positions are taken off the reference frame: Swiftee's feet on the ground

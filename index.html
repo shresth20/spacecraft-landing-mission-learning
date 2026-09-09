@@ -3,10 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Shape Docking Bay</title>
+<title>Spacecraft Mission Learning</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Swiftee's stand-in for the half of its jump that happens behind the
+       board: it sits before the stage in the document, so it paints under the
+       board, and script.js hands over to the in-board sprite at the top of the
+       arc. -->
+  <div class="hopper" id="hopper" aria-hidden="true"></div>
+
   <div class="stage">
   <main class="board" id="board">
 
@@ -14,7 +20,8 @@
          left. It types itself out in step with the voice-over and then stays
          for the rest of the round. -->
     <header class="prompt-row">
-      <!-- Swiftee's place for the whole mission: the intro flies it here -->
+      <!-- Swiftee's place for the whole mission: it jumps in here from behind
+           the board once the board has appeared -->
       <div class="mascot" id="mascot" aria-hidden="true"></div>
       <h1 class="prompt" id="prompt">
         <span class="type-wrap">
@@ -136,8 +143,8 @@
 
   <!-- ---------- intro ----------
        Between the Start button and the board: Swiftee hops to the middle of
-       the landscape and greets the learner from a speech bubble, then jumps to
-       its place beside the heading for the rest of the mission. -->
+       the landscape and greets the learner from a speech bubble, then jumps
+       away off the bottom of the screen before the board arrives. -->
   <div class="intro" id="intro" aria-hidden="true">
     <div class="intro-mascot" id="introMascot"></div>
 
@@ -183,7 +190,7 @@
     <div class="welcome-mascot" id="welcomeMascot" aria-hidden="true"></div>
 
     <div class="welcome-body">
-      <h2 class="welcome-title">Shape Docking Bay</h2>
+      <h2 class="welcome-title">Spacecraft Mission Learning</h2>
 
       <div class="welcome-slot">
         <div class="loader" id="loader">
@@ -196,7 +203,7 @@
         </div>
 
         <button class="start-btn" id="startBtn" type="button" hidden>
-          <span>Start Mission</span>
+          <span>Start</span>
         </button>
       </div>
     </div>
