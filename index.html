@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shape Docking Bay</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="stage">
+  <main class="board" id="board">
+
+    <!-- The instruction is the board's heading, with Swiftee standing to its
+         left. It types itself out in step with the voice-over and then stays
+         for the rest of the round. -->
+    <header class="prompt-row">
+      <!-- Swiftee's place for the whole mission: the intro flies it here -->
+      <div class="mascot" id="mascot" aria-hidden="true"></div>
+      <h1 class="prompt" id="prompt">
+        <span class="type-wrap">
+          <!-- invisible copy of the longest line the heading will ever show:
+               holds one width for the whole level, so neither the text nor
+               Swiftee beside it moves as characters are typed in -->
+          <span class="type-ghost" id="promptGhost"></span>
+          <span class="type" id="promptType" aria-live="polite"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+        </span>
+      </h1>
+    </header>
+
+    <section class="bay" id="bay">
+      <!-- Cell 1 -->
+      <div class="cell">
+        <div class="shape-stage">
+          <div class="shape" data-shape="rect" role="img" aria-label="A rectangle">
+            <!-- overflow is visible, so the dimension labels sit outside the
+                 viewBox without changing the artwork's layout box -->
+            <svg viewBox="0 0 240 132" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+              <defs>
+                <clipPath id="wipeRect"><rect class="wipe" x="0" y="0" width="240" height="132" /></clipPath>
+              </defs>
+              <g class="art">
+                <rect class="shape-fill" clip-path="url(#wipeRect)"
+                      x="4" y="4" width="232" height="124" />
+                <path class="shape-outline" d="M4 4 H236 V128 H4 Z" fill="none" stroke-width="5" />
+              </g>
+              <!-- shown in round 2, after the first wrong drop -->
+              <g class="labels">
+                <text class="shape-label" x="120" y="150" font-size="13" text-anchor="middle">length</text>
+                <text class="shape-label" x="250" y="66" font-size="13" text-anchor="middle"
+                      dominant-baseline="middle" transform="rotate(-90 250 66)">breadth</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <!-- both rounds' slots exist from the first frame so the bay never
+             changes height between levels -->
+        <div class="dock">
+          <div class="slot" data-round="1" data-accept="rect" aria-label="Name of the first shape"></div>
+          <div class="slot" data-round="2" data-accept="rect" aria-label="Area of the first shape"></div>
+        </div>
+      </div>
+
+      <!-- Cell 2 -->
+      <div class="cell">
+        <div class="shape-stage">
+          <div class="shape" data-shape="square" role="img" aria-label="A square">
+            <svg viewBox="0 0 160 160" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+              <defs>
+                <clipPath id="wipeSquare"><rect class="wipe" x="0" y="0" width="160" height="160" /></clipPath>
+              </defs>
+              <g class="art">
+                <rect class="shape-fill" clip-path="url(#wipeSquare)"
+                      x="4" y="4" width="152" height="152" />
+                <path class="shape-outline" d="M4 4 H156 V156 H4 Z" fill="none" stroke-width="5" />
+              </g>
+              <g class="labels">
+                <text class="shape-label" x="80" y="178" font-size="13" text-anchor="middle">side</text>
+                <text class="shape-label" x="174" y="80" font-size="13" text-anchor="middle"
+                      dominant-baseline="middle" transform="rotate(-90 174 80)">side</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="dock">
+          <div class="slot" data-round="1" data-accept="square" aria-label="Name of the second shape"></div>
+          <div class="slot" data-round="2" data-accept="square" aria-label="Area of the second shape"></div>
+        </div>
+      </div>
+
+      <!-- Cell 3 -->
+      <div class="cell">
+        <div class="shape-stage">
+          <div class="shape" data-shape="triangle" role="img" aria-label="A triangle">
+            <svg viewBox="0 0 200 172" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+              <defs>
+                <clipPath id="wipeTri"><rect class="wipe" x="0" y="0" width="200" height="172" /></clipPath>
+              </defs>
+              <g class="art">
+                <polygon class="shape-fill" clip-path="url(#wipeTri)"
+                         points="100,6 195,166 5,166" />
+                <path class="shape-outline" d="M100 6 L195 166 L5 166 Z" fill="none" stroke-width="5" />
+              </g>
+              <g class="labels">
+                <line class="height-line" x1="100" y1="10" x2="100" y2="166" />
+                <text class="shape-label" x="100" y="188" font-size="13" text-anchor="middle">base</text>
+                <text class="shape-label" x="114" y="92" font-size="13" text-anchor="middle"
+                      dominant-baseline="middle" transform="rotate(-90 114 92)">height</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="dock">
+          <div class="slot" data-round="1" data-accept="triangle" aria-label="Name of the third shape"></div>
+          <div class="slot" data-round="2" data-accept="triangle" aria-label="Area of the third shape"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- One console band, two decks of cards stacked in it: round 2's deck is
+         laid over round 1's, so the band is the same height all level long. -->
+    <div class="tray-area" id="trayArea">
+      <div class="tray" id="tray" data-round="1">
+        <button class="chip" type="button" data-round="1" data-word="rect"><span>Rectangle</span></button>
+        <button class="chip" type="button" data-round="1" data-word="triangle"><span>Triangle</span></button>
+        <button class="chip" type="button" data-round="1" data-word="square"><span>Square</span></button>
+      </div>
+      <div class="tray" id="tray2" data-round="2">
+        <button class="chip formula" type="button" data-round="2" data-word="rect"><span>Length &times; Breadth</span></button>
+        <button class="chip formula" type="button" data-round="2" data-word="triangle"><span>1/2(Base &times; Height)</span></button>
+        <button class="chip formula" type="button" data-round="2" data-word="square"><span>(Side)<sup>2</sup></span></button>
+      </div>
+    </div>
+
+  </main>
+  </div>
+
+  <!-- ---------- intro ----------
+       Between the Start button and the board: Swiftee hops to the middle of
+       the landscape and greets the learner from a speech bubble, then jumps to
+       its place beside the heading for the rest of the mission. -->
+  <div class="intro" id="intro" aria-hidden="true">
+    <div class="intro-mascot" id="introMascot"></div>
+
+    <div class="bubble" id="bubble">
+      <!-- the two little emphasis strokes either side of the bubble -->
+      <svg class="bubble-mark mark-left" viewBox="0 0 40 60" aria-hidden="true">
+        <path d="M8 12 L30 24" /><path d="M8 48 L30 36" />
+      </svg>
+      <span class="type-wrap">
+        <span class="type-ghost" id="bubbleGhost"></span>
+        <span class="type" id="bubbleType" aria-live="polite"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+      </span>
+      <svg class="bubble-mark mark-right" viewBox="0 0 40 60" aria-hidden="true">
+        <path d="M32 12 L10 24" /><path d="M32 48 L10 36" />
+      </svg>
+      <!-- tail: filled first so it covers the bubble's border where it joins,
+           then stroked on its two free edges only -->
+      <svg class="bubble-tail" viewBox="0 -8 44 42" aria-hidden="true">
+        <path class="tail-fill"   d="M4 -8 H42 V0 C36 12 24 22 2 34 C8 24 8 12 4 0 Z" />
+        <path class="tail-stroke" d="M42 0 C36 12 24 22 2 34 C8 24 8 12 4 0" />
+      </svg>
+    </div>
+  </div>
+
+  <!-- confetti / particle layer -->
+  <div class="fx-layer" id="fx" aria-hidden="true"></div>
+
+  <!-- swallows every pointer event while an intro or a voice-over is running -->
+  <div class="input-lock" id="inputLock" aria-hidden="true"></div>
+
+  <!-- only shown if the browser refuses to auto-play the briefing audio -->
+  <div class="tap-start" id="tapStart" hidden>
+    <button class="tap-start-btn" type="button">Tap to begin</button>
+  </div>
+
+  <!-- ---------- welcome screen ----------
+       Sits over everything until the learner launches the mission. It doubles
+       as the gesture the browser wants before it will play the voice-overs,
+       and as the cover for the preload, so the first briefing never stalls. -->
+  <div class="welcome" id="welcome">
+    <div class="welcome-art" aria-hidden="true"></div>
+    <div class="welcome-scrim" aria-hidden="true"></div>
+    <div class="welcome-mascot" id="welcomeMascot" aria-hidden="true"></div>
+
+    <div class="welcome-body">
+      <h2 class="welcome-title">Shape Docking Bay</h2>
+
+      <div class="welcome-slot">
+        <div class="loader" id="loader">
+          <p class="loader-label">Preparing mission<span class="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
+          <div class="loader-track" id="loadTrack" role="progressbar"
+               aria-label="Loading mission" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="loader-fill" id="loadFill"></div>
+          </div>
+          <p class="loader-pct" id="loadPct">0%</p>
+        </div>
+
+        <button class="start-btn" id="startBtn" type="button" hidden>
+          <span>Start Mission</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="swiftee-sheets.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

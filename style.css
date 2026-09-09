@@ -1,0 +1,1000 @@
+/* ---------- typeface ----------
+ * Nunito is the rounded geometric sans the artwork is lettered in, and it
+ * ships as a variable font, so one file covers 400-800. */
+@font-face {
+  font-family: "Nunito";
+  src: url("assets/fonts/nunito/nunito-variablefont_wght.ttf") format("truetype-variations"),
+       url("assets/fonts/nunito/nunito-variablefont_wght.ttf") format("truetype");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================
+   PALETTE
+   Every colour literal in this file lives in this block. Nothing
+   below it may name a colour: rules reference these tokens only,
+   so re-skinning the game is a single edit here.
+   ============================================================ */
+:root {
+  /* Background */
+  --sky-dark: #25448A;
+  --sky-mid: #5B4DA2;
+  --sky-purple: #9D5AA8;
+  --horizon: #EA979E;
+
+  --ground: #D24B5B;
+  --mountain: #9D365C;
+  --rock-dark: #621F37;
+
+  /* Board */
+  --board-bg: #FBE8EA;
+  --board-highlight: #FCF1F1;
+  --board-decoration: #FADCE2;
+  --board-border: #EA979E;
+
+  /* Typography */
+  --heading: #85345E;
+  --text-primary: #914E75;
+
+  /* Shapes -- one fill/border pair each, as in the reference art. The
+     per-shape pair is bound to --shape-fill / --shape-border further down,
+     inside each .shape, so the artwork rules stay shape-agnostic. */
+  --rect-fill:     #F98078;
+  --rect-border:   #C63A50;
+  --square-fill:   #C3A3F6;
+  --square-border: #7C33BD;
+  --tri-fill:      #90D7B5;
+  --tri-border:    #14796A;
+
+  /* The neutral shape accent: what a slot or a chip borrows to show it is
+     being dragged over, hovered or picked. Deliberately not one of the three
+     shape colours -- a highlight that echoed a shape would hint at the
+     answer. Each .shape overrides both inside itself. */
+  --shape-fill: #FDD1B2;
+  --shape-highlight: #F8C8AB;
+  --shape-border: #BB3B59;
+
+  /* Drop Areas */
+  --drop-bg: #FCE6E8;
+  --drop-border: #F2C2CE;
+
+  /* Draggable Buttons */
+  --button-bg: #FAD7EA;
+  --button-border: #E7A6C7;
+  --button-text: #85345E;
+
+  /* ---- feedback ----
+   * Added to the palette above: it is a single pink family, so on its own it
+   * has no way to tell a learner right from wrong. These two are the only
+   * hues in the game that are not drawn from the artwork. */
+  --correct: #3FA97C;
+  --wrong: #D8344F;
+
+  /* ---- translucent derivations ----
+   * rgb() of the token named in each comment. Kept here rather than inlined
+   * so the palette stays the one place colour is defined. */
+  --glow-board:      rgba(234, 151, 158, .55);  /* --board-border  */
+  --glow-board-soft: rgba(234, 151, 158, .26);  /* --board-border  */
+  --glow-board-dim:  rgba(234, 151, 158, .13);  /* --board-border  */
+  --tint-decoration: rgba(250, 220, 226, .55);  /* --board-decoration */
+  --shadow-deep:     rgba(98, 31, 55, .34);     /* --rock-dark     */
+  --shadow-soft:     rgba(98, 31, 55, .16);     /* --rock-dark     */
+  --scrim:           rgba(98, 31, 55, .55);     /* --rock-dark     */
+  --scrim-strong:    rgba(98, 31, 55, .88);     /* --rock-dark     */
+  --sheen:           rgba(252, 241, 241, .62);  /* --board-highlight */
+  --ring-focus:      rgba(133, 52, 94, .38);    /* --heading       */
+  --glow-correct:    rgba(63, 169, 124, .45);   /* --correct       */
+  --glow-correct-dim:rgba(63, 169, 124, .15);   /* --correct       */
+  --tint-correct:    rgba(63, 169, 124, .20);   /* --correct       */
+  --glow-wrong:      rgba(216, 52, 79, .5);     /* --wrong         */
+  --tint-wrong:      rgba(216, 52, 79, .28);    /* --wrong         */
+
+  /* ---- speech bubble ----
+   * The one white in the game: the small catch-light in the bubble's corner,
+   * as painted in the reference art. */
+  --bubble-sheen: #FFFFFF;
+
+  /* ---- confetti ---- */
+  --confetti-1: var(--rect-fill);
+  --confetti-2: var(--square-fill);
+  --confetti-3: var(--tri-fill);
+  --confetti-4: var(--button-bg);
+  --confetti-5: var(--board-border);
+  --confetti-6: var(--board-highlight);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: grid;
+  /* An explicit, shrinkable row. Left implicit the row is auto-sized, it grows
+     to whatever the board's content wants, and the board's own height has
+     nothing definite to resolve against. */
+  grid-template-rows: minmax(0, 1fr);
+  place-items: stretch;
+  /* dvh keeps the stage honest when a mobile browser's chrome slides away */
+  height: 100dvh;
+  min-height: 0;
+  font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+  /* The painting is the backdrop; the gradient underneath is what shows while
+     it decodes, so the first frame is already the right temperature rather
+     than white. Both are built from the same sky/ground tokens. */
+  background:
+    url("assets/image/bg.png") center / cover no-repeat,
+    linear-gradient(180deg,
+      var(--sky-dark) 0%,
+      var(--sky-mid) 34%,
+      var(--sky-purple) 52%,
+      var(--horizon) 64%,
+      var(--ground) 74%,
+      var(--ground) 100%);
+  background-color: var(--sky-dark);
+  overflow: hidden;
+}
+
+/* ---------- board ---------- */
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/* At the design size the two caps bind and the board lands at 1200x700 --
+   the proportions of the reference art. On anything smaller the viewport
+   halves take over and it shrinks with the screen. */
+.board {
+  position: relative;
+  width: min(1200px, 94vw);
+  height: min(700px, 90vh);
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: clamp(10px, 4vh, 40px) clamp(18px, 9.4%, 113px) 0;
+  border-radius: clamp(18px, 3.4vh, 34px);
+  border: 3px solid var(--board-border);
+  /* same pairing as the body: artwork over a token gradient that carries the
+     first frame and any decode failure */
+  background:
+    url("assets/image/board.png") center / 100% 100% no-repeat,
+    radial-gradient(72% 58% at 50% 42%, var(--board-highlight) 0%, var(--board-bg) 70%);
+  background-color: var(--board-bg);
+  /* The pink halo the board sits in. Every layer is blurred: a spread with no
+     blur paints a solid ring, and a solid ring has a visible edge. Opacity
+     falls and blur grows with each step out, so the glow fades rather than
+     stopping. */
+  box-shadow:
+    0 0 12px 0 var(--glow-board),
+    0 0 32px 8px var(--glow-board-soft),
+    0 0 68px 22px var(--glow-board-dim),
+    0 18px 44px var(--shadow-deep);
+
+  /* Laid out from the first frame but invisible until Swiftee's greeting is
+     over; script.js animates it in. Opacity only -- a transform here would
+     shift the spot beside the heading that the intro Swiftee flies to. */
+  opacity: 0;
+  transition: opacity .5s ease;
+}
+.board.show { opacity: 1; }
+
+/* ---------- prompt ----------
+ * The instruction is the board's heading and it stays put for the whole
+ * round: it types itself out in step with the voice-over and then simply
+ * remains. It keeps its box from the first frame -- only its text grows -- so
+ * the bay below it never resizes and the shapes never jump. */
+/* Swiftee and the heading share the top row, centred as one group. The ghost
+   holds the longest line the heading will ever show, so the group's width --
+   and Swiftee's spot -- is the same all level long. */
+.prompt-row {
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, 1vw, 14px);
+  margin: 0 0 clamp(6px, 1.6vh, 16px);
+  min-width: 0;
+}
+
+.prompt {
+  margin: 0;
+  min-width: 0;
+  text-align: center;
+  color: var(--heading);
+  font-weight: 800;
+  font-size: clamp(17px, 3.4vh, 32px);
+  line-height: 1.3;
+  letter-spacing: .1px;
+
+  opacity: 0;
+  transition: opacity .38s ease;
+}
+.prompt.show { opacity: 1; }
+
+/* Typewriter: the hidden ghost reserves the final width, the live span sits
+   on top of it, so characters land in place instead of shoving the centred
+   line sideways with every keystroke. */
+.type-wrap  { position: relative; display: inline-block; }
+.type-ghost { visibility: hidden; }
+.type {
+  position: absolute;
+  inset: 0;
+  text-align: left;
+  white-space: pre-wrap;
+}
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: .92em;
+  margin-left: 2px;
+  vertical-align: -.12em;
+  background: var(--heading);
+  animation: blink .75s steps(1, end) infinite;
+}
+.caret[hidden] { display: none; }
+@keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+/* ---------- layout ---------- */
+.bay {
+  grid-row: 2;
+  position: relative;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* the bay's height comes from the board's 1fr row; without an explicit row
+     its implicit row would size to content and spill straight back out */
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  gap: clamp(8px, 2.5%, 30px);
+}
+
+.cell {
+  position: relative;
+  display: grid;
+  /* minmax(0, ...) lets the shape row give up height when the board is short.
+     Without it the row floors at the artwork's aspect-ratio height and the
+     console below is pushed out through the bottom. */
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: clamp(10px, 4.5vh, 38px);
+  justify-items: center;
+}
+
+/* Both rounds' slots live here from the first frame -- round 2's is simply
+   transparent until its turn -- so the bay height never changes and the
+   shapes above it never move. */
+.dock {
+  width: 100%;
+  display: grid;
+  gap: clamp(6px, 1.3vh, 14px);
+  justify-items: center;
+}
+
+/* The artwork is anchored to this box rather than flowing inside it. A
+   stretched grid item's height is definite in use but not in the cascade, so
+   percentages inside it silently compute to none. inset: 0 on the child gives
+   the svg a height it can actually resolve against. */
+.shape-stage {
+  position: relative;
+  width: 100%;
+  min-height: 0;
+}
+
+/* ---------- shapes ---------- */
+.shape {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+/* The svg box takes the full row; the artwork inside is fitted to it by
+   preserveAspectRatio="xMidYMid meet", which keeps its proportions and centres
+   it. So width caps the artwork on a tall screen and height caps it on a short
+   one, and it can never outgrow the space it is given. The per-shape caps are
+   the reference art's widths as a fraction of a column. */
+.shape svg {
+  display: block;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.shape[data-shape="rect"] svg     { max-width: 80%; }
+.shape[data-shape="square"] svg   { max-width: 59%; }
+.shape[data-shape="triangle"] svg { max-width: 68.6%; }
+
+/* Each shape rebinds the generic pair to its own colours. Everything that
+   paints the artwork -- fill, outline, the triangle's height line -- reads the
+   generic names and inherits whichever pair it sits inside. */
+.shape[data-shape="rect"] {
+  --shape-fill: var(--rect-fill);
+  --shape-border: var(--rect-border);
+}
+.shape[data-shape="square"] {
+  --shape-fill: var(--square-fill);
+  --shape-border: var(--square-border);
+}
+.shape[data-shape="triangle"] {
+  --shape-fill: var(--tri-fill);
+  --shape-border: var(--tri-border);
+}
+
+.shape .art { filter: drop-shadow(0 3px 5px var(--shadow-soft)); }
+
+/* Both halves start blank: the outline is drawn on first, then the colour is
+   poured in behind it. script.js measures each real path length and drives
+   both steps; these values are only the guard before the script runs. */
+.shape-outline {
+  stroke: var(--shape-border);
+  stroke-dasharray: 4000;
+  stroke-dashoffset: 4000;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.shape-fill { fill: var(--shape-fill); opacity: 0; }
+
+/* ---------- dimension labels ----------
+ * Round 2 only, and only once a learner has got one wrong: naming the sides
+ * is the hint that makes the formulas readable. They live outside the viewBox
+ * (the svg lets them overflow), so switching them on moves nothing. */
+.labels {
+  opacity: 0;
+  transition: opacity .5s ease;
+  pointer-events: none;
+}
+.shape.labelled .labels { opacity: 1; }
+
+.shape-label {
+  font-family: inherit;
+  font-weight: 800;
+  letter-spacing: .2px;
+  fill: var(--heading);
+  /* pale halo drawn behind the glyphs, so a label reads over the shape's own
+     peach as easily as over the board */
+  stroke: var(--board-highlight);
+  stroke-width: 3;
+  paint-order: stroke;
+}
+.height-line {
+  stroke: var(--shape-border);
+  stroke-width: 2.4;
+  stroke-dasharray: 7 6;
+  stroke-linecap: round;
+}
+
+/* ---------- drop slots ---------- */
+.slot {
+  --slot-border: 2.5px;
+  --slot-radius: 15px;
+  width: min(100%, 250px);
+  /* keyed to the viewport, not to a percentage of the dock, so two stacked
+     slots resolve to the same definite height */
+  height: clamp(40px, 8vh, 74px);
+  border: var(--slot-border) dashed var(--drop-border);
+  border-radius: var(--slot-radius);
+  background: var(--drop-bg);
+  display: grid;
+  place-items: center;
+
+  opacity: 0;
+  transform: translateY(12px) scale(.95);
+  transition: opacity .34s ease,
+              transform .34s cubic-bezier(.2, .9, .3, 1.3),
+              background .2s ease,
+              box-shadow .2s ease,
+              border-color .2s ease;
+}
+.slot.reveal { opacity: 1; transform: none; }
+
+/* a slot that has not been introduced yet is invisible and untouchable, but
+   still occupies its row */
+.slot:not(.reveal) { pointer-events: none; }
+
+.slot.over {
+  background: var(--board-highlight);
+  border-color: var(--shape-border);
+  transform: scale(1.04);
+  box-shadow: 0 0 10px 2px var(--glow-board), 0 0 24px 8px var(--glow-board-dim);
+}
+
+.slot.filled {
+  border-style: solid;
+  border-color: var(--button-border);
+  background: var(--drop-bg);
+  padding: 0;
+  overflow: hidden;
+  transform: none;
+}
+
+/* a correct dock gives the slot one short outward pulse */
+.slot.correct {
+  border-color: var(--correct);
+  box-shadow: 0 0 0 4px var(--tint-correct);
+  animation: dock-pop .5s cubic-bezier(.2, .9, .3, 1.4);
+}
+@keyframes dock-pop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- wrong answer: red flash + shake ---------- */
+.slot.reject {
+  animation: shake .42s cubic-bezier(.36, .07, .19, .97);
+  border-color: var(--wrong);
+  border-style: solid;
+  background: var(--tint-wrong);
+  box-shadow: 0 0 0 4px var(--glow-wrong);
+}
+.chip.reject {
+  animation: shake .42s cubic-bezier(.36, .07, .19, .97);
+  border-color: var(--wrong);
+  background: var(--tint-wrong);
+  box-shadow: 0 0 0 3px var(--glow-wrong);
+}
+@keyframes shake {
+  0%, 100%      { transform: translateX(0); }
+  15%, 45%, 75% { transform: translateX(-8px) rotate(-1.4deg); }
+  30%, 60%, 90% { transform: translateX(8px) rotate(1.4deg); }
+}
+
+/* ---------- word choices ---------- */
+/* The band is padded well clear of the board's foot. */
+.tray-area {
+  grid-row: 3;
+  position: relative;
+  padding: clamp(16px, 7vh, 68px) 0 clamp(20px, 5.4vh, 51px);
+}
+/* Round 2's deck is laid straight over round 1's, so the band keeps the same
+   height all level long. Only the deck in play takes pointer events, so the
+   dormant one cannot shadow the live chips. */
+.tray[data-round="2"] {
+  position: absolute;
+  inset: clamp(16px, 7vh, 68px) 0 clamp(20px, 5.4vh, 51px) 0;
+}
+.tray { pointer-events: none; }
+.tray.live { pointer-events: auto; }
+
+.tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  /* round 2's deck is stretched over the band by inset, so its chips have to
+     be told to keep their own height instead of filling it */
+  align-items: center;
+  align-content: center;
+  gap: clamp(8px, 1.8%, 26px);
+}
+
+/* Deliberately one neutral pink on every chip: a chip that echoed its shape's
+   colour would hand the learner the answer before they had thought about it. */
+.chip {
+  position: relative;
+  font-family: inherit;
+  padding: clamp(7px, 1.6vh, 15px) clamp(14px, 2.4vw, 30px);
+  border: 2px solid var(--button-border);
+  border-radius: 15px;
+  background: var(--button-bg);
+  box-shadow: 0 2px 6px var(--shadow-soft);
+  color: var(--button-text);
+  font-weight: 800;
+  font-size: clamp(14px, 2.4vh, 23px);
+  line-height: 1.15;
+  letter-spacing: .2px;
+  cursor: grab;
+  touch-action: none;
+
+  opacity: 0;
+  transform: translateY(16px) scale(.9);
+  transition: opacity .34s ease,
+              transform .34s cubic-bezier(.2, .9, .3, 1.35),
+              box-shadow .16s ease,
+              border-color .16s ease,
+              background .16s ease;
+}
+.chip.reveal { opacity: 1; transform: none; }
+.chip:not(.reveal) { pointer-events: none; }
+
+/* Area formulas run longer than a single word, so they get a step down in
+   size to stay on one line inside the same chip. */
+.chip.formula { font-size: clamp(13px, 2.1vh, 20px); }
+.chip.formula sup { font-size: .68em; vertical-align: super; line-height: 0; }
+
+.chip.reveal:hover,
+.chip.reveal:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--shape-border);
+  box-shadow: 0 6px 14px var(--shadow-soft);
+  outline: none;
+}
+.chip:active { cursor: grabbing; }
+.chip.picked {
+  transform: translateY(-3px);
+  border-color: var(--shape-border);
+  box-shadow: 0 0 0 4px var(--ring-focus);
+}
+.chip.dragging { opacity: .35; }
+.chip.placed { visibility: hidden; }
+
+/* A docked chip fills its slot edge to edge: the slot's own border becomes the
+   chip's ring, so there is no pill-inside-a-box. */
+.slot .chip {
+  width: 100%;
+  height: 100%;
+  padding: 0 clamp(8px, 2%, 16px);
+  border: 0;
+  border-radius: calc(var(--slot-radius) - var(--slot-border));
+  background: transparent;
+  box-shadow: none;
+  font-size: clamp(13px, 2.3vh, 22px);
+  cursor: default;
+  opacity: 1;
+  transform: none;
+}
+.slot .chip.formula { font-size: clamp(11px, 1.9vh, 18px); }
+
+/* the clone that follows the pointer during a real drag */
+.chip.ghost {
+  opacity: 1;
+  transform: none;
+  transition: none;
+  box-shadow: 0 10px 22px var(--shadow-deep);
+}
+
+/* ---------- demo drag shown under the voice-over ---------- */
+.demo-ghost {
+  position: fixed;
+  z-index: 950;
+  opacity: 0;             /* the keyframes take it up to .55 and back */
+  pointer-events: none;
+  transition: none;
+  border-color: var(--shape-border);
+  box-shadow: 0 8px 18px var(--shadow-deep);
+}
+
+/* ---------- mascot ----------
+ * Swiftee stands to the left of the heading, in the top row's flow. Its box
+ * is a fixed size, so switching expressions can never move the game. The
+ * sprite grid is uniform and every frame shares the cell centre as its pivot,
+ * which is why the character does not shift as it changes clip: one frame is
+ * selected by background-position alone, in percentages, so it stays exact at
+ * any size. script.js sets --sw-* per frame. */
+.board { --mascot: clamp(72px, 17vh, 160px); }
+
+.mascot {
+  position: relative;
+  flex: none;
+  width: var(--mascot);
+  height: var(--mascot);
+  /* the bird fills only the middle of its cell; pull the empty rim back in so
+     the row is no taller, and the text no further away, than the bird itself */
+  margin: calc(var(--mascot) * -.1) calc(var(--mascot) * -.06);
+  pointer-events: none;
+  background-image: var(--sw-img);
+  background-repeat: no-repeat;
+  background-size: var(--sw-size);
+  background-position: var(--sw-pos);
+  filter: drop-shadow(0 5px 8px var(--shadow-soft));
+
+  opacity: 0;
+  transition: opacity .45s ease;
+}
+.mascot.show { opacity: 1; }
+
+/* ---------- intro: Swiftee greets from the middle of the landscape ----------
+ * Positions are taken off the reference frame: Swiftee's feet on the ground
+ * line at 82.5% of the height, the bubble floating up and to the right of the
+ * head with its tail reaching back down toward the beak. */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  display: none;
+  pointer-events: none;
+  /* the sprite cell; the bird fills roughly the middle three quarters of it.
+     Keyed to the height, but never wider than the screen on a portrait phone. */
+  --im: clamp(170px, min(54vh, 100vw), 520px);
+}
+.intro.on { display: block; }
+
+.intro-mascot {
+  position: absolute;
+  left: 50%;
+  margin-left: calc(var(--im) / -2);
+  /* feet (87.7% down the cell) on the ground line, 17.5% up from the foot of
+     the screen -- the sprite's empty foot strip hangs below that */
+  bottom: calc(17.5vh - var(--im) * .123);
+  width: var(--im);
+  height: var(--im);
+  background-image: var(--sw-img);
+  background-repeat: no-repeat;
+  background-size: var(--sw-size);
+  background-position: var(--sw-pos);
+  filter: drop-shadow(0 10px 18px var(--scrim));
+  /* below the ground line and invisible until script.js springs it up */
+  transform: translateY(60%);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* ---------- speech bubble ---------- */
+.bubble {
+  position: absolute;
+  left: 50.5%;
+  bottom: 57.5vh;
+  /* wide enough for either line to stay on one row; script.js slides the box
+     left when the screen runs out before the line does. The subtraction is the
+     screen margin plus the emphasis strokes either side. */
+  max-width: min(1000px, calc(100vw - 24px - 2.2em));
+  padding: .62em 1em;
+  border: 4px solid var(--board-border);
+  border-radius: .62em;
+  background: var(--board-bg);
+  box-shadow:
+    0 0 14px 2px var(--glow-board-soft),
+    0 0 34px 10px var(--glow-board-dim),
+    0 10px 26px var(--shadow-soft);
+  color: var(--heading);
+  font-weight: 800;
+  /* keyed to the height like the rest of the type, but reined in by the width
+     so a portrait phone does not get a bubble wider than the screen */
+  font-size: clamp(22px, min(6vh, 4.6vw), 58px);
+  line-height: 1.2;
+  letter-spacing: .2px;
+  text-align: center;
+
+  /* pops out of its own tail, overshoots, settles */
+  opacity: 0;
+  transform: scale(.15);
+  transform-origin: 12% 100%;
+  transition: transform .44s cubic-bezier(.2, .9, .3, 1.45), opacity .2s ease;
+}
+.bubble.show { opacity: 1; transform: none; }
+.bubble.out  { transition: transform .26s ease-in, opacity .22s ease .04s; }
+
+/* the catch-light in the top-left corner */
+.bubble::before {
+  content: "";
+  position: absolute;
+  left: .42em;
+  top: .34em;
+  width: .5em;
+  height: .2em;
+  border-radius: 999px;
+  background: var(--bubble-sheen);
+  transform: rotate(-22deg);
+  opacity: .95;
+}
+
+/* both bubble lines type into the same box, and the heading's ghost trick
+   keeps the box steady while they do */
+.bubble .type-wrap { display: inline-block; vertical-align: top; }
+.bubble .caret { background: var(--heading); }
+
+/* two short strokes each side, converging on the bubble */
+.bubble-mark {
+  position: absolute;
+  top: 50%;
+  width: .62em;
+  height: .93em;
+  transform: translateY(-50%);
+  fill: none;
+  stroke: var(--board-border);
+  stroke-width: 7;
+  stroke-linecap: round;
+  overflow: visible;
+}
+.mark-left  { right: calc(100% + .42em); }
+.mark-right { left:  calc(100% + .42em); }
+
+/* the tail hangs off the bottom-left corner and reaches back toward Swiftee */
+.bubble-tail {
+  position: absolute;
+  left: .78em;
+  top: calc(100% - 4px);        /* starts inside the border so it can cover it */
+  width: .76em;
+  height: auto;
+  overflow: visible;
+}
+.tail-fill   { fill: var(--board-bg); }
+.tail-stroke {
+  fill: none;
+  stroke: var(--board-border);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* the svg is .76em wide for a 44-unit viewBox: keep the stroke the border's
+     4px on screen regardless of the scale */
+  vector-effect: non-scaling-stroke;
+}
+
+/* ---------- round complete ---------- */
+/* One outward pulse of the board's halo, so finishing reads as the whole
+   console lighting up rather than another volley out of the slots. */
+.board.cheer { animation: board-cheer 1.15s ease-in-out; }
+@keyframes board-cheer {
+  0%, 100% {
+    box-shadow: 0 0 12px 0 var(--glow-board),
+                0 0 32px 8px var(--glow-board-soft),
+                0 0 68px 22px var(--glow-board-dim),
+                0 18px 44px var(--shadow-deep);
+  }
+  50% {
+    box-shadow: 0 0 18px 2px var(--glow-correct),
+                0 0 48px 14px var(--tint-correct),
+                0 0 96px 34px var(--glow-correct-dim),
+                0 18px 44px var(--shadow-deep);
+  }
+}
+
+/* ---------- confetti ---------- */
+.fx-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  overflow: hidden;
+}
+.fx-layer i {
+  position: fixed;
+  display: block;
+  border-radius: 2px;
+  will-change: transform, opacity;
+}
+
+/* ---------- input lock ---------- */
+/* A transparent sheet over everything: while the intro or a voice-over is
+   running it eats every click, so nothing can be dragged early. */
+.input-lock {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: none;
+  cursor: default;
+  background: transparent;
+}
+.input-lock.on { display: block; }
+
+/* ---------- autoplay fallback ---------- */
+.tap-start {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  background: var(--scrim);
+  backdrop-filter: blur(2px);
+}
+.tap-start[hidden] { display: none; }
+.tap-start-btn {
+  font-family: inherit;
+  font-weight: 800;
+  font-size: clamp(16px, 2.6vh, 26px);
+  color: var(--button-text);
+  padding: clamp(12px, 2vh, 20px) clamp(26px, 4vw, 48px);
+  border: 3px solid var(--button-border);
+  border-radius: 999px;
+  background: var(--button-bg);
+  box-shadow: 0 0 24px var(--glow-board), 0 10px 24px var(--shadow-deep);
+  cursor: pointer;
+}
+
+/* ---------- welcome screen ----------
+   Sits over everything until the learner launches the mission. It doubles as
+   the gesture the browser wants before it will play the voice-overs, and as
+   the cover for the preload, so the first briefing never stalls. */
+.welcome {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  background: var(--sky-dark);
+  opacity: 1;
+  transition: opacity .6s ease;
+}
+.welcome.off  { opacity: 0; pointer-events: none; }
+.welcome[hidden] { display: none; }
+
+.welcome-art {
+  position: absolute;
+  inset: 0;
+  background: url("assets/image/bg.png") center / cover no-repeat;
+}
+
+/* darkens the foot of the landscape so the title, the bar and the button stay
+   readable over the ground without hiding any of the artwork above them */
+.welcome-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(70% 44% at 50% 100%, var(--scrim-strong) 0%, transparent 74%),
+    linear-gradient(180deg, transparent 42%, var(--scrim) 76%, var(--scrim-strong) 100%);
+}
+
+/* Swiftee waves the learner in from the same corner it will stand in during
+   play, so the character is already placed when the board arrives. */
+.welcome-mascot {
+  position: absolute;
+  left: 8%;
+  bottom: 4%;
+  width: clamp(120px, 30vh, 300px);
+  height: clamp(120px, 30vh, 300px);
+  background-image: var(--sw-img);
+  background-repeat: no-repeat;
+  background-size: var(--sw-size);
+  background-position: var(--sw-pos);
+  filter: drop-shadow(0 10px 18px var(--scrim));
+  pointer-events: none;
+}
+
+.welcome-body {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: clamp(14px, 3.4vh, 34px);
+  width: min(620px, 86vw);
+  margin-bottom: clamp(26px, 8vh, 84px);
+}
+
+.welcome-title {
+  margin: 0;
+  text-align: center;
+  color: var(--board-highlight);
+  font-weight: 900;
+  font-size: clamp(24px, 5.4vh, 52px);
+  letter-spacing: .6px;
+  text-shadow: 0 3px 0 var(--mountain), 0 10px 26px var(--scrim-strong);
+}
+
+/* loader and button share one grid cell, so the swap moves nothing */
+.welcome-slot { display: grid; justify-items: center; width: 100%; }
+.welcome-slot > * { grid-area: 1 / 1; }
+
+/* ---------- loader ---------- */
+.loader {
+  display: grid;
+  justify-items: center;
+  gap: clamp(9px, 1.6vh, 16px);
+  width: 100%;
+  transition: opacity .32s ease, transform .32s ease;
+}
+.loader.out {
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+}
+
+.loader-label {
+  margin: 0;
+  color: var(--board-bg);
+  font-weight: 700;
+  font-size: clamp(12px, 1.9vh, 17px);
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px var(--scrim-strong);
+}
+.loader-label .dots i {
+  font-style: normal;
+  animation: dot-pulse 1.2s ease-in-out infinite;
+}
+.loader-label .dots i:nth-child(2) { animation-delay: .16s; }
+.loader-label .dots i:nth-child(3) { animation-delay: .32s; }
+@keyframes dot-pulse { 0%, 60%, 100% { opacity: .25; } 30% { opacity: 1; } }
+
+.loader-track {
+  position: relative;
+  width: 100%;
+  height: clamp(12px, 1.8vh, 17px);
+  border: 2px solid var(--board-border);
+  border-radius: 999px;
+  background: var(--scrim-strong);
+  box-shadow: 0 0 16px var(--glow-board-soft), inset 0 2px 8px var(--shadow-deep);
+  overflow: hidden;
+}
+
+.loader-fill {
+  position: relative;
+  width: 0%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--mountain) 0%, var(--board-border) 62%, var(--board-highlight) 100%);
+}
+/* a sheen sliding along the filled length, so the bar looks powered rather
+   than merely long */
+.loader-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent 0%, var(--sheen) 50%, transparent 100%);
+  background-size: 90px 100%;
+  animation: loader-sheen 1.15s linear infinite;
+}
+@keyframes loader-sheen {
+  from { background-position: -90px 0; }
+  to   { background-position: 180px 0; }
+}
+
+.loader-pct {
+  margin: 0;
+  color: var(--board-highlight);
+  font-weight: 800;
+  font-size: clamp(15px, 2.4vh, 22px);
+  letter-spacing: 1.5px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 10px var(--scrim-strong);
+}
+
+/* ---------- start button ---------- */
+.start-btn {
+  align-self: center;
+  justify-self: center;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: clamp(17px, 2.9vh, 30px);
+  letter-spacing: 1px;
+  color: var(--button-text);
+  padding: clamp(12px, 2.1vh, 21px) clamp(34px, 6vw, 66px);
+  border: 4px solid var(--board-highlight);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--board-highlight) 0%, var(--button-bg) 55%, var(--board-decoration) 100%);
+  box-shadow:
+    0 0 14px 2px var(--glow-board-soft),
+    0 0 36px 12px var(--glow-board-dim),
+    0 10px 26px var(--shadow-deep);
+  cursor: pointer;
+
+  opacity: 0;
+  transform: translateY(16px) scale(.9);
+  transition: opacity .42s ease,
+              transform .42s cubic-bezier(.2, .9, .3, 1.4),
+              box-shadow .18s ease,
+              filter .18s ease;
+}
+.start-btn[hidden] { display: none; }
+.start-btn.in {
+  opacity: 1;
+  transform: none;
+  animation: start-pulse 2.1s ease-in-out .5s infinite;
+}
+.start-btn.in:hover,
+.start-btn.in:focus-visible {
+  animation-play-state: paused;
+  filter: brightness(1.04);
+  transform: translateY(-3px) scale(1.03);
+  outline: none;
+}
+.start-btn.in:active { transform: translateY(1px) scale(.99); }
+@keyframes start-pulse {
+  0%, 100% {
+    box-shadow: 0 0 14px 2px var(--glow-board-soft),
+                0 0 36px 12px var(--glow-board-dim),
+                0 10px 26px var(--shadow-deep);
+  }
+  50% {
+    box-shadow: 0 0 26px 8px var(--glow-board),
+                0 0 62px 24px var(--glow-board-soft),
+                0 10px 26px var(--shadow-deep);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret,
+  .loader-fill::after,
+  .board.cheer,
+  .start-btn.in { animation: none; }
+  .intro-mascot { transform: none; opacity: 1; }
+  .bubble { transition: opacity .2s ease; }
+  .loader-label .dots i { animation: none; opacity: 1; }
+}
