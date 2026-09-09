@@ -59,10 +59,22 @@
   /* Section 3 -- the quadrilateral is the warm-up's peach, and the two
      triangles it is cut into take the other two pairs, so the split reads at
      a glance and the lesson is re-skinned by the same edit as the game. */
-  --quad-fill:    var(--rect-fill);
-  --quad-border:  var(--rect-border);
-  --quad-t1-fill: var(--square-fill);
-  --quad-t2-fill: var(--tri-fill);
+  --quad-fill:        var(--rect-fill);
+  --quad-border:      var(--rect-border);
+  --quad-purple:      var(--square-fill);
+  --quad-purple-dark: var(--square-border);
+  --quad-green:       var(--tri-fill);
+  --quad-green-dark:  var(--tri-border);
+
+  /* Section 4 -- the parallelogram is amber, as in the reference art, and
+     the two pairs of opposite sides are told apart by the two highlight hues
+     below: the top and bottom pair in blue, the left and right pair in
+     purple. Neither is the shape's own colour, so a lit side always reads
+     against the fill. */
+  --para-fill:   #FFC15E;
+  --para-border: #B9641B;
+  --pair-a: var(--height-hl);
+  --pair-b: var(--square-border);
 
   /* The two hues the formula's words -- and the matching dotted lines under
      every triangle -- light up in. Neither is a shape colour, so a lit line
@@ -114,6 +126,12 @@
   --tint-wrong:      rgba(216, 52, 79, .28);    /* --wrong         */
   --glow-base:       rgba(240, 147, 43, .55);   /* --base-hl       */
   --glow-height:     rgba(46, 134, 222, .55);   /* --height-hl     */
+  --glow-green:      rgba(20, 121, 106, .5);    /* --tri-border    */
+  --glow-purple:     rgba(124, 51, 189, .5);    /* --square-border */
+  --glow-pair-a:     rgba(46, 134, 222, .55);  /* --pair-a        */
+  --glow-pair-b:     rgba(124, 51, 189, .55);  /* --pair-b        */
+  --tint-pair-a:     rgba(46, 134, 222, .18);  /* --pair-a        */
+  --tint-pair-b:     rgba(124, 51, 189, .18);  /* --pair-b        */
 
   /* ---- speech bubble ----
    * The one white in the game: the small catch-light in the bubble's corner,
@@ -272,7 +290,8 @@ body {
    between the two moves nothing on the board. */
 .bay,
 .lesson,
-.quad { grid-area: 2 / 1; }
+.quad,
+.para { grid-area: 2 / 1; }
 
 .bay {
   position: relative;
@@ -567,6 +586,8 @@ body {
   visibility: hidden;
 }
 .quad.on { visibility: visible; }
+.quad { transition: opacity .45s ease; }
+.quad.off { opacity: 0; }
 
 /* ---------- clearing the board for section 3 ----------
  * The lesson fades and then gives up hit-testing, keeping its box, so the
@@ -618,14 +639,14 @@ body {
   transform-origin: center;
   transition: opacity .7s ease;
 }
-.tri-1 { fill: var(--quad-t1-fill); }
-.tri-2 { fill: var(--quad-t2-fill); }
+.c-purple { fill: var(--quad-purple); }
+.c-green  { fill: var(--quad-green); }
 .quad-shape.split .tri-fill { opacity: 1; }
 .quad-shape.split .shape-fill { opacity: 0; transition: opacity .7s ease; }
 
 /* a formula names a triangle: that half swells once */
-.quad-shape.pulse-t1 .tri-1,
-.quad-shape.pulse-t2 .tri-2 { animation: tri-pulse .62s cubic-bezier(.2, .9, .3, 1.3); }
+.quad-shape.pulse-purple .c-purple,
+.quad-shape.pulse-green  .c-green { animation: tri-pulse .62s cubic-bezier(.2, .9, .3, 1.3); }
 @keyframes tri-pulse {
   0%, 100% { transform: scale(1);    filter: none; }
   50%      { transform: scale(1.05); filter: brightness(1.08); }
@@ -660,18 +681,26 @@ body {
   filter: drop-shadow(0 0 3px var(--glow-base));
 }
 
-/* the heights reuse the lesson's dotted-line language */
-.quad-shape.lit-h1 .h1,
-.quad-shape.lit-h2 .h2 {
-  stroke: var(--height-hl);
+/* The heights reuse the lesson's dotted-line language, but each lights up
+   in the deep shade of its own triangle -- so "green height" and "purple
+   height" are things the learner can point to. */
+.quad-shape.lit-green .h-green {
+  stroke: var(--quad-green-dark);
   stroke-width: 4.6;
-  filter: drop-shadow(0 0 3px var(--glow-height));
+  filter: drop-shadow(0 0 3px var(--glow-green));
 }
-.quad-shape.marked-1 .mark-1,
-.quad-shape.marked-2 .mark-2 { opacity: 1; }
-.quad-shape.lit-base .lbl-base,
-.quad-shape.lit-h1 .lbl-h1,
-.quad-shape.lit-h2 .lbl-h2 { opacity: 1; }
+.quad-shape.lit-purple .h-purple {
+  stroke: var(--quad-purple-dark);
+  stroke-width: 4.6;
+  filter: drop-shadow(0 0 3px var(--glow-purple));
+}
+.quad-shape.marked-green  .mark-green,
+.quad-shape.marked-purple .mark-purple { opacity: 1; }
+.lbl-green  { fill: var(--quad-green-dark); }
+.lbl-purple { fill: var(--quad-purple-dark); }
+.quad-shape.lit-base   .lbl-base,
+.quad-shape.lit-green  .lbl-green,
+.quad-shape.lit-purple .lbl-purple { opacity: 1; }
 
 /* ---------- the corner dots ----------
  * Pop in one after another, and take the pointer only while the join is the
@@ -749,6 +778,8 @@ body {
 .quad-foot > * { grid-area: 1 / 1; }
 .say-row,
 .area-lines { pointer-events: none; }
+/* ...except the drop-downs the later scenes put in the working */
+.area-lines .dd { pointer-events: auto; }
 
 .quiz-block {
   display: grid;
@@ -968,6 +999,9 @@ body {
   font-size: clamp(17px, 3.2vh, 31px);
   line-height: 1.35;
   max-width: 100%;
+  /* the column is narrower than the longest line: it may break, and only
+     here -- a nowrap line would drag the grid track out past the board */
+  white-space: normal;
 }
 .quad.wide .area-line .type-wrap { max-width: 100%; }
 .quad.wide .area-line .type { white-space: pre-wrap; }
@@ -978,12 +1012,290 @@ body {
   border-radius: .32em;
   transition: background-color .4s ease, color .4s ease;
 }
-.area-line .w.lit.w-base { background: var(--base-hl);      color: var(--rock-dark); }
-.area-line .w.lit.w-h1,
-.area-line .w.lit.w-h2   { background: var(--height-hl);    color: var(--board-highlight); }
-.area-line .w.lit.w-t1   { background: var(--quad-t1-fill); color: var(--rock-dark); }
-.area-line .w.lit.w-t2   { background: var(--quad-t2-fill); color: var(--rock-dark); }
-.area-line .w.lit.w-quad { background: var(--quad-fill);    color: var(--rock-dark); }
+.area-line .w.lit.w-base     { background: var(--base-hl);          color: var(--rock-dark); }
+.area-line .w.lit.w-green    { background: var(--quad-green);       color: var(--rock-dark); }
+.area-line .w.lit.w-purple   { background: var(--quad-purple);      color: var(--rock-dark); }
+.area-line .w.lit.w-h-green  { background: var(--quad-green-dark);  color: var(--board-highlight); }
+.area-line .w.lit.w-h-purple { background: var(--quad-purple-dark); color: var(--board-highlight); }
+.area-line .w.lit.w-quad     { background: var(--quad-fill);        color: var(--rock-dark); }
+
+/* ---------- lines with drop-downs in them ----------
+ * A formula line runs as one sentence -- words, coloured chips and two small
+ * slots -- with the working typed onto its end once both slots are right. A
+ * question line is the name quiz's card again: a label with a slot on its
+ * end, wrapping its words when the column runs out before they do. */
+.f-line > * { vertical-align: middle; }
+/* each step of the working is a piece that will not break inside itself, so
+   a line that runs out of room folds at an equals sign, never mid-formula */
+.f-line .expr,
+.f-line .tail { display: inline-block; white-space: nowrap; }
+.f-line .dd { display: inline-block; margin: 0 .12em; }
+.f-line .tail .caret { background: var(--heading); }
+.dd-small .dd-btn {
+  min-width: clamp(88px, 9vw, 150px);
+  padding: .1em .45em .1em .6em;
+  border-radius: 11px;
+  font-size: .92em;
+}
+.dd-small .dd-menu { min-width: max-content; border-radius: 10px; }
+.dd-small .dd-opt { font-size: .9em; padding: .3em .75em; }
+
+.q-line {
+  display: flex;
+  align-items: stretch;
+  max-width: 100%;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.q-line .quiz-label { white-space: normal; flex: 1 1 auto; min-width: 0; }
+.q-line .dd { flex: none; }
+.q-line .dd-btn { min-width: clamp(120px, 11vw, 190px); }
+
+/* ---------- section 4: the parallelogram ---------- */
+.para {
+  position: relative;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: clamp(6px, 1.6vh, 16px);
+  /* laid out from the first frame, painted only once the board is back */
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity .45s ease, visibility 0s linear .45s;
+}
+.para.on { visibility: visible; opacity: 1; transition: opacity .45s ease; }
+
+/* ---------- clearing the board for section 4 ----------
+ * The quadrilateral scenes are finished: their section keeps its box but
+ * gives up painting and hit-testing, so the heading row and the footer band
+ * stay exactly where they were. */
+.board.sec4 .quad {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Same anchoring as .shape: the artwork is fitted into its box and centred. */
+.para-stage {
+  position: relative;
+  min-height: 0;
+}
+.para-shape {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  --shape-fill: var(--para-fill);
+  --shape-border: var(--para-border);
+}
+.para-shape svg {
+  display: block;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 100%;
+  height: 100%;
+  max-width: 78%;
+  overflow: visible;
+}
+.para-shape .art { filter: drop-shadow(0 3px 5px var(--shadow-soft)); }
+
+/* ---------- the explanation, drawn over the shape ----------
+ * Everything here is invisible until the scene calls for it, and each pair
+ * of opposite sides carries its own hue: pair a (top and bottom) in blue,
+ * pair b (left and right) in purple. */
+.pair-a { --pair: var(--pair-a); --pair-glow: var(--glow-pair-a); }
+.pair-b { --pair: var(--pair-b); --pair-glow: var(--glow-pair-b); }
+
+/* a glowing copy of a side, grown along it by script.js */
+.side-hl {
+  opacity: 0;
+  fill: none;
+  stroke: var(--pair);
+  stroke-width: 7;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px var(--pair-glow));
+  transition: opacity .4s ease;
+}
+/* the side carried on past both corners: dotted, quieter than the side */
+.ext {
+  opacity: 0;
+  fill: none;
+  stroke: var(--pair);
+  stroke-width: 3;
+  stroke-dasharray: 0 8;
+  stroke-linecap: round;
+  transition: opacity .4s ease;
+}
+/* the marks: an arrowhead on each side for "parallel", one or two ticks for
+   "equal". Each is inked in the pair's hue over a pale halo, so it reads on
+   the lit side, on the fill and on the board alike, and pops in from its own
+   centre. */
+.par-mark,
+.eq-mark {
+  opacity: 0;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(.4);
+  transition: opacity .34s ease, transform .42s cubic-bezier(.2, .9, .3, 1.4);
+}
+.par-mark .halo,
+.eq-mark  .halo { stroke: var(--board-highlight); stroke-width: 10; }
+.par-mark .ink,
+.eq-mark  .ink  { stroke: var(--pair); stroke-width: 4.2; }
+.pair.show-par .par-mark,
+.pair.show-eq  .eq-mark { opacity: 1; transform: none; }
+
+/* the sides stay lit once grown (growLine lights them inline; the class
+   carries it once that is lifted); when a point is made the carry-ons and
+   arrows leave and the sides dim to a trace, so the next point starts on a
+   quiet shape */
+.pair.lit .side-hl { opacity: 1; }
+.pair.quiet .ext,
+.pair.quiet .par-mark { opacity: 0; }
+.pair.quiet .side-hl { opacity: .35; }
+
+/* the measuring copy of a side: lifts off its side and travels across to
+   lie exactly over the opposite one, then fades once the ticks are in */
+.ghost-side {
+  opacity: 0;
+  fill: none;
+  stroke: var(--pair);
+  stroke-width: 9;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px var(--pair-glow));
+  transition: opacity .3s ease;
+}
+.ghost-side.show { opacity: 1; }
+/* the copy lands: one pulse, as a docked card gives */
+.ghost-side.land { animation: ghost-land .5s cubic-bezier(.2, .9, .3, 1.4); }
+@keyframes ghost-land {
+  0%   { stroke-width: 9; }
+  45%  { stroke-width: 14; }
+  100% { stroke-width: 9; }
+}
+
+/* ---------- under the shape ----------
+ * The two-chip quiz and the facts share one cell, so the room left for the
+ * shape is the same from the first frame to the last. */
+.para-foot {
+  display: grid;
+  justify-items: center;
+  align-items: center;
+}
+.para-foot > * { grid-area: 1 / 1; }
+
+.para-tray {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(14px, 3vw, 44px);
+  transition: opacity .4s ease, visibility 0s linear .4s;
+}
+.para-tray.off { opacity: 0; visibility: hidden; }
+/* these chips are tapped, not dragged */
+.para-tray .chip { cursor: pointer; }
+.para-tray .chip.reveal:hover,
+.para-tray .chip.reveal:focus-visible { border-color: var(--para-border); }
+/* the right name: the chip goes green and swells once */
+.chip.correct,
+.chip.correct:hover {
+  border-color: var(--correct);
+  background: var(--board-highlight);
+  box-shadow: 0 0 0 4px var(--tint-correct);
+  transform: none;
+  animation: dock-pop .5s cubic-bezier(.2, .9, .3, 1.4);
+  cursor: default;
+}
+/* a wrong name, once turned down, steps back */
+.chip.spent {
+  opacity: .42;
+  transform: none;
+  pointer-events: none;
+}
+
+/* ---------- the facts ----------
+ * Swiftee stands to the left of the list and states each fact in turn: the
+ * line types itself out beside it, and its ring fills with a tick once it
+ * has landed. Both lines keep their boxes from the first frame (each ghost
+ * holds its whole line), so the second fact arrives under the first without
+ * moving anything. */
+.facts {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 2.2vw, 30px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .4s ease, visibility 0s linear .4s;
+}
+.facts.show { opacity: 1; visibility: visible; transition: opacity .4s ease; }
+.fact-list {
+  display: grid;
+  gap: clamp(6px, 1.5vh, 14px);
+}
+.fact {
+  display: flex;
+  align-items: center;
+  gap: .55em;
+  margin: 0;
+  color: var(--heading);
+  font-weight: 800;
+  font-size: clamp(15px, 2.7vh, 26px);
+  line-height: 1.25;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .4s ease, transform .4s ease;
+}
+.fact.show { opacity: 1; transform: none; }
+.fact .type-wrap { display: inline-block; vertical-align: top; }
+.fact .type { white-space: nowrap; }
+.fact .caret { background: var(--heading); }
+
+.fact-check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.3em;
+  height: 1.3em;
+  border-radius: 50%;
+  border: 2.5px solid var(--button-border);
+  background: var(--board-highlight);
+  transition: background .3s ease, border-color .3s ease;
+}
+.fact-check svg {
+  width: 68%;
+  height: 68%;
+  fill: none;
+  stroke: var(--board-highlight);
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* drawn on, as the shapes are, once the fact has landed */
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+}
+.fact.done .fact-check {
+  background: var(--correct);
+  border-color: var(--correct);
+  animation: dock-pop .5s cubic-bezier(.2, .9, .3, 1.4);
+}
+.fact.done .fact-check svg { animation: tick-draw .4s ease-out .12s forwards; }
+@keyframes tick-draw { to { stroke-dashoffset: 0; } }
+
+/* the key words: a highlighter sweeps in behind each in its pair's hue as
+   it lands, as the area formulas' words do */
+.fact .w {
+  display: inline-block;
+  padding: 0 .12em;
+  margin: 0 -.12em;
+  border-radius: .3em;
+  transition: background .4s ease, color .4s ease;
+}
+.fact .w.lit.w-par { background: var(--tint-pair-a); color: var(--pair-a); }
+.fact .w.lit.w-eq  { background: var(--tint-pair-b); color: var(--pair-b); }
 
 /* ---------- skip button ----------
  * Understated on purpose: it is a way past a scene, not a thing to press. It
@@ -1393,6 +1705,35 @@ body {
   opacity: 0;
   will-change: transform, opacity;
 }
+
+/* ---------- an aside between sections ----------
+ * The same layer, with the board gone: Swiftee stands over on the left,
+ * clear of where the board was, and the bubble keeps its place at its
+ * shoulder, so both move left together. The bubble is the intro's bubble, unchanged; its longer lines
+ * are simply allowed to wrap -- capped in width so the box stays beside the
+ * bird instead of sliding across its head -- and the typed text is centred
+ * on those lines, as the box is. */
+.intro.aside .intro-mascot { left: 26%; }
+.intro.aside .bubble {
+  left: 26.5%;
+  /* three lines for the longest sentence; on a narrow screen say() slides
+     the box left to keep it on screen, and the tail stays by the head */
+  max-width: min(900px, 64vw);
+}
+.intro.aside .bubble .type { text-align: center; white-space: pre-wrap; }
+
+/* the viewport-anchored Next: over the intro layer (950), under the confetti */
+.free-next {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: clamp(14px, 4.5vh, 48px);
+  z-index: 955;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.free-next .next-btn { pointer-events: auto; }
 
 /* ---------- speech bubble ---------- */
 .bubble {

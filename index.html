@@ -232,26 +232,11 @@
             <defs>
               <clipPath id="wipeQuad"><rect class="wipe" x="0" y="0" width="333" height="272" /></clipPath>
             </defs>
-            <g class="art">
-              <polygon class="shape-fill" clip-path="url(#wipeQuad)" points="165,10 323,151 73,262 10,151" />
-              <!-- the two halves, shaded in once the diagonal is drawn -->
-              <polygon class="tri-fill tri-1" points="10,151 165,10 323,151" />
-              <polygon class="tri-fill tri-2" points="10,151 323,151 73,262" />
-              <path class="shape-outline" d="M165 10 L323 151 L73 262 L10 151 Z" fill="none" stroke-width="5" />
-            </g>
+            <!-- built by script.js from the scene's corners -->
+            <g class="art"></g>
             <!-- the learner's diagonal: left corner to right corner -->
             <line class="join-line" id="joinLine" x1="10" y1="151" x2="10" y2="151" />
-            <g class="dims">
-              <line class="dim h1" x1="165" y1="10"  x2="165" y2="151" />
-              <line class="dim h2" x1="73"  y1="262" x2="73"  y2="151" />
-              <path class="dim-mark mark-1" d="M165 139 H177 V151" />
-              <path class="dim-mark mark-2" d="M73 163 H85 V151" />
-              <text class="dim-label lbl-base" x="245" y="145" font-size="13" text-anchor="middle">base</text>
-              <text class="dim-label lbl-height lbl-h1" x="179" y="80" font-size="13" text-anchor="middle"
-                    dominant-baseline="middle" transform="rotate(-90 179 80)">height</text>
-              <text class="dim-label lbl-height lbl-h2" x="87" y="207" font-size="13" text-anchor="middle"
-                    dominant-baseline="middle" transform="rotate(-90 87 207)">height</text>
-            </g>
+            <g class="dims"></g>
             <!-- the hint: a dotted line and a finger travelling left to right -->
             <g class="demo" id="demoJoin">
               <line class="demo-line" id="demoLine" x1="10" y1="151" x2="10" y2="151" />
@@ -260,12 +245,7 @@
               </g>
             </g>
             <!-- the corners; the hit circle is bigger than the dot it serves -->
-            <g class="dots" id="dots">
-              <g class="corner" data-corner="T"><circle class="dot" cx="165" cy="10"  r="7" /><circle class="dot-hit" cx="165" cy="10"  r="22" /></g>
-              <g class="corner" data-corner="R"><circle class="dot" cx="323" cy="151" r="7" /><circle class="dot-hit" cx="323" cy="151" r="22" /></g>
-              <g class="corner" data-corner="B"><circle class="dot" cx="73"  cy="262" r="7" /><circle class="dot-hit" cx="73"  cy="262" r="22" /></g>
-              <g class="corner" data-corner="L"><circle class="dot" cx="10"  cy="151" r="7" /><circle class="dot-hit" cx="10"  cy="151" r="22" /></g>
-            </g>
+            <g class="dots" id="dots"></g>
           </svg>
         </div>
       </div>
@@ -311,11 +291,67 @@
           </p>
         </div>
 
-        <!-- the area working, one line at a time; script.js fills the ghosts -->
-        <div class="area-lines" id="areaLines" aria-live="polite">
-          <div class="area-line"><span class="type-wrap"><span class="type-ghost"></span><span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span></div>
-          <div class="area-line"><span class="type-wrap"><span class="type-ghost"></span><span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span></div>
-          <div class="area-line"><span class="type-wrap"><span class="type-ghost"></span><span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span></div>
+        <!-- the working, one line at a time; script.js builds each line -->
+        <div class="area-lines" id="areaLines" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- ---------- section 4: the parallelogram ----------
+         The first of the special quadrilaterals. Shares the middle cell with
+         everything before it, and is invisible until the board comes back
+         after Swiftee's aside. The shape itself is built by script.js from
+         its four corners, along with everything the explanation draws over
+         it: a glowing copy of each side, the dotted lines that carry a pair
+         of sides on to show they never meet, the arrow marks that say
+         "parallel", the tick marks that say "equal", and the measuring copy
+         of a side that travels across to lie over its partner. Under it, two
+         things take turns in one cell: the two-chip name quiz, and the list
+         of facts Swiftee hops down to state. -->
+    <section class="para" id="para" aria-hidden="true">
+      <div class="para-stage">
+        <div class="para-shape" id="paraShape" role="img" aria-label="A parallelogram">
+          <svg class="para-svg" id="paraSvg" viewBox="-44 -16 452 236" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <defs>
+              <clipPath id="wipePara"><rect class="wipe" x="-44" y="-16" width="452" height="236" /></clipPath>
+            </defs>
+            <!-- built by script.js from the shape's corners -->
+            <g class="art"></g>
+            <g class="para-ex" id="paraEx"></g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- two occupants of one cell, so the shape above never moves -->
+      <div class="para-foot">
+        <!-- the name quiz: two chips, tap the right one -->
+        <div class="para-tray" id="paraTray">
+          <button class="chip" type="button" data-answer="parallelogram"><span>Parallelogram</span></button>
+          <button class="chip" type="button" data-answer="trapezium"><span>Trapezium</span></button>
+        </div>
+
+        <!-- the facts, stated one at a time with Swiftee standing beside them -->
+        <div class="facts" id="facts">
+          <div class="mascot" id="factMascot" aria-hidden="true"></div>
+          <div class="fact-list">
+            <p class="fact" id="factA" aria-live="polite">
+              <span class="fact-check" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+              </span>
+              <span class="type-wrap">
+                <span class="type-ghost"></span>
+                <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+              </span>
+            </p>
+            <p class="fact" id="factB" aria-live="polite">
+              <span class="fact-check" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+              </span>
+              <span class="type-wrap">
+                <span class="type-ghost"></span>
+                <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+              </span>
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -349,6 +385,15 @@
        sits after the stage, so it paints over the board, and script.js hands
        the sprite to it for the length of the arc. -->
   <div class="flyer" id="flyer" aria-hidden="true"></div>
+
+  <!-- Next, for a scene with no board under it (Swiftee's asides between
+       sections): fixed to the viewport, centred low, over the intro layer -->
+  <div class="free-next" id="freeNext">
+    <button class="next-btn" id="nextBtnFree" type="button" hidden>
+      <span>Next</span>
+      <svg class="next-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+    </button>
+  </div>
 
   <!-- ---------- intro ----------
        Between the Start button and the board: Swiftee hops to the middle of

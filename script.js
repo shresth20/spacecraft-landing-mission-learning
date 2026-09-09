@@ -49,10 +49,37 @@
  *      while a finger traces the diagonal, left to right
  *   6. the learner draws it: "The quadrilateral is divided into two
  *      triangles."
- *   7. the halves shade in two colours; each height drops in turn and its
- *      area line types out under the shape, lighting what it names; the last
- *      line adds the two up
- *   8. Next
+ *   7. the shape slides left and the halves shade in two colours; each height
+ *      drops in turn and its area line types out beside the shape, lighting
+ *      what it names; the last line adds the two up
+ *   8. Next -- then the same shape again, cut top to bottom: the learner
+ *      draws that diagonal, and names the base and height of the green and
+ *      then the purple triangle from drop-downs; the sum is written out
+ *
+ * Section 4: a different quadrilateral, with measurements. Its diagonal and
+ * heights draw themselves; the learner picks each triangle's base and height
+ * from the measurements, and the working (½ × 10 × 6 = 30 sq. cm ...) types
+ * itself out, then the two are added.
+ *
+ * Section 5: the learner's own go. A third quadrilateral, already cut and
+ * measured: the sum of the heights and the diagonal from drop-downs, then the
+ * area itself.
+ *
+ * Between: the board goes, and Swiftee says from its speech bubble that the
+ * special quadrilaterals are next.
+ *
+ * Section 6, the parallelogram (the first special quadrilateral):
+ *   1. the board comes back and a parallelogram draws itself on it
+ *   2. Swiftee jumps up to the heading: "What shape is this?" over two
+ *      chips, Parallelogram and Trapezium; the wrong one steps back
+ *   3. the top and bottom sides light up and are carried on past their
+ *      corners -- they never meet -- and take arrow marks; the left and
+ *      right do the same; Swiftee hops down beside the fact list:
+ *      "Opposite sides are parallel to each other."
+ *   4. a glowing copy of the top side travels down to lie exactly over the
+ *      bottom, tick marks land on both; the left side onto the right;
+ *      "Opposite sides are equal in length."
+ *   5. Next
  */
 
 (function () {
@@ -161,7 +188,7 @@
   const swiftee = (function () {
     const S = window.SWIFTEE;
     const nodes = ['mascot', 'welcomeMascot', 'introMascot', 'hopper',
-                   'quizMascot', 'sideMascot', 'flyer']
+                   'quizMascot', 'sideMascot', 'factMascot', 'flyer']
       .map(id => document.getElementById(id))
       .filter(Boolean);
 
@@ -450,9 +477,10 @@
     });
   }
 
-  /* A scene waiting on the learner for something other than a round -- the
-     drop-down, the diagonal -- leaves its answer here, and a skip puts it in. */
-  let skipFill = null;
+  /* A scene waiting on the learner for something other than a round -- a
+     drop-down, the diagonal -- leaves a way to answer it here, and a skip
+     runs them all. */
+  const skipFills = new Set();
 
   /* A round waiting on the learner would stall a skip forever, so the answers
      go in for them -- no coaching, no confetti out of the cards, no chime. */
@@ -490,7 +518,7 @@
       flushAnimations();
       releaseWaiters();
       if (roundWaiting()) fillRound();
-      if (skipFill) { const fill = skipFill; skipFill = null; fill(); }
+      Array.from(skipFills).forEach(function (fill) { skipFills.delete(fill); fill(); });
       await new Promise(function (r) { requestAnimationFrame(r); });
     }
     flushAnimations();
@@ -1264,15 +1292,30 @@
     bubble.style.height = '';
     bubble.style.left = '';
     bubbleGhost.textContent = text;
-    let r1 = bubble.getBoundingClientRect();
 
-    /* a long line on a narrow screen: slide the box left rather than let it
-       run off the edge -- keeping room for the emphasis strokes outside it */
+    /* before its pop-in the box sits scaled down to a dot, so it is measured
+       with the scale lifted for the instant of the measurement */
+    const measure = () => {
+      if (shown) return bubble.getBoundingClientRect();
+      bubble.style.transition = 'none';
+      bubble.style.transform = 'none';
+      const r = bubble.getBoundingClientRect();
+      bubble.style.transform = '';
+      void bubble.offsetWidth;
+      bubble.style.transition = '';
+      return r;
+    };
+    let r1 = measure();
+
+    /* A long line on a narrow screen: slide the box left rather than let it
+       run off the edge -- keeping room for the emphasis strokes outside it.
+       The box is only as wide as the room to the right of its left edge, so
+       sliding it can let it grow; a second pass settles it. */
     const vw = window.innerWidth;
     const edge = 12 + parseFloat(getComputedStyle(bubble).fontSize) * 1.1;
-    if (r1.right > vw - edge) {
+    for (let pass = 0; pass < 2 && r1.right > vw - edge; pass++) {
       bubble.style.left = Math.max(edge, vw - edge - r1.width) + 'px';
-      r1 = bubble.getBoundingClientRect();
+      r1 = measure();
     }
 
     /* the box is only measured true once it is shown (before that it is
@@ -1406,25 +1449,30 @@
    * warm-up is docked and disabled, so nothing else can be touched. */
   const nextBtn = document.getElementById('nextBtn');
 
-  function showNext() {
+  const nextBtnFree = document.getElementById('nextBtnFree');
+
+  /* the board's Next unless told otherwise; a scene with no board on screen
+     passes the viewport-anchored one */
+  function showNext(which) {
+    const b = which || nextBtn;
     /* the scene is over: a skip in flight stops here, and Skip stands down
        until the next scene opens */
     sceneEnd();
     return new Promise(resolve => {
-      nextBtn.hidden = false;
-      void nextBtn.offsetHeight;
-      nextBtn.classList.add('in');
+      b.hidden = false;
+      void b.offsetHeight;
+      b.classList.add('in');
       lockInput(false);
-      nextBtn.focus({ preventScroll: true });
+      b.focus({ preventScroll: true });
 
-      nextBtn.addEventListener('click', () => {
+      b.addEventListener('click', () => {
         sfx('click', .6);
         lockInput(true);
-        nextBtn.classList.remove('in');
-        nextBtn.classList.add('out');
+        b.classList.remove('in');
+        b.classList.add('out');
         setTimeout(() => {
-          nextBtn.hidden = true;
-          nextBtn.classList.remove('out');
+          b.hidden = true;
+          b.classList.remove('out');
         }, 320);
         resolve();
       }, { once: true });
@@ -1629,22 +1677,25 @@
     await sectionThree();
   }
 
-  /* ---------- section 3: the quadrilateral ---------- */
+  /* ---------- section 3 onward: quadrilaterals ----------
+   * One board section serves every quadrilateral scene from here. Its svg is
+   * rebuilt per scene from four corners and a chosen diagonal: the two
+   * triangles that diagonal makes, each with its perpendicular height, foot
+   * mark and label, are all worked out here rather than drawn by hand. The
+   * triangles are told apart by colour -- never by lettered corners. */
   const quad       = document.getElementById('quad');
   const quadShape  = document.getElementById('quadShape');
   const quadSvg    = document.getElementById('quadSvg');
-  const quadFill   = quadShape.querySelector('.shape-fill');
+  const quadArt    = quadSvg.querySelector('.art');
+  const quadDims   = quadSvg.querySelector('.dims');
+  const quadDots   = document.getElementById('dots');
   const joinLine   = document.getElementById('joinLine');
   const demoG      = document.getElementById('demoJoin');
   const demoLine   = document.getElementById('demoLine');
   const demoHand   = document.getElementById('demoHand');
-  const corners    = Array.from(quadSvg.querySelectorAll('.corner'));
   const quizBlock  = document.getElementById('quizBlock');
   const quizMascot = document.getElementById('quizMascot');
   const dd         = document.getElementById('dd');
-  const ddBtn      = document.getElementById('ddBtn');
-  const ddValue    = document.getElementById('ddValue');
-  const ddOpts     = Array.from(dd.querySelectorAll('.dd-opt'));
   const noteGhost  = document.getElementById('noteGhost');
   const noteType   = document.getElementById('noteType');
   const noteTxt    = noteType.querySelector('.txt');
@@ -1655,45 +1706,92 @@
   const sayType    = document.getElementById('sayType');
   const sayTxt     = sayType.querySelector('.txt');
   const sayCaret   = sayType.querySelector('.caret');
-  const areaLines  = Array.from(document.querySelectorAll('.area-line'));
+  const areaLinesEl = document.getElementById('areaLines');
   const flyer      = document.getElementById('flyer');
 
-  /* Swiftee's lines in the quadrilateral scene */
+  let quadFill = null;         /* the whole-shape fill of the quadrilateral on the board */
+  let corners  = [];           /* the corner groups of the shape on the board */
+  let CORNERS  = {};           /* corner key -> { x, y }, in the svg's units */
+  const HIT  = 24;             /* how near a corner a release counts, in svg units */
+  const NAME = { T: 'top', R: 'right', B: 'bottom', L: 'left' };
+
+  /* ---- the shapes ----
+   * Corners are keyed by where they sit (top, right, bottom, left), which is
+   * how Swiftee refers to them. A spec names the diagonal, and for each of
+   * the two triangles it makes: the corner it reaches, its colour, and what
+   * its height is labelled. */
+  const PTS_A = { T: { x: 165, y: 10 }, R: { x: 323, y: 151 }, B: { x: 73,  y: 262 }, L: { x: 10,  y: 151 } };
+  const PTS_B = { T: { x: 120, y: 10 }, R: { x: 322, y: 70 },  B: { x: 250, y: 262 }, L: { x: 12,  y: 200 } };
+  const PTS_C = { T: { x: 106, y: 49 }, R: { x: 322, y: 190 }, B: { x: 221, y: 226 }, L: { x: 12,  y: 140 } };
+  const ORDER = ['T', 'R', 'B', 'L'];
+
+  /* section 3: the first quadrilateral, cut left to right... */
+  const SPEC_A = {
+    pts: PTS_A, diag: ['L', 'R'], base: 'base',
+    tris: [{ apex: 'T', color: 'purple', label: 'height' }, { apex: 'B', color: 'green', label: 'height' }]
+  };
+  /* ...and then the same one, cut top to bottom */
+  const SPEC_A2 = {
+    pts: PTS_A, diag: ['T', 'B'], base: 'base',
+    tris: [{ apex: 'L', color: 'green', label: 'height' }, { apex: 'R', color: 'purple', label: 'height' }]
+  };
+  /* section 4: a different one, with measurements */
+  const SPEC_B = {
+    pts: PTS_B, diag: ['T', 'B'], base: '10 cm',
+    tris: [{ apex: 'L', color: 'green', label: '6 cm' }, { apex: 'R', color: 'purple', label: '5 cm' }]
+  };
+  /* section 5: the one the learner works out alone */
+  const SPEC_C = {
+    pts: PTS_C, diag: ['L', 'R'], base: '18 cm',
+    tris: [{ apex: 'T', color: 'green', label: '6 cm' }, { apex: 'B', color: 'purple', label: '3 cm' }]
+  };
+
+  /* ---- Swiftee's lines ---- */
   const QUAD = {
-    tap:       'Tap here!',
-    answer:    'quadrilateral',
+    tap:     'Tap here!',
+    answer:  'quadrilateral',
     notes: {
       triangle:      'A triangle has 3 sides. Check again!',
       pentagon:      'A pentagon has 5 sides. Check again!',
       quadrilateral: 'Correct! A quadrilateral has 4 sides.'
     },
-    general:   'This is a general quadrilateral.',
-    area:      'Let’s try and find its area!',
-    join:      'Join the corners to divide the quadrilateral into two parts.',
-    joinWrong: 'Try again! Join the left and right corners.',
-    divided:   'The quadrilateral is divided into two triangles.'
+    general: 'This is a general quadrilateral.',
+    area:    'Let’s try and find its area!',
+    join:    'Join the corners to divide the quadrilateral into two parts.',
+    divided: 'The quadrilateral is divided into two triangles.',
+    another: 'Let’s try a different way!',
+    twoNew:  'Two new triangles! Let’s find their areas.',
+    joinWrong: (a, b) => 'Try again! Join the ' + NAME[a] + ' and ' + NAME[b] + ' corners.'
+  };
+  const FOUR = {
+    here: 'Here is a different quadrilateral.',
+    dims: 'Let’s look at its base and heights.',
+    pick: 'Choose the base and height for each triangle.'
+  };
+  const FIVE = {
+    turn: 'Now it’s your turn! Find the area of this quadrilateral.'
   };
 
-  /* The working under the shape, in pieces: every word that names a part of
-     the drawing is its own span, so it can light up -- and light the part it
-     names -- the moment it has finished typing. */
-  const AREA_LINES = [
-    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 't1' }, { t: ' = ½ × ' }, { t: 'base', w: 'base' }, { t: ' × ' }, { t: 'height', w: 'h1' }],
-    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 't2' }, { t: ' = ½ × ' }, { t: 'base', w: 'base' }, { t: ' × ' }, { t: 'height', w: 'h2' }],
+  /* The working under (later, beside) the shape, in pieces: every word that
+     names a part of the drawing is its own span, so it can light up -- and
+     light the part it names -- the moment it has finished typing. */
+  const LINES_A = [
+    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' = ½ × ' }, { t: 'base', w: 'base' }, { t: ' × ' }, { t: 'height', w: 'h-purple' }],
+    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 'green' },  { t: ' = ½ × ' }, { t: 'base', w: 'base' }, { t: ' × ' }, { t: 'height', w: 'h-green' }],
     /* the no-break spaces keep "= Area of" and "+ Area of" whole, so the long
        line wraps before an operator rather than leaving one dangling */
-    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = Area of ' }, { t: 'Triangle 1', w: 't1' }, { t: ' + Area of ' }, { t: 'Triangle 2', w: 't2' }]
+    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' + Area of ' }, { t: 'Triangle 2', w: 'green' }]
   ];
+  const SUM_A2 = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = Area of ' }, { t: 'Green Triangle', w: 'green' }, { t: ' + Area of ' }, { t: 'Purple Triangle', w: 'purple' }];
+  const SUM_B  = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ' }, { t: '30 sq. cm', w: 'green' }, { t: ' + ' }, { t: '25 sq. cm', w: 'purple' }, { t: ' = 55 sq. cm' }];
+
+  /* what the drop-downs in a formula offer: the parts of the drawing by name
+     in section 3, and by measurement in section 4 */
+  const NOTATION = [{ v: 'base', t: 'Base' }, { v: 'h-green', t: 'Green height' }, { v: 'h-purple', t: 'Purple height' }];
+  const MEASURES = [{ v: '10', t: '10 cm' }, { v: '6', t: '6 cm' }, { v: '5', t: '5 cm' }];
+
   const AREA_MS    = 64;       /* per character */
   const AREA_PAUSE = 560;      /* a beat after each key word, for the highlight to land */
-
-  /* the corners, in the svg's own units, read off the dots themselves */
-  const CORNERS = {};
-  corners.forEach(c => {
-    const d = c.querySelector('.dot');
-    CORNERS[c.dataset.corner] = { x: +d.getAttribute('cx'), y: +d.getAttribute('cy') };
-  });
-  const HIT = 24;              /* how near a corner a release counts, in svg units */
 
   const longest = list => list.reduce((a, b) => (b.length > a.length ? b : a), '');
 
@@ -1701,6 +1799,94 @@
      the shape changes size once it is on screen */
   noteGhost.textContent = longest([QUAD.tap].concat(Object.keys(QUAD.notes).map(k => QUAD.notes[k])));
   sayGhost.textContent  = longest([QUAD.general, QUAD.area]);
+
+  /* ---------- building a quadrilateral ---------- */
+  const fmt = n => Math.round(n * 10) / 10;
+  const pt  = p => fmt(p.x) + ',' + fmt(p.y);
+
+  function buildQuad(spec) {
+    const P = spec.pts;
+    const [d1, d2] = spec.diag;
+    const A = P[d1], B = P[d2];
+    const dx = B.x - A.x, dy = B.y - A.y;
+    const L2 = dx * dx + dy * dy, len = Math.sqrt(L2);
+
+    /* the shape: one fill, the two halves, the outline that draws itself */
+    let art = '<polygon class="shape-fill" clip-path="url(#wipeQuad)" points="' + ORDER.map(k => pt(P[k])).join(' ') + '" />';
+    spec.tris.forEach(t => {
+      art += '<polygon class="tri-fill c-' + t.color + '" points="' + pt(A) + ' ' + pt(P[t.apex]) + ' ' + pt(B) + '" />';
+    });
+    art += '<path class="shape-outline" d="M' + ORDER.map(k => fmt(P[k].x) + ' ' + fmt(P[k].y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
+    quadArt.innerHTML = art;
+    quadFill = quadArt.querySelector('.shape-fill');
+
+    /* each height: from the triangle's far corner straight down onto the
+       diagonal, a right-angle mark at its foot, and a label alongside, run
+       along the line and set on whichever side has more room */
+    let dims = '';
+    let tallest = spec.tris[0];
+    spec.tris.forEach(t => {
+      const X = P[t.apex];
+      const tt = ((X.x - A.x) * dx + (X.y - A.y) * dy) / L2;
+      const F = { x: A.x + dx * tt, y: A.y + dy * tt };
+      const side = tt < .5 ? 1 : -1;                        /* toward the farther end */
+      const u = { x: dx / len * side, y: dy / len * side };
+      const hv = { x: X.x - F.x, y: X.y - F.y };
+      const hl = Math.hypot(hv.x, hv.y);
+      const v = { x: hv.x / hl, y: hv.y / hl };
+      t.height = hl;
+      t.foot = tt;
+      if (hl > tallest.height) tallest = t;
+      const s = 11;
+      dims += '<line class="dim h-' + t.color + '" x1="' + fmt(X.x) + '" y1="' + fmt(X.y) + '" x2="' + fmt(F.x) + '" y2="' + fmt(F.y) + '" />';
+      dims += '<path class="dim-mark mark-' + t.color + '" d="M' + fmt(F.x + u.x * s) + ' ' + fmt(F.y + u.y * s) +
+              ' L' + fmt(F.x + u.x * s + v.x * s) + ' ' + fmt(F.y + u.y * s + v.y * s) +
+              ' L' + fmt(F.x + v.x * s) + ' ' + fmt(F.y + v.y * s) + '" />';
+      const M = { x: (X.x + F.x) / 2 + u.x * 12, y: (X.y + F.y) / 2 + u.y * 12 };
+      let ang = Math.atan2(hv.y, hv.x) * 180 / Math.PI;
+      if (ang > 90) ang -= 180;
+      if (ang < -90) ang += 180;
+      dims += '<text class="dim-label lbl-h lbl-' + t.color + '" x="' + fmt(M.x) + '" y="' + fmt(M.y) + '" font-size="13" text-anchor="middle" ' +
+              'dominant-baseline="middle" transform="rotate(' + fmt(ang) + ' ' + fmt(M.x) + ' ' + fmt(M.y) + ')">' + t.label + '</text>';
+    });
+    /* the base label: along the diagonal, set into the taller triangle, at
+       whichever of three places is farthest from both heights' feet */
+    {
+      const X = P[tallest.apex];
+      const feet = spec.tris.map(t => t.foot);
+      const at = [.22, .5, .78].reduce((best, c) => {
+        const gap = Math.min.apply(null, feet.map(f => Math.abs(f - c)));
+        return gap > best.gap ? { t: c, gap: gap } : best;
+      }, { t: .5, gap: -1 }).t;
+      const mid = { x: A.x + dx * at, y: A.y + dy * at };
+      let n = { x: -dy / len, y: dx / len };
+      if ((X.x - mid.x) * n.x + (X.y - mid.y) * n.y < 0) n = { x: -n.x, y: -n.y };
+      const M = { x: mid.x + n.x * 14, y: mid.y + n.y * 14 };
+      let ang = Math.atan2(dy, dx) * 180 / Math.PI;
+      if (ang > 90) ang -= 180;
+      if (ang < -90) ang += 180;
+      dims += '<text class="dim-label lbl-base" x="' + fmt(M.x) + '" y="' + fmt(M.y) + '" font-size="13" text-anchor="middle" ' +
+              'dominant-baseline="middle" transform="rotate(' + fmt(ang) + ' ' + fmt(M.x) + ' ' + fmt(M.y) + ')">' + spec.base + '</text>';
+    }
+    quadDims.innerHTML = dims;
+
+    /* the corners; the hit circle is bigger than the dot it serves */
+    quadDots.innerHTML = ORDER.map(k =>
+      '<g class="corner" data-corner="' + k + '"><circle class="dot" cx="' + P[k].x + '" cy="' + P[k].y + '" r="7" />' +
+      '<circle class="dot-hit" cx="' + P[k].x + '" cy="' + P[k].y + '" r="22" /></g>').join('');
+    corners = Array.from(quadDots.querySelectorAll('.corner'));
+    corners.forEach(c => c.addEventListener('pointerdown', onCornerDown));
+    CORNERS = {};
+    ORDER.forEach(k => { CORNERS[k] = P[k]; });
+
+    /* a clean slate: no split, no lights, no lines, one column */
+    quadShape.className = 'quad-shape';
+    quad.classList.remove('wide');
+    setLine(joinLine, A, A);
+    joinLine.classList.remove('live', 'bad', 'done');
+    demoG.classList.remove('on');
+    areaLinesEl.textContent = '';
+  }
 
   function segSpans(root, segs) {
     root.textContent = '';
@@ -1711,10 +1897,6 @@
       return el;
     });
   }
-  areaLines.forEach((line, i) => {
-    segSpans(line.querySelector('.type-ghost'), AREA_LINES[i])
-      .forEach((el, j) => { el.textContent = AREA_LINES[i][j].t; });
-  });
 
   /* A typewriter bound to one box. A line that comes in while an earlier one
      is still typing takes the box over from it, as feedback() does above. */
@@ -1736,6 +1918,14 @@
   }
   const note  = typer(noteTxt, noteCaret, 55);        /* Swiftee's remark on an answer */
   const aside = typer(sayTxt, sayCaret, TYPE_MS);     /* Swiftee's line beside itself */
+
+  /* Swiftee says a line from its place by the heading */
+  async function heading(text) {
+    feedbackGen++;
+    swiftee.hold('talking');
+    await typewrite(text, text.length * TYPE_MS);
+    swiftee.release();
+  }
 
   /* the formula typewriter, generalised: a line in segments, with a pause
      and a callback each time a key word completes */
@@ -1762,14 +1952,18 @@
     blink.hidden = true;
   }
 
-  /* an eased 0 -> 1 over ms, driven by the frame clock; a skip lands it at 1 */
-  function tween(ms, step) {
+  /* an eased 0 -> 1 over ms, driven by the frame clock; a skip lands it at 1.
+     Ease-out cubic unless told otherwise. */
+  const easeOut   = p => 1 - Math.pow(1 - p, 3);
+  const easeInOut = p => (p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+  function tween(ms, step, ease) {
+    const fn = ease || easeOut;
     if (REDUCED || fastForward) { step(1); return wait(0); }
     return new Promise(resolve => {
       const t0 = performance.now();
       (function f(t) {
         const p = fastForward ? 1 : Math.min(1, (t - t0) / ms);
-        step(1 - Math.pow(1 - p, 3));                       /* ease-out cubic */
+        step(fn(p));
         if (p < 1) requestAnimationFrame(f);
         else resolve();
       })(t0);
@@ -1785,10 +1979,10 @@
   }
   /* a screen position in the svg's units */
   function svgPoint(x, y) {
-    const pt = quadSvg.createSVGPoint();
-    pt.x = x; pt.y = y;
+    const p = quadSvg.createSVGPoint();
+    p.x = x; p.y = y;
     const m = quadSvg.getScreenCTM();
-    return m ? pt.matrixTransform(m.inverse()) : pt;
+    return m ? p.matrixTransform(m.inverse()) : p;
   }
   function nearCorner(p, except) {
     let best = null, bd = HIT;
@@ -1855,94 +2049,134 @@
     try { await land.finished; } catch (e) {}
   }
 
-  /* ---------- the drop-down ----------
-   * A custom one, so the box can be a slot, shake, go green, and open with a
-   * pop: a native select can do none of that. */
-  let quizLive = false;
-  let quizResolve = null;
-  let ddReset = null;
-
-  function openMenu(on) {
-    dd.classList.toggle('open', !!on);
-    ddBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
-  }
-  ddBtn.addEventListener('click', e => {
-    if (!interactive || !quizLive) return;
-    e.stopPropagation();
-    openMenu(!dd.classList.contains('open'));
-    sfx('click', .5);
-  });
-  ddOpts.forEach(opt => opt.addEventListener('click', e => {
-    if (!interactive || !quizLive) return;
-    e.stopPropagation();
-    chooseOption(opt, false);
-  }));
-  document.addEventListener('click', () => { if (dd.classList.contains('open')) openMenu(false); });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && dd.classList.contains('open')) openMenu(false);
-  });
-
-  /* an answer goes in; `auto` is true when a skip put it there */
-  function chooseOption(opt, auto) {
-    if (!quizLive || !opt) return;
-    openMenu(false);
-    clearTimeout(ddReset);
-    const v = opt.dataset.value;
-    ddValue.textContent = opt.textContent;
-    dd.classList.remove('hint', 'reject');
-    dd.classList.add('chosen');
-    sfx('click', .5);
-
-    /* ---- wrong name: red shake, Swiftee says how many sides it has ---- */
-    if (v !== QUAD.answer) {
-      sfx('wrong');
-      swiftee.play('confused', 1);
-      note(QUAD.notes[v] || QUAD.notes.triangle);
-      void ddBtn.offsetWidth;                            /* restart the shake */
-      dd.classList.add('reject');
-      setTimeout(() => dd.classList.remove('reject'), 430);
-      /* then the box empties again, so it reads as a question once more */
-      ddReset = setTimeout(() => {
-        if (!quizLive) return;
-        ddValue.textContent = '';
-        dd.classList.remove('chosen');
-      }, 1500);
-      return;
-    }
-
-    /* ---- right: the slot closes up green, confetti out of it ---- */
-    quizLive = false;
-    skipFill = null;
-    lockInput(true);
-    dd.classList.add('correct');
-    sfx('correct', auto ? .55 : 1);
-    if (!auto) {
-      swiftee.play('happy', 1);
-      sfx('confetti', .55);
-      requestAnimationFrame(() => burst(ddBtn));
-    }
-    note(QUAD.notes[v]);
-    if (quizResolve) quizResolve();
+  /* ---------- drop-downs ----------
+   * Custom ones, so the box can be a slot, shake, go green and open with a
+   * pop: a native select can do none of that. makeDD builds one; ddController
+   * runs one -- the quiz's, written in the HTML, and every one built here. */
+  function makeDD(opts, small) {
+    const root = document.createElement('div');
+    root.className = 'dd' + (small ? ' dd-small' : '');
+    root.innerHTML =
+      '<button class="dd-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Choose an answer">' +
+        '<span class="dd-value"></span>' +
+        '<svg class="dd-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-8 10z" /></svg>' +
+      '</button><div class="dd-menu" role="listbox"></div>';
+    const menu = root.querySelector('.dd-menu');
+    opts.forEach(o => {
+      const b = document.createElement('button');
+      b.className = 'dd-opt';
+      b.type = 'button';
+      b.setAttribute('role', 'option');
+      b.dataset.value = o.v;
+      b.textContent = o.t;
+      menu.appendChild(b);
+    });
+    return root;
   }
 
-  function awaitQuiz() {
-    return new Promise(resolve => {
-      quizResolve = resolve;
-      quizLive = true;
-      lockInput(false);
-      skipFill = () => chooseOption(ddOpts.find(o => o.dataset.value === QUAD.answer), true);
+  function closeMenus() {
+    document.querySelectorAll('.dd.open').forEach(d => {
+      d.classList.remove('open');
+      const b = d.querySelector('.dd-btn');
+      if (b) b.setAttribute('aria-expanded', 'false');
     });
   }
+  document.addEventListener('click', closeMenus);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
+
+  function ddController(root) {
+    const btn   = root.querySelector('.dd-btn');
+    const value = root.querySelector('.dd-value');
+    const opts  = Array.from(root.querySelectorAll('.dd-opt'));
+    let live = false, check = null, onRight = null, onWrong = null, resolve = null, resetT = null, fill = null;
+
+    function open(on) {
+      root.classList.toggle('open', !!on);
+      btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    }
+    btn.addEventListener('click', e => {
+      if (!interactive || !live) return;
+      e.stopPropagation();
+      const was = root.classList.contains('open');
+      closeMenus();
+      open(!was);
+      sfx('click', .5);
+    });
+    opts.forEach(o => o.addEventListener('click', e => {
+      if (!interactive || !live) return;
+      e.stopPropagation();
+      choose(o, false);
+    }));
+
+    /* an answer goes in; `auto` is true when a skip put it there */
+    function choose(opt, auto) {
+      if (!live || !opt) return;
+      open(false);
+      clearTimeout(resetT);
+      const v = opt.dataset.value;
+      value.textContent = opt.textContent;
+      root.classList.remove('hint', 'reject');
+      root.classList.add('chosen');
+      sfx('click', .5);
+
+      /* ---- wrong: red shake, and the box empties again after a beat ---- */
+      if (!check(v)) {
+        sfx('wrong');
+        swiftee.play('confused', 1);
+        void btn.offsetWidth;                              /* restart the shake */
+        root.classList.add('reject');
+        setTimeout(() => root.classList.remove('reject'), 430);
+        if (onWrong) onWrong(v);
+        resetT = setTimeout(() => {
+          if (!live) return;
+          value.textContent = '';
+          root.classList.remove('chosen');
+        }, 1500);
+        return;
+      }
+
+      /* ---- right: the slot closes up green, confetti out of it ---- */
+      live = false;
+      skipFills.delete(fill);
+      root.classList.add('correct');
+      sfx('correct', auto ? .55 : 1);
+      if (!auto) {
+        swiftee.play('happy', 1);
+        sfx('confetti', .55);
+        requestAnimationFrame(() => burst(btn));
+      }
+      if (onRight) onRight(v);
+      if (resolve) resolve(v);
+    }
+
+    return {
+      root: root,
+      /* resolves with the value once a right answer is in; a skip picks the
+         first right one itself */
+      ask(isRight, right, wrong) {
+        return new Promise(res => {
+          check = isRight; onRight = right || null; onWrong = wrong || null; resolve = res;
+          live = true;
+          root.classList.add('hint');
+          fill = () => choose(opts.find(o => isRight(o.dataset.value)), true);
+          skipFills.add(fill);
+        });
+      }
+    };
+  }
+  const quizDD = ddController(dd);
 
   /* ---------- joining the corners ----------
-   * Drag from one corner to another, or tap one and then the other. The
-   * diagonal the scene is built around runs left to right; the other pair is
-   * turned down gently and the learner pointed back at it. */
+   * Drag from one corner to another, or tap one and then the other. Only the
+   * diagonal the scene is built around counts; the other pair is turned down
+   * gently and the learner pointed back at it. */
   let joinLive = false;
   let joinResolve = null;
   let joinSignal = null;
+  let joinPair = ['L', 'R'];
   let jdrag = null;            /* { from, start } while a corner is being dragged from */
   let armed = null;            /* a corner tapped once, waiting for its partner */
+  const fillJoin = () => completeJoin(true);
 
   function setArmed(k) {
     corners.forEach(c => c.classList.toggle('armed', c.dataset.corner === k));
@@ -1952,8 +2186,6 @@
     corners.forEach(c => c.classList.toggle('hot', c.dataset.corner === k));
   }
   function hideDemo() { demoG.classList.remove('on'); }
-
-  corners.forEach(c => c.addEventListener('pointerdown', onCornerDown));
 
   function onCornerDown(e) {
     if (!interactive || !joinLive) return;
@@ -2020,7 +2252,7 @@
   }
 
   function tryPair(a, b) {
-    const ok = (a === 'L' && b === 'R') || (a === 'R' && b === 'L');
+    const ok = (a === joinPair[0] && b === joinPair[1]) || (a === joinPair[1] && b === joinPair[0]);
     if (ok) return completeJoin(false, a);
     return wrongJoin(a, b);
   }
@@ -2033,20 +2265,32 @@
     joinLine.classList.add('bad');
     sfx('wrong');
     swiftee.play('confused', 1);
-    feedback(QUAD.joinWrong);
-    [cornerEl(a), cornerEl(b)].forEach(c => c.classList.add('hot'));
+    feedback(QUAD.joinWrong(joinPair[0], joinPair[1]));
+    [cornerEl(a), cornerEl(b)].forEach(c => c && c.classList.add('hot'));
     await wait(520);
-    [cornerEl(a), cornerEl(b)].forEach(c => c.classList.remove('hot'));
+    [cornerEl(a), cornerEl(b)].forEach(c => c && c.classList.remove('hot'));
     if (!joinLive || jdrag) return;        /* completed, or a new drag has begun */
     await tween(260, p => setEnd(joinLine, { x: B.x + (A.x - B.x) * p, y: B.y + (A.y - B.y) * p }));
     if (!jdrag) joinLine.classList.remove('bad');
+  }
+
+  /* the diagonal draws itself, corner to corner */
+  async function drawJoin(a, b) {
+    const A = CORNERS[a], B = CORNERS[b];
+    setLine(joinLine, A, A);
+    joinLine.classList.remove('bad', 'done');
+    joinLine.classList.add('live');
+    await tween(620, p => setEnd(joinLine, { x: A.x + (B.x - A.x) * p, y: A.y + (B.y - A.y) * p }));
+    joinLine.classList.remove('live');
+    joinLine.classList.add('done');
+    quadShape.classList.add('joined');
   }
 
   /* the diagonal is in; `auto` is true when a skip drew it */
   async function completeJoin(auto, from) {
     if (!joinLive) return;
     joinLive = false;
-    skipFill = null;
+    skipFills.delete(fillJoin);
     lockInput(true);
     if (joinSignal) joinSignal.done = true;
     hideDemo();
@@ -2054,42 +2298,40 @@
     setHot(null);
     quadShape.classList.remove('live');
 
-    const a = from || 'L', b = a === 'L' ? 'R' : 'L';
-    const A = CORNERS[a], B = CORNERS[b];
+    const a = from || joinPair[0];
+    const b = a === joinPair[0] ? joinPair[1] : joinPair[0];
     joinLine.classList.remove('bad');
     if (auto) {
-      /* nobody drew it: the line draws itself, corner to corner */
-      setLine(joinLine, A, A);
-      joinLine.classList.add('live');
-      await tween(620, p => setEnd(joinLine, { x: A.x + (B.x - A.x) * p, y: A.y + (B.y - A.y) * p }));
+      await drawJoin(a, b);
     } else {
-      setLine(joinLine, A, B);
+      setLine(joinLine, CORNERS[a], CORNERS[b]);
+      joinLine.classList.remove('live');
+      joinLine.classList.add('done');
+      quadShape.classList.add('joined');
     }
-    joinLine.classList.remove('live');
-    joinLine.classList.add('done');
-    quadShape.classList.add('joined');
     sfx('correct', auto ? .55 : 1);
     if (!auto) swiftee.play('happy', 1);
     if (joinResolve) joinResolve();
   }
 
-  function awaitJoin(signal) {
+  function awaitJoin(signal, pair) {
     return new Promise(resolve => {
       joinResolve = resolve;
       joinSignal = signal;
+      joinPair = pair;
       joinLive = true;
       quadShape.classList.add('live');
       lockInput(false);
-      skipFill = () => completeJoin(true);
+      skipFills.add(fillJoin);
     });
   }
 
   /* ---------- the hint under the instruction ----------
-   * A dotted line grows from the left corner to the right with a finger
-   * riding its tip, again and again, until the learner takes hold of a
-   * corner -- the way the ghost chip demonstrates a drag in the warm-up. */
-  function demoJoin(signal) {
-    const A = CORNERS.L, B = CORNERS.R;
+   * A dotted line grows from one corner of the pair to the other with a
+   * finger riding its tip, again and again, until the learner takes hold of
+   * a corner -- the way the ghost chip demonstrates a drag in the warm-up. */
+  function demoJoin(signal, pair) {
+    const A = CORNERS[pair[0]], B = CORNERS[pair[1]];
     const S = 1.7;                 /* the hand glyph's scale; its fingertip is at (11.5, 3) */
     const handAt = (x, y) => demoHand.setAttribute('transform',
       'translate(' + (x - 11.5 * S) + ' ' + (y - 3 * S) + ') scale(' + S + ')');
@@ -2161,18 +2403,24 @@
     quadSvg.style.transformOrigin = '';
   }
 
-  /* the perpendicular drops from the apex to the base, then its right-angle
-     mark appears at the foot */
-  async function dropHeight(n) {
-    await growLine(quadSvg.querySelector('.h' + n), 640);
-    quadShape.classList.add('marked-' + n);
+  /* the whole-shape fill gives way to the two coloured halves */
+  function splitShape() {
+    if (quadFill) quadFill.style.opacity = '';
+    quadShape.classList.add('split');
+  }
+
+  /* the perpendicular drops from the far corner to the base, then its
+     right-angle mark appears at the foot */
+  async function dropHeight(color) {
+    await growLine(quadSvg.querySelector('.h-' + color), 640);
+    quadShape.classList.add('marked-' + color);
     await wait(260);
   }
 
   /* a key word has landed in the working: light the part of the drawing it
      names -- a triangle swells once, a line stays lit */
   function onAreaWord(w) {
-    if (w === 't1' || w === 't2') {
+    if (w === 'green' || w === 'purple') {
       const cls = 'pulse-' + w;
       quadShape.classList.remove(cls);
       void quadShape.offsetWidth;
@@ -2180,16 +2428,140 @@
       setTimeout(() => quadShape.classList.remove(cls), 700);
       return;
     }
-    quadShape.classList.add('lit-' + w);
+    quadShape.classList.add('lit-' + w.replace(/^h-/, ''));
   }
 
-  async function showAreaLine(i) {
-    const line = areaLines[i];
+  function showLine(line) {
+    areaLinesEl.appendChild(line);
+    void line.offsetWidth;
     line.classList.add('show');
     sfx('click', .3);
-    await wait(REDUCED ? 160 : 460);
-    await typeSegments(line.querySelector('.txt'), line.querySelector('.caret'),
-      AREA_LINES[i], AREA_MS, AREA_PAUSE, onAreaWord);
+    return wait(REDUCED ? 160 : 460);
+  }
+
+  /* a line of working that types itself out, lighting what it names */
+  async function showTypedLine(segs) {
+    const line = document.createElement('div');
+    line.className = 'area-line';
+    line.innerHTML = '<span class="type-wrap"><span class="type-ghost"></span>' +
+      '<span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span>';
+    /* the ghost carries the whole line, so the box is sized before the first
+       character lands */
+    segSpans(line.querySelector('.type-ghost'), segs).forEach((el, j) => { el.textContent = segs[j].t; });
+    await showLine(line);
+    await typeSegments(line.querySelector('.txt'), line.querySelector('.caret'), segs, AREA_MS, AREA_PAUSE, onAreaWord);
+    return line;
+  }
+
+  /* "Area of [Green Triangle] = ½ × [ v ] × [ v ]": a line with two
+     drop-downs in it, and a tail the working is typed into once both are
+     right */
+  function formulaLine(name, color, opts) {
+    const line = document.createElement('div');
+    line.className = 'area-line f-line';
+    const seg = (cls, text) => {
+      const el = document.createElement('span');
+      el.className = cls;
+      el.textContent = text;
+      return el;
+    };
+    const dd1 = makeDD(opts, true), dd2 = makeDD(opts, true);
+    const tail = document.createElement('span');
+    tail.className = 'seg tail';
+    tail.innerHTML = '<span class="txt"></span><i class="caret" hidden aria-hidden="true"></i>';
+    const expr = document.createElement('span');
+    expr.className = 'expr';
+    expr.append(seg('seg', ' = ½ × '), dd1, seg('seg', ' × '), dd2);
+    line.append(seg('seg', 'Area of '), seg('w w-' + color + ' lit', name), expr, tail);
+    return {
+      line: line,
+      dds: [ddController(dd1), ddController(dd2)],
+      tail: typer(tail.querySelector('.txt'), tail.querySelector('.caret'), AREA_MS)
+    };
+  }
+
+  /* Both boxes are live at once, and between them they must hold the two
+     parts named -- in either order. A part already in one box is turned down
+     by the other. */
+  async function askFormula(f, need) {
+    const taken = new Set();
+    const ok = v => need.indexOf(v) !== -1 && !taken.has(v);
+    lockInput(false);
+    await Promise.all(f.dds.map(d => d.ask(ok,
+      v => { taken.add(v); feedback(FEEDBACK.right); },
+      () => feedback(FEEDBACK.wrong))));
+    lockInput(true);
+  }
+
+  /* "The sum of the perpendicular heights is [ v ]": a label card with a
+     drop-down slot on its end, as the name quiz was */
+  function questionLine(label, opts) {
+    const line = document.createElement('div');
+    line.className = 'area-line q-line';
+    const lab = document.createElement('span');
+    lab.className = 'quiz-label';
+    lab.textContent = label;
+    const d = makeDD(opts, false);
+    line.append(lab, d);
+    return { line: line, dd: ddController(d) };
+  }
+
+  /* the last line of a scene is in: "Well Done!", the halves swell together,
+     Swiftee is proud, and confetti falls */
+  function celebrate() {
+    feedback(FEEDBACK.done);
+    onAreaWord('green');
+    onAreaWord('purple');
+    swiftee.play('proud', 1);
+    skyConfetti(120, 3200);
+    sfx('confetti', .8);
+  }
+
+  /* Between quadrilaterals the board goes blank: Swiftee ducks behind it,
+     the old shape fades, the new one is built and drawn, and Swiftee jumps
+     back up to the heading. */
+  async function nextQuad(spec) {
+    const out = mascotJumpOut();
+    await wait(260);
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    quad.classList.add('off');
+    await out;
+    await wait(520);
+    await freshQuad(spec);
+    await mascotJumpIn();
+    await wait(240);
+  }
+
+  /* the shape is rebuilt while the section is faded out, then drawn again */
+  async function freshQuad(spec) {
+    buildQuad(spec);
+    quad.style.transition = 'none';
+    quad.classList.remove('off');
+    void quad.offsetWidth;
+    quad.style.transition = '';
+    await wait(80);
+    await revealShape(quadShape);
+    await wait(300);
+  }
+
+  /* the diagonal, the two colours, and both heights with their labels */
+  async function showSplit(pair, spec) {
+    quadShape.classList.add('dots');
+    await wait(500);
+    await drawJoin(pair[0], pair[1]);
+    await wait(300);
+    splitShape();
+    await wait(700);
+    await layoutWide();
+    await wait(300);
+    for (const t of spec.tris) {
+      await dropHeight(t.color);
+      quadShape.classList.add('lit-' + t.color);
+    }
+    quadShape.classList.add('lit-base');
+    await wait(500);
   }
 
   async function sectionThree() {
@@ -2208,11 +2580,13 @@
     await out;
     await wait(520);
 
-    /* the heading's ghost takes this section's longest line; the board is
-       blank, so the row can re-measure with nothing on it to move */
-    promptGhost.textContent = longest([QUAD.join, QUAD.joinWrong, QUAD.divided]);
+    /* the heading's ghost takes the longest line of the quadrilateral
+       scenes; the board is blank, so the row can re-measure with nothing on
+       it to move */
+    promptGhost.textContent = longest([QUAD.join, QUAD.divided, QUAD.twoNew, FOUR.pick, FIVE.turn, QUAD.joinWrong('bottom', 'right')]);
 
     /* 2. the quadrilateral: outline first, then the colour */
+    buildQuad(SPEC_A);
     quad.classList.add('on');
     quad.setAttribute('aria-hidden', 'false');
     await wait(80);
@@ -2229,7 +2603,11 @@
     swiftee.hold('talking');
     await note(QUAD.tap);
     swiftee.release();
-    await awaitQuiz();
+    lockInput(false);
+    await quizDD.ask(v => v === QUAD.answer,
+      v => note(QUAD.notes[v]),
+      v => note(QUAD.notes[v] || QUAD.notes.triangle));
+    lockInput(true);
     await wait(1900);
 
     /* 4. the sentence goes; Swiftee hops to the left and names the shape */
@@ -2258,46 +2636,561 @@
     quadShape.classList.add('dots');
     await wait(560);
     const signal = { done: false };
-    const demo = demoJoin(signal);
-    swiftee.hold('talking');
-    await typewrite(QUAD.join, QUAD.join.length * TYPE_MS);
-    swiftee.release();
-    await awaitJoin(signal);
+    const demo = demoJoin(signal, ['L', 'R']);
+    await heading(QUAD.join);
+    await awaitJoin(signal, ['L', 'R']);
     await demo;
 
     /* 6. joined */
     await wait(360);
-    feedbackGen++;
-    swiftee.hold('talking');
-    await typewrite(QUAD.divided, QUAD.divided.length * TYPE_MS);
-    swiftee.release();
+    await heading(QUAD.divided);
     await wait(520);
 
     /* 7. the shape moves to the left, making room for the working on the
           right; then two colours, two heights, two areas, and their sum */
     await layoutWide();
     await wait(300);
-    quadFill.style.opacity = '';
-    quadShape.classList.add('split');
+    splitShape();
     await wait(REDUCED ? 300 : 900);
-
-    await dropHeight(1);
-    await showAreaLine(0);
+    await dropHeight('purple');
+    await showTypedLine(LINES_A[0]);
     await wait(760);
-    await dropHeight(2);
-    await showAreaLine(1);
+    await dropHeight('green');
+    await showTypedLine(LINES_A[1]);
     await wait(760);
-    await showAreaLine(2);
-    onAreaWord('t1');
-    onAreaWord('t2');
-    swiftee.play('proud', 1);
-    skyConfetti(120, 3200);
-    sfx('confetti', .8);
+    await showTypedLine(LINES_A[2]);
+    celebrate();
 
     /* a few seconds to take it in, then on */
     await wait(2600);
     await showNext();
-    /* section 4 continues here */
+
+    /* ---- the other way: the same shape, cut top to bottom ---- */
+    sceneStart();
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    quad.classList.add('off');
+    await wait(480);
+    await freshQuad(SPEC_A2);
+    await heading(QUAD.another);
+    await wait(300);
+
+    /* the corners again, and a finger tracing the other diagonal */
+    quadShape.classList.add('dots');
+    await wait(560);
+    const signal2 = { done: false };
+    const demo2 = demoJoin(signal2, ['T', 'B']);
+    await wait(900);
+    await awaitJoin(signal2, ['T', 'B']);
+    await demo2;
+
+    /* two new colours, and the shape moves aside for the working */
+    await wait(360);
+    splitShape();
+    await wait(700);
+    await heading(QUAD.twoNew);
+    await layoutWide();
+    await wait(300);
+    for (const t of SPEC_A2.tris) {
+      await dropHeight(t.color);
+      quadShape.classList.add('lit-' + t.color);
+    }
+    quadShape.classList.add('lit-base');
+    await wait(400);
+
+    /* the learner names the base and height of each triangle in turn... */
+    const g = formulaLine('Green Triangle', 'green', NOTATION);
+    await showLine(g.line);
+    await askFormula(g, ['base', 'h-green']);
+    onAreaWord('green');
+    await wait(700);
+    const p = formulaLine('Purple Triangle', 'purple', NOTATION);
+    await showLine(p.line);
+    await askFormula(p, ['base', 'h-purple']);
+    onAreaWord('purple');
+    await wait(700);
+
+    /* ...and the sum is written out */
+    await showTypedLine(SUM_A2);
+    celebrate();
+    await wait(2600);
+    await showNext();
+    await sectionFour();
+  }
+
+  /* ---------- section 4: a different quadrilateral, with measurements ---------- */
+  async function sectionFour() {
+    lockInput(true);
+    sceneStart();
+
+    await nextQuad(SPEC_B);
+    await heading(FOUR.here);
+    await wait(700);
+    await heading(FOUR.dims);
+    await wait(200);
+    await showSplit(['T', 'B'], SPEC_B);
+    await heading(FOUR.pick);
+    await wait(200);
+
+    /* each triangle: pick the base and the height, and the working follows */
+    const g = formulaLine('Green Triangle', 'green', MEASURES);
+    await showLine(g.line);
+    await askFormula(g, ['10', '6']);
+    await wait(300);
+    await g.tail(' = ½ × 10 × 6 = 30 sq. cm');
+    onAreaWord('green');
+    await wait(800);
+    const p = formulaLine('Purple Triangle', 'purple', MEASURES);
+    await showLine(p.line);
+    await askFormula(p, ['10', '5']);
+    await wait(300);
+    await p.tail(' = ½ × 10 × 5 = 25 sq. cm');
+    onAreaWord('purple');
+    await wait(800);
+
+    /* and the two are added up */
+    await showTypedLine(SUM_B);
+    celebrate();
+    await wait(2600);
+    await showNext();
+    await sectionFive();
+  }
+
+  /* ---------- section 5: the learner's own go ---------- */
+  async function sectionFive() {
+    lockInput(true);
+    sceneStart();
+
+    await nextQuad(SPEC_C);
+    await heading(FIVE.turn);
+    await wait(300);
+    await showSplit(['L', 'R'], SPEC_C);
+
+    /* two questions at once: the heights added, and the diagonal */
+    const q1 = questionLine('The sum of the perpendicular heights is',
+      [{ v: '24', t: '24 cm' }, { v: '9', t: '9 cm' }, { v: '21', t: '21 cm' }]);
+    const q2 = questionLine('Diagonal length is',
+      [{ v: '6', t: '6 cm' }, { v: '3', t: '3 cm' }, { v: '18', t: '18 cm' }]);
+    await showLine(q1.line);
+    await showLine(q2.line);
+    const right = () => feedback(FEEDBACK.right);
+    const wrong = () => feedback(FEEDBACK.wrong);
+    lockInput(false);
+    await Promise.all([
+      q1.dd.ask(v => v === '9', right, wrong),
+      q2.dd.ask(v => v === '18', right, wrong)
+    ]);
+    lockInput(true);
+    await wait(700);
+
+    /* then the area itself */
+    const q3 = questionLine('The area of the quadrilateral is',
+      [{ v: '81', t: '81 sq. cm' }, { v: '162', t: '162 sq. cm' }, { v: '182', t: '182 sq. cm' }]);
+    await showLine(q3.line);
+    lockInput(false);
+    await q3.dd.ask(v => v === '81', right, wrong);
+    lockInput(true);
+    celebrate();
+    await wait(2600);
+    await showNext();
+    await specialIntro();
+  }
+
+  /* ---------- between sections: on to the special quadrilaterals ----------
+   * Swiftee ducks behind the board, the board itself fades off the
+   * landscape, and Swiftee hops up a little left of centre to say two lines
+   * from its speech bubble -- the intro's own stage, brought back. */
+  const SPECIAL = [
+    'We now know how to find the area of a quadrilateral by splitting it into triangles.',
+    'Let us now try finding the area of some special quadrilaterals.'
+  ];
+
+  async function specialIntro() {
+    lockInput(true);
+    sceneStart();
+
+    const out = mascotJumpOut();
+    await wait(260);
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    await out;
+    await wait(200);
+    board.classList.remove('show');
+    await wait(620);
+
+    /* the intro's stage again, tidied of how the intro left it: the bird is
+       still off the bottom of the frame from its exit, the bubble popped out */
+    introMascot.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
+    introMascot.style.transform = '';
+    introMascot.style.opacity = '';
+    bubble.classList.remove('out', 'show');
+    bubbleTxt.textContent = '';
+    intro.classList.add('on', 'aside');
+    await wait(140);
+
+    await hopIn();
+    await wait(240);
+    swiftee.hold('talking');
+    await say(SPECIAL[0]);
+    swiftee.release();
+    await wait(1500);
+    swiftee.hold('talking');
+    await say(SPECIAL[1]);
+    swiftee.release();
+    await wait(700);
+
+    await showNext(nextBtnFree);
+    await paraSection();
+  }
+
+  /* ---------- section 4: the parallelogram ----------
+   * The first of the special quadrilaterals. Swiftee's aside is over: the
+   * bird drops out of the frame, the board comes back blank, and a
+   * parallelogram draws itself in the middle of it -- outline first, then
+   * the colour. Swiftee jumps up from behind the board to the heading, two
+   * names appear under the shape, and it asks "What shape is this?": the
+   * wrong name is shaken off and steps back, the right one goes green.
+   *
+   * Then the two facts, each shown on the shape before it is said:
+   *   1. parallel -- the top and bottom sides light up, are carried on past
+   *      their corners in dotted lines that never meet, and take an arrow
+   *      mark each; the left and right pair do the same in their own hue.
+   *      Swiftee hops down beside the fact list and states it.
+   *   2. equal -- the marks step back; a glowing copy of the top side lifts
+   *      off and travels down to lie exactly over the bottom side, and tick
+   *      marks land on both; the left side does the same onto the right.
+   *      Swiftee hops down and states the second fact.
+   * Back up to the heading, and Next. */
+  const para       = document.getElementById('para');
+  const paraShape  = document.getElementById('paraShape');
+  const paraSvg    = document.getElementById('paraSvg');
+  const paraArt    = paraSvg.querySelector('.art');
+  const paraEx     = document.getElementById('paraEx');
+  const paraTray   = document.getElementById('paraTray');
+  const paraChips  = Array.from(paraTray.querySelectorAll('.chip'));
+  const facts      = document.getElementById('facts');
+  const factMascot = document.getElementById('factMascot');
+  const factEls    = { par: document.getElementById('factA'), eq: document.getElementById('factB') };
+
+  /* the corners, clockwise from the top left: the top runs parallel to the
+     bottom and the left to the right, and each pair is the same length --
+     which is the whole lesson */
+  const PARA_PTS   = { TL: { x: 74, y: 6 }, TR: { x: 358, y: 6 }, BR: { x: 290, y: 198 }, BL: { x: 6, y: 198 } };
+  const PARA_ORDER = ['TL', 'TR', 'BR', 'BL'];
+
+  /* the two pairs of opposite sides. Each side is named by its corners,
+     walked the same way round as its partner, so a copy of one slides onto
+     the other corner for corner. The tick count is the usual notation: one
+     tick on the first pair, two on the second. */
+  const PAIRS = {
+    a: { sides: [['TL', 'TR'], ['BL', 'BR']], ticks: 1 },      /* top and bottom */
+    b: { sides: [['TL', 'BL'], ['TR', 'BR']], ticks: 2 }       /* left and right */
+  };
+  const EXT = 44;              /* how far a side is carried on past each corner */
+
+  const PARA = {
+    ask:     'What shape is this?',
+    right:   'That’s Correct! This is a parallelogram.',
+    look1:   'Look at the top and bottom sides.',
+    never:   'They run side by side and never meet.',
+    look2:   'The left and right sides do the same!',
+    measure: 'Now let’s compare their lengths.',
+    fit1:    'The top side fits the bottom side exactly!',
+    fit2:    'And the left side fits the right side too!',
+    facts: {
+      par: [{ t: 'Opposite sides are ' }, { t: 'parallel', w: 'par' }, { t: ' to each other.' }],
+      eq:  [{ t: 'Opposite sides are ' }, { t: 'equal in length', w: 'eq' }, { t: '.' }]
+    }
+  };
+  const PARA_ANSWER = 'parallelogram';
+
+  /* each fact's ghost holds its whole line from the first frame, so the list
+     is sized before a character lands */
+  Object.keys(PARA.facts).forEach(k => {
+    const segs = PARA.facts[k];
+    segSpans(factEls[k].querySelector('.type-ghost'), segs).forEach((el, j) => { el.textContent = segs[j].t; });
+  });
+
+  /* ---------- building the parallelogram ----------
+   * The shape, and over it everything the explanation will need: for every
+   * side, a glowing copy to grow along it, two dotted carry-ons past its
+   * corners, an arrow mark and its tick marks; and for each pair, the
+   * measuring copy of its first side. Every mark is inked in the pair's hue
+   * over a pale halo, so it reads on the lit side, the fill and the board
+   * alike. */
+  function buildPara() {
+    const P = PARA_PTS;
+    paraArt.innerHTML =
+      '<polygon class="shape-fill" clip-path="url(#wipePara)" points="' + PARA_ORDER.map(k => pt(P[k])).join(' ') + '" />' +
+      '<path class="shape-outline" d="M' + PARA_ORDER.map(k => fmt(P[k].x) + ' ' + fmt(P[k].y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
+
+    const ln = (cls, a, b) => '<line class="' + cls + '" x1="' + fmt(a.x) + '" y1="' + fmt(a.y) + '" x2="' + fmt(b.x) + '" y2="' + fmt(b.y) + '" />';
+    const at = (o, u, s, n, t) => ({ x: o.x + u.x * s + n.x * t, y: o.y + u.y * s + n.y * t });
+
+    let ex = '';
+    Object.keys(PAIRS).forEach(k => {
+      const pair = PAIRS[k];
+      ex += '<g class="pair pair-' + k + '" data-pair="' + k + '">';
+      pair.sides.forEach(side => {
+        const A = P[side[0]], B = P[side[1]];
+        const dx = B.x - A.x, dy = B.y - A.y, len = Math.hypot(dx, dy);
+        const u = { x: dx / len, y: dy / len };                  /* along the side */
+        const n = { x: -u.y, y: u.x };                           /* across it */
+
+        /* carried on past both corners, each drawn outward from its corner */
+        ex += ln('ext', A, at(A, u, -EXT, n, 0));
+        ex += ln('ext', B, at(B, u, EXT, n, 0));
+        /* the glowing copy, grown from the first corner */
+        ex += ln('side-hl', A, B);
+
+        /* "parallel": an arrowhead most of the way along, pointing the way
+           the side runs */
+        const M = at(A, u, len * .62, n, 0), s = 9;
+        const chev = 'M' + fmt(M.x - u.x * s + n.x * s) + ' ' + fmt(M.y - u.y * s + n.y * s) +
+                    ' L' + fmt(M.x) + ' ' + fmt(M.y) +
+                    ' L' + fmt(M.x - u.x * s - n.x * s) + ' ' + fmt(M.y - u.y * s - n.y * s);
+        ex += '<g class="par-mark"><path class="halo" d="' + chev + '" /><path class="ink" d="' + chev + '" /></g>';
+
+        /* "equal": one or two ticks across the middle */
+        const C = at(A, u, len / 2, n, 0), t = 10, gap = 8;
+        let ticks = '';
+        for (let j = 0; j < pair.ticks; j++) {
+          const off = (j - (pair.ticks - 1) / 2) * gap;
+          ticks += 'M' + fmt(C.x + u.x * off + n.x * t) + ' ' + fmt(C.y + u.y * off + n.y * t) +
+                  ' L' + fmt(C.x + u.x * off - n.x * t) + ' ' + fmt(C.y + u.y * off - n.y * t) + ' ';
+        }
+        ex += '<g class="eq-mark"><path class="halo" d="' + ticks + '" /><path class="ink" d="' + ticks + '" /></g>';
+      });
+      /* the measuring copy: the pair's first side, to be slid onto the second */
+      ex += ln('ghost-side', P[pair.sides[0][0]], P[pair.sides[0][1]]);
+      ex += '</g>';
+    });
+    paraEx.innerHTML = ex;
+  }
+
+  const pairEl = k => paraEx.querySelector('.pair-' + k);
+
+  /* ---------- the name quiz ----------
+   * Two chips under the shape. The right one goes green with a burst; a wrong
+   * one is shaken off, turned down in the heading, and steps back so the
+   * choice left is the answer. A skip taps the right one. */
+  function askName() {
+    return new Promise(resolve => {
+      let over = false;
+      const finish = (chip, auto) => {
+        if (over) return;
+        over = true;
+        skipFills.delete(fill);
+        lockInput(true);
+        paraChips.forEach(c => c.removeEventListener('click', onTap));
+        feedbackGen++;                       /* a "Try again" still typing stops here */
+        chip.classList.add('correct');
+        if (!auto) {
+          sfx('correct', .7);
+          burst(chip);
+          swiftee.play('happy', 1);
+        }
+        resolve();
+      };
+      const onTap = e => {
+        const chip = e.currentTarget;
+        if (!interactive || chip.classList.contains('spent')) return;
+        if (chip.dataset.answer === PARA_ANSWER) { finish(chip, false); return; }
+        sfx('wrong', .6);
+        feedback(FEEDBACK.wrong);
+        swiftee.play('confused', 1);
+        chip.classList.add('reject');
+        setTimeout(() => {
+          chip.classList.remove('reject');
+          chip.classList.add('spent');
+        }, 440);
+      };
+      const fill = () => finish(paraChips.find(c => c.dataset.answer === PARA_ANSWER), true);
+      skipFills.add(fill);
+      paraChips.forEach(c => c.addEventListener('click', onTap));
+      lockInput(false);
+    });
+  }
+
+  /* ---------- showing the two facts ---------- */
+
+  /* the pair's two sides light up, one after the other */
+  async function lightPair(k) {
+    const pair = pairEl(k);
+    pair.classList.add('lit');
+    const sides = pair.querySelectorAll('.side-hl');
+    await growLine(sides[0], 620);
+    await wait(140);
+    await growLine(sides[1], 620);
+  }
+
+  /* both sides are carried on past their corners, all four ends at once, and
+     the arrow marks land: two lines that keep their distance never meet */
+  async function extendPair(k) {
+    const pair = pairEl(k);
+    await Promise.all(Array.from(pair.querySelectorAll('.ext')).map(l => growLine(l, 760)));
+    await wait(200);
+    pair.classList.add('show-par');
+    sfx('click', .35);
+    await wait(REDUCED ? 160 : 480);
+  }
+
+  /* the point is made: the carry-ons and arrows leave, the sides dim to a
+     trace. The lines were lit inline by growLine, so that is lifted first
+     and the classes take over the fade. */
+  function quietPair(k) {
+    const pair = pairEl(k);
+    pair.querySelectorAll('.ext, .side-hl').forEach(l => { l.style.opacity = ''; });
+    pair.classList.remove('show-par');
+    pair.classList.add('quiet');
+  }
+
+  /* a glowing copy of the pair's first side lifts off it, glides across the
+     shape and lands exactly over the second; the tick marks land on both, and
+     the copy fades away */
+  async function measurePair(k) {
+    const pair = pairEl(k);
+    const ghost = pair.querySelector('.ghost-side');
+    const [s1, s2] = PAIRS[k].sides;
+    const A = PARA_PTS[s1[0]], C = PARA_PTS[s2[0]];
+    const dx = C.x - A.x, dy = C.y - A.y;
+
+    ghost.setAttribute('transform', 'translate(0 0)');
+    ghost.classList.add('show');
+    await wait(REDUCED ? 120 : 420);
+    await tween(1150, e => {
+      ghost.setAttribute('transform', 'translate(' + fmt(dx * e) + ' ' + fmt(dy * e) + ')');
+    }, easeInOut);
+    /* it fits: one pulse, and the ticks go on */
+    sfx('click', .45);
+    ghost.classList.add('land');
+    await wait(180);
+    pair.classList.add('show-eq');
+    await wait(REDUCED ? 160 : 520);
+    ghost.classList.remove('land');
+    await wait(420);
+    ghost.classList.remove('show');
+    await wait(320);
+  }
+
+  /* Swiftee hops down beside the list and states a fact: the line types out
+     beside it, its key words lighting up in the pair's hue, and the ring
+     fills with a tick once it has landed */
+  async function stateFact(k) {
+    const el = factEls[k];
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    await hopBetween(boardMascot, factMascot);
+    await wait(200);
+    el.classList.add('show');
+    await wait(REDUCED ? 160 : 420);
+    swiftee.hold('talking');
+    await typeSegments(el.querySelector('.txt'), el.querySelector('.caret'), PARA.facts[k], TYPE_MS, 420, null);
+    swiftee.release();
+    el.classList.add('done');
+    sfx('correct', .45);
+  }
+
+  async function paraSection() {
+    lockInput(true);
+    sceneStart();
+
+    /* 1. the aside ends: the bubble pops away and Swiftee drops out of the
+          frame, as it did before the board first arrived */
+    bubble.classList.add('out');
+    bubble.classList.remove('show');
+    await wait(300);
+    await introExit();
+    intro.classList.remove('on', 'aside');
+
+    /* the board comes back blank: the quadrilateral scenes are cleared off
+       it while it is still invisible, and the heading's ghost takes the
+       longest line of this scene while there is nothing on the board to move */
+    board.classList.add('sec4');
+    promptGhost.textContent = longest([PARA.ask, PARA.right, PARA.look1, PARA.never, PARA.look2, PARA.measure, PARA.fit1, PARA.fit2]);
+    buildPara();
+    await wait(200);
+    await showBoard();
+    await wait(300);
+
+    /* 2. the parallelogram: outline first, then the colour */
+    para.classList.add('on');
+    para.setAttribute('aria-hidden', 'false');
+    await wait(120);
+    await revealShape(paraShape);
+    await wait(380);
+
+    /* 3. Swiftee jumps up from behind the board to the heading; the two
+          names appear, and the question is asked */
+    await mascotJumpIn();
+    await wait(260);
+    for (const chip of paraChips) {
+      chip.classList.add('reveal');
+      await wait(150);
+    }
+    sfx('click', .3);
+    await wait(200);
+    await heading(PARA.ask);
+    await askName();
+    await heading(PARA.right);
+    await wait(1500);
+
+    /* 4. the names go; the fact list stands ready under the shape */
+    paraTray.classList.add('off');
+    await wait(460);
+    facts.classList.add('show');
+    await wait(200);
+
+    /* 5. parallel: the top and bottom light up as Swiftee points at them,
+          are carried on and never meet; then the left and right */
+    let said = heading(PARA.look1);
+    await lightPair('a');
+    await said;
+    await wait(500);
+    said = heading(PARA.never);
+    await extendPair('a');
+    await said;
+    await wait(900);
+    said = heading(PARA.look2);
+    await lightPair('b');
+    await extendPair('b');
+    await said;
+    await wait(800);
+
+    /* Swiftee hops down and states the first fact */
+    await stateFact('par');
+    await wait(1500);
+
+    /* 6. equal: the marks step back, Swiftee hops back up, and a copy of
+          each first side is laid over its partner */
+    quietPair('a');
+    quietPair('b');
+    await hopBetween(factMascot, boardMascot);
+    await wait(240);
+    await heading(PARA.measure);
+    await wait(500);
+    await measurePair('a');
+    await heading(PARA.fit1);
+    await wait(700);
+    await measurePair('b');
+    await heading(PARA.fit2);
+    await wait(700);
+
+    /* Swiftee hops down and states the second fact, and is proud of it */
+    await stateFact('eq');
+    swiftee.play('proud', 1);
+    skyConfetti(90, 2800);
+    sfx('confetti', .7);
+    await wait(2200);
+
+    /* 7. back to the heading, and on */
+    await hopBetween(factMascot, boardMascot);
+    await wait(300);
+    await showNext();
+    /* section 5 continues here */
   }
 
   async function introScene() {
