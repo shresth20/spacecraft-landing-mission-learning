@@ -123,6 +123,99 @@
       </div>
     </section>
 
+    <!-- ---------- section 2: the triangle lesson ----------
+         Shares the bay's grid cell and is invisible until the warm-up has
+         cleared away. Each triangle is built like the warm-up shapes -- an
+         outline path that draws itself, a fill that pours in behind a clip --
+         plus a set of dotted dimension lines the script grows into place and
+         lights up as the formula names them. One viewBox for all three, so the
+         bases sit on one line. -->
+    <section class="lesson" id="lesson" aria-hidden="true">
+      <div class="tri-row" id="triRow">
+
+        <!-- acute (isosceles): the height stands inside it -->
+        <div class="tri-cell">
+          <div class="tri" data-tri="acute" role="img" aria-label="An acute triangle">
+            <svg viewBox="0 0 240 210" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <defs>
+                <clipPath id="wipeTriA"><rect class="wipe" x="0" y="0" width="240" height="210" /></clipPath>
+              </defs>
+              <g class="art">
+                <polygon class="shape-fill" clip-path="url(#wipeTriA)" points="120,16 218,176 22,176" />
+                <path class="shape-outline" d="M120 16 L218 176 L22 176 Z" fill="none" stroke-width="5" />
+              </g>
+              <g class="dims">
+                <line class="dim dim-base"   x1="22"  y1="186" x2="218" y2="186" />
+                <line class="dim dim-height" x1="120" y1="16"  x2="120" y2="176" />
+                <path class="dim-mark" d="M132 176 V164 H120" />
+                <text class="dim-label lbl-base" x="120" y="203" font-size="13" text-anchor="middle">Base</text>
+                <text class="dim-label lbl-height" x="133" y="98" font-size="13" text-anchor="middle"
+                      dominant-baseline="middle" transform="rotate(-90 133 98)">Height</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <!-- right-angled (scalene): the height is one of its own sides -->
+        <div class="tri-cell">
+          <div class="tri" data-tri="right" role="img" aria-label="A right-angled scalene triangle">
+            <svg viewBox="0 0 240 210" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <defs>
+                <clipPath id="wipeTriB"><rect class="wipe" x="0" y="0" width="240" height="210" /></clipPath>
+              </defs>
+              <g class="art">
+                <polygon class="shape-fill" clip-path="url(#wipeTriB)" points="30,26 214,176 30,176" />
+                <path class="shape-outline" d="M30 26 L214 176 L30 176 Z" fill="none" stroke-width="5" />
+              </g>
+              <g class="dims">
+                <line class="dim dim-base"   x1="30" y1="186" x2="214" y2="186" />
+                <line class="dim dim-height" x1="20" y1="26"  x2="20"  y2="176" />
+                <path class="dim-mark" d="M42 176 V164 H30" />
+                <text class="dim-label lbl-base" x="122" y="203" font-size="13" text-anchor="middle">Base</text>
+                <text class="dim-label lbl-height" x="9" y="101" font-size="13" text-anchor="middle"
+                      dominant-baseline="middle" transform="rotate(-90 9 101)">Height</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <!-- obtuse: the height falls outside it, onto the base extended -->
+        <div class="tri-cell">
+          <div class="tri" data-tri="obtuse" role="img" aria-label="An obtuse triangle">
+            <svg viewBox="0 0 240 210" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+              <defs>
+                <clipPath id="wipeTriC"><rect class="wipe" x="0" y="0" width="240" height="210" /></clipPath>
+              </defs>
+              <g class="art">
+                <polygon class="shape-fill" clip-path="url(#wipeTriC)" points="40,22 226,176 118,176" />
+                <path class="shape-outline" d="M40 22 L226 176 L118 176 Z" fill="none" stroke-width="5" />
+              </g>
+              <g class="dims">
+                <line class="dim dim-base"   x1="118" y1="186" x2="226" y2="186" />
+                <!-- the base carried on to meet the height -->
+                <line class="dim dim-ext"    x1="118" y1="176" x2="40"  y2="176" />
+                <line class="dim dim-height" x1="40"  y1="22"  x2="40"  y2="176" />
+                <path class="dim-mark" d="M52 176 V164 H40" />
+                <text class="dim-label lbl-base" x="172" y="203" font-size="13" text-anchor="middle">Base</text>
+                <text class="dim-label lbl-height" x="29" y="100" font-size="13" text-anchor="middle"
+                      dominant-baseline="middle" transform="rotate(-90 29 100)">Height</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- the area formula, typed out word by word; script.js builds the word
+           spans in both the ghost and the live line so the box is sized to the
+           whole formula before the first character lands -->
+      <div class="formula-box" id="formulaBox" aria-live="polite">
+        <span class="type-wrap">
+          <span class="type-ghost" id="formulaGhost"></span>
+          <span class="type" id="formulaType"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+        </span>
+      </div>
+    </section>
+
     <!-- One console band, two decks of cards stacked in it: round 2's deck is
          laid over round 1's, so the band is the same height all level long. -->
     <div class="tray-area" id="trayArea">
@@ -137,6 +230,13 @@
         <button class="chip formula" type="button" data-round="2" data-word="square"><span>(Side)<sup>2</sup></span></button>
       </div>
     </div>
+
+    <!-- Next: sits in the middle of the footer band once a section is over,
+         over the (by then empty) card decks. -->
+    <button class="next-btn" id="nextBtn" type="button" hidden>
+      <span>Next</span>
+      <svg class="next-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+    </button>
 
   </main>
   </div>
@@ -174,6 +274,21 @@
 
   <!-- swallows every pointer event while an intro or a voice-over is running -->
   <div class="input-lock" id="inputLock" aria-hidden="true"></div>
+
+  <!-- Skip: small and quiet in the screen's bottom-right corner. A sibling of
+       the input lock, and stacked above it, because the lock is what makes
+       every other control dead while a scene is playing -- and this is the one
+       control that has to stay live exactly then. Anchored to the viewport
+       rather than to the board, so it is in the same place during the intro,
+       when there is no board on screen yet. -->
+  <button class="skip-btn" id="skipBtn" type="button" hidden
+          aria-label="Skip this section" title="Skip this section">
+    <span>Skip</span>
+    <svg class="skip-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 5l7 7-7 7" />
+      <path d="M14 5l7 7-7 7" />
+    </svg>
+  </button>
 
   <!-- only shown if the browser refuses to auto-play the briefing audio -->
   <div class="tap-start" id="tapStart" hidden>

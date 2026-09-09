@@ -24,12 +24,28 @@
  *
  *   Round 1  name the shape     Rectangle / Square / Triangle
  *   Round 2  area of the shape  Length x Breadth / (Side)^2 / 1/2(Base x Height)
+ *
+ * Section 2, the triangle lesson, once a Next button in the footer is pressed:
+ *   1. Swiftee jumps back behind the board and the warm-up fades off it
+ *   2. one triangle draws itself in the middle of the empty board
+ *   3. Swiftee jumps back up: "A triangle can be of different types."
+ *   4. the triangle slides left; a right-angled and an obtuse one join it
+ *   5. "Let's observe their base and height." -- dotted base and height lines
+ *      grow onto all three
+ *   6. the area formula types itself out under them; as "Base" and then
+ *      "Height" land, the matching lines on every triangle light up
+ *   7. Next
  */
 
 (function () {
   'use strict';
 
-  const wait = ms => new Promise(r => setTimeout(r, ms));
+  /* Every beat of the game is paced through here, which is what makes Skip
+     possible: while a skip is running each wait collapses to a single turn of
+     the event loop, so a scene plays its whole choreography out in a handful
+     of frames and lands in exactly the state it would have reached anyway. */
+  let fastForward = false;
+  const wait = ms => new Promise(r => setTimeout(r, fastForward ? 0 : ms));
   const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ---------- pieces ---------- */
@@ -64,12 +80,18 @@
   /* said once the three shapes have drawn, before round 1 opens */
   const SHAPES_READY = 'Here are a few common shapes.';
 
+  /* section 2: Swiftee's two lines in the triangle lesson */
+  const LESSON = {
+    types: 'A triangle can be of different types.',
+    dims:  'Let’s observe their base and height.'
+  };
+
   /* The heading's ghost holds the longest line of the level from the first
      frame, so the heading -- and Swiftee standing beside it -- keeps one width
-     and one place for the whole mission. */
+     and one place for the whole mission, lesson included. */
   promptGhost.textContent = Object.keys(ROUNDS)
     .map(n => ROUNDS[n].text)
-    .concat(SHAPES_READY)
+    .concat(SHAPES_READY, LESSON.types, LESSON.dims)
     .reduce((a, b) => (b.length > a.length ? b : a), '');
 
   const slotsOf = n => allSlots.filter(s => s.dataset.round === String(n));
@@ -262,6 +284,7 @@
 
   /* Effects play off clones so overlapping hits never cut each other short. */
   function sfx(key, volume) {
+    if (fastForward) return;         /* a skip races past; it does not chime */
     const src = bank[key];
     if (!src) return;
     try {
@@ -333,6 +356,126 @@
     inputLock.classList.toggle('on', !!on);
   }
   lockInput(true);
+
+  /* ---------- skip ----------
+   * A scene is skipped by fast-forwarding it, never by abandoning it: waits
+   * collapse, animations are finished frame by frame, the narration is left
+   * unplayed and a round waiting on the learner is filled in. The scene
+   * therefore runs its own choreography through to the end and hands over
+   * exactly as it always does, so no scene needs a second, "instant" path --
+   * and none of them can be left half-built by a skip.
+   *
+   * A skip stops at the scene's own boundary, so Skip reads as "take me to the
+   * end of this bit" rather than "take me somewhere else": the learner is
+   * handed the same Next button they would have reached by playing it.
+   */
+  const skipBtn = document.getElementById('skipBtn');
+
+  /* Bumped when a scene opens and again when one reaches its hand-off. The
+     scene in play is state rather than something read off a call stack: the
+     chain is driven partly by the learner, since the drop that completes a
+     round carries the game into the next scene by itself. */
+  let sceneSeq = 0;
+  let skipHideTimer = null;
+
+  function showSkip(on) {
+    clearTimeout(skipHideTimer);
+    if (on) {
+      skipBtn.hidden = false;
+      void skipBtn.offsetHeight;
+      skipBtn.classList.add('in');
+      return;
+    }
+    skipBtn.classList.remove('in');
+    skipHideTimer = setTimeout(function () { skipBtn.hidden = true; }, 340);
+  }
+
+  /* offered only while a scene is actually playing */
+  function sceneStart() { sceneSeq++; showSkip(true); }
+  function sceneEnd()   { sceneSeq++; showSkip(false); }
+
+  /* Waits that hang on an event rather than a clock -- so far, a voice-over
+     running to its end. A skip resolves them at once. */
+  const skipWaiters = new Set();
+
+  function waitOrSkip(register) {
+    return new Promise(function (resolve) {
+      const done = function () { skipWaiters.delete(done); resolve(); };
+      skipWaiters.add(done);
+      register(done);
+    });
+  }
+
+  function releaseWaiters() {
+    Array.from(skipWaiters).forEach(function (done) {
+      try { done(); } catch (e) { /* already gone */ }
+    });
+  }
+
+  /* Web Animations run off the clock, not through wait(), so they are finished
+     every frame for as long as the skip lasts -- which also catches the ones a
+     scene creates while it unwinds. Endless ones (the caret's blink, a
+     button's pulse) are left alone: finish() throws on them. */
+  function flushAnimations() {
+    document.getAnimations().forEach(function (a) {
+      const timing = a.effect && a.effect.getComputedTiming();
+      if (!timing || timing.iterations === Infinity) return;
+      try { a.finish(); } catch (e) { /* not finishable; leave it running */ }
+    });
+  }
+
+  function stopVoice() {
+    Object.keys(ROUNDS).forEach(function (n) {
+      const a = ROUNDS[n].audio;
+      try { a.pause(); a.currentTime = 0; } catch (e) { /* nothing to stop */ }
+    });
+  }
+
+  /* A round waiting on the learner would stall a skip forever, so the answers
+     go in for them -- no coaching, no confetti out of the cards, no chime. */
+  const roundWaiting = function () {
+    return interactive && round > 0 && !roundDone && roundSlots.length > 0;
+  };
+
+  function fillRound() {
+    roundSlots.forEach(function (slot) {
+      if (slot.classList.contains('filled')) return;
+      const chip = roundChips.find(function (c) {
+        return c.dataset.word === slot.dataset.accept && !c.disabled;
+      });
+      if (chip) dock(chip, slot, false);
+    });
+    if (roundSlots.every(function (s) { return s.classList.contains('filled'); })) {
+      feedback(FEEDBACK.done);
+      finishRound();
+    }
+  }
+
+  async function skipScene() {
+    if (fastForward) return;
+    const from = sceneSeq;
+
+    fastForward = true;
+    skipBtn.disabled = true;
+    stopVoice();
+
+    /* Never spin forever: if a scene ends up waiting on something a skip
+       cannot reach, hand the game back at normal speed rather than leaving it
+       stuck in fast-forward. */
+    const deadline = performance.now() + 8000;
+    while (sceneSeq === from && performance.now() < deadline) {
+      flushAnimations();
+      releaseWaiters();
+      if (roundWaiting()) fillRound();
+      await new Promise(function (r) { requestAnimationFrame(r); });
+    }
+    flushAnimations();
+
+    fastForward = false;
+    skipBtn.disabled = false;
+  }
+
+  skipBtn.addEventListener('click', skipScene);
 
   /* ---------- opening: draw each shape, then pour the colour in ---------- */
   async function revealShape(shape) {
@@ -484,19 +627,24 @@
     let length = await durationOf(vo);
     let playing = false;
 
-    try {
-      vo.currentTime = 0;
-      await vo.play();
-      playing = true;
-    } catch (e) {
-      /* the browser blocked autoplay -- ask for the one gesture it wants */
-      tapStart.hidden = false;
-      await new Promise(res =>
-        tapStart.querySelector('.tap-start-btn').addEventListener('click', res, { once: true })
-      );
-      tapStart.hidden = true;
-      try { await vo.play(); playing = true; } catch (e2) { /* give up on sound */ }
-      if (!length) length = await durationOf(vo);
+    /* A skip leaves the clip unplayed rather than starting it only to cut it
+       off a frame later. `playing` stays false, so the typewriter falls back to
+       its fixed pace -- which a collapsed wait() makes instant anyway. */
+    if (!fastForward) {
+      try {
+        vo.currentTime = 0;
+        await vo.play();
+        playing = true;
+      } catch (e) {
+        /* the browser blocked autoplay -- ask for the one gesture it wants */
+        tapStart.hidden = false;
+        await new Promise(res =>
+          tapStart.querySelector('.tap-start-btn').addEventListener('click', res, { once: true })
+        );
+        tapStart.hidden = true;
+        try { await vo.play(); playing = true; } catch (e2) { /* give up on sound */ }
+        if (!length) length = await durationOf(vo);
+      }
     }
 
     /* Swiftee talks along with the narrator and stops when it does */
@@ -512,8 +660,8 @@
     await typewrite(spec.text, typeMs);
 
     if (playing && !vo.ended) {
-      await new Promise(res => {
-        const end = () => { vo.removeEventListener('ended', end); res(); };
+      await waitOrSkip(function (done) {
+        const end = function () { vo.removeEventListener('ended', end); done(); };
         vo.addEventListener('ended', end);
         setTimeout(end, 12000);           /* never hang on a stalled clip */
       });
@@ -570,7 +718,11 @@
 
     await wait(last ? 2200 : 1700);
 
-    if (!last) await startRound(round + 1);
+    if (!last) return startRound(round + 1);
+
+    /* the warm-up is over: hand the learner the Next button, then the lesson */
+    await showNext();
+    await sectionTwo();
   }
 
   /* ---------- round 2 coaching ---------- */
@@ -1188,6 +1340,269 @@
     try { await fall.finished; } catch (e) {}
   }
 
+  /* The way back: the in-board sprite crouches and springs up to the apex
+     over the board, hands over to the hopper there, and the hopper drops
+     behind the board's top edge. Same two sprites, same swap point, same
+     shared clock as the jump in, so the cut is just as invisible. */
+  async function mascotJumpOut() {
+    const m = boardMascot.getBoundingClientRect();
+    const b = board.getBoundingClientRect();
+    if (!m.width || REDUCED) { boardMascot.classList.remove('in'); return; }
+
+    const apexTop = b.top - m.height * .9 - 8;
+    const hideTop = b.top + 14;
+
+    const rise = boardMascot.animate([
+      { transform: 'none', easing: 'ease-in' },
+      { transform: 'translateY(6%) scale(1.06, .92)', offset: .24, easing: 'cubic-bezier(.2, .6, .35, 1)' },
+      { transform: 'translateY(' + (apexTop - m.top) + 'px)' }
+    ], { duration: 560, fill: 'forwards' });
+    try { await rise.finished; } catch (e) {}
+
+    Object.assign(hopper.style, {
+      left: m.left + 'px', top: apexTop + 'px', width: m.width + 'px', height: m.height + 'px'
+    });
+    hopper.classList.add('on');
+    boardMascot.classList.remove('in');
+    rise.cancel();
+    const fall = hopper.animate(
+      [{ transform: 'translateY(0)' }, { transform: 'translateY(' + (hideTop - apexTop) + 'px)' }],
+      { duration: 360, easing: 'cubic-bezier(.45, 0, .85, .5)', fill: 'forwards' }
+    );
+    try { await fall.finished; } catch (e) {}
+    hopper.classList.remove('on');
+    fall.cancel();
+  }
+
+  /* ---------- next button ----------
+   * Pops up in the middle of the footer band and resolves on the click. The
+   * pointer lock is lifted only while it is showing; by then every card of the
+   * warm-up is docked and disabled, so nothing else can be touched. */
+  const nextBtn = document.getElementById('nextBtn');
+
+  function showNext() {
+    /* the scene is over: a skip in flight stops here, and Skip stands down
+       until the next scene opens */
+    sceneEnd();
+    return new Promise(resolve => {
+      nextBtn.hidden = false;
+      void nextBtn.offsetHeight;
+      nextBtn.classList.add('in');
+      lockInput(false);
+      nextBtn.focus({ preventScroll: true });
+
+      nextBtn.addEventListener('click', () => {
+        sfx('click', .6);
+        lockInput(true);
+        nextBtn.classList.remove('in');
+        nextBtn.classList.add('out');
+        setTimeout(() => {
+          nextBtn.hidden = true;
+          nextBtn.classList.remove('out');
+        }, 320);
+        resolve();
+      }, { once: true });
+    });
+  }
+
+  /* ---------- section 2: the triangle lesson ---------- */
+  const lesson       = document.getElementById('lesson');
+  const triRow       = document.getElementById('triRow');
+  const tris         = Array.from(lesson.querySelectorAll('.tri'));
+  const formulaBox   = document.getElementById('formulaBox');
+  const formulaGhost = document.getElementById('formulaGhost');
+  const formulaType  = document.getElementById('formulaType');
+  const formulaTxt   = formulaType.querySelector('.txt');
+  const formulaCaret = formulaType.querySelector('.caret');
+
+  /* The formula in pieces: the two words the lesson is about are their own
+     spans, so each can light up the moment it has finished typing. */
+  const FORMULA = [
+    { t: 'Area = 1/2(' },
+    { t: 'Base',   w: 'base' },
+    { t: ' × ' },
+    { t: 'Height', w: 'height' },
+    { t: ')' }
+  ];
+  const FORMULA_MS    = 110;      /* per character: slower than a briefing, on purpose */
+  const FORMULA_PAUSE = 720;      /* a beat after each key word, for the highlight to land */
+
+  function formulaSpans(root) {
+    root.textContent = '';
+    return FORMULA.map(seg => {
+      const el = document.createElement('span');
+      if (seg.w) el.className = 'w w-' + seg.w;
+      root.appendChild(el);
+      return el;
+    });
+  }
+  /* the ghost carries the whole formula from the start, so the box is sized
+     before the first character lands */
+  formulaSpans(formulaGhost).forEach((el, i) => { el.textContent = FORMULA[i].t; });
+
+  /* The first triangle is drawn in the middle of the empty board, so before
+     it draws it is carried from its own cell to the centre of the row... */
+  function parkCentre(tri) {
+    const row  = triRow.getBoundingClientRect();
+    const cell = tri.parentElement.getBoundingClientRect();
+    if (!row.width || !cell.width) return;
+    const dx = (row.left + row.width / 2) - (cell.left + cell.width / 2);
+    tri.style.transform = 'translateX(' + dx + 'px)';
+  }
+
+  /* ...and slides home once Swiftee has introduced it. The inline transform
+     is cleared in the same task the animation starts, so there is no frame
+     in which the triangle sits at either end unanimated. */
+  async function slideHome(tri) {
+    const from = tri.style.transform;
+    tri.style.transform = '';
+    if (!from || REDUCED) return wait(120);
+    const a = tri.animate(
+      [{ transform: from }, { transform: 'none' }],
+      { duration: 760, easing: 'cubic-bezier(.4, 0, .2, 1)' }
+    );
+    try { await a.finished; } catch (e) {}
+  }
+
+  /* Grow a dotted line out from its first point. The dash pattern is anchored
+     at (x1, y1), so moving the far end reveals the dots one by one instead of
+     scrolling them; a dash-offset draw would not work on a dotted stroke. */
+  function growLine(line, ms) {
+    if (!line) return Promise.resolve();
+    const x1 = +line.getAttribute('x1'), y1 = +line.getAttribute('y1');
+    const X2 = +(line.dataset.x2 || (line.dataset.x2 = line.getAttribute('x2')));
+    const Y2 = +(line.dataset.y2 || (line.dataset.y2 = line.getAttribute('y2')));
+
+    if (REDUCED) {
+      line.setAttribute('x2', X2); line.setAttribute('y2', Y2);
+      line.style.opacity = 1;
+      return wait(80);
+    }
+
+    line.setAttribute('x2', x1); line.setAttribute('y2', y1);
+    line.style.opacity = 1;
+    return new Promise(resolve => {
+      const t0 = performance.now();
+      (function step(t) {
+        const p = Math.min(1, (t - t0) / ms);
+        const e = 1 - Math.pow(1 - p, 3);                 /* ease-out cubic */
+        line.setAttribute('x2', x1 + (X2 - x1) * e);
+        line.setAttribute('y2', y1 + (Y2 - y1) * e);
+        if (p < 1) requestAnimationFrame(step);
+        else resolve();
+      })(t0);
+    });
+  }
+
+  /* Base, then height, on every triangle, each starting a beat after the one
+     to its left; the obtuse one first carries its base on under the apex. */
+  function drawDims() {
+    return Promise.all(tris.map((tri, i) => (async () => {
+      await wait(i * 340);
+      await growLine(tri.querySelector('.dim-base'), 540);
+      await wait(120);
+      await growLine(tri.querySelector('.dim-ext'), 380);
+      await growLine(tri.querySelector('.dim-height'), 540);
+      tri.classList.add('marked');
+    })()));
+  }
+
+  /* the formula's word has landed: light the matching line on each triangle,
+     left to right */
+  function lightDims(kind) {
+    tris.forEach((tri, i) => setTimeout(() => tri.classList.add('lit-' + kind), i * 150));
+  }
+
+  /* The formula pops up, then types itself out on a wall clock. When a key
+     word completes, it is highlighted, the lines it names light up, and the
+     typing rests for a beat before going on. */
+  async function showFormula() {
+    const spans = formulaSpans(formulaTxt);
+    formulaCaret.hidden = true;
+    formulaBox.classList.add('show');
+    sfx('click', .35);
+    await wait(REDUCED ? 200 : 560);
+
+    formulaCaret.hidden = false;
+    let due = performance.now();
+    for (let i = 0; i < FORMULA.length; i++) {
+      const seg = FORMULA[i];
+      for (let c = 0; c < seg.t.length; c++) {
+        spans[i].textContent = seg.t.slice(0, c + 1);
+        due += FORMULA_MS;
+        const left = due - performance.now();
+        if (left > 0) await wait(left);
+      }
+      if (seg.w) {
+        spans[i].classList.add('lit');
+        lightDims(seg.w);
+        due += FORMULA_PAUSE;
+        const left = due - performance.now();
+        if (left > 0) await wait(left);
+      }
+    }
+    formulaCaret.hidden = true;
+  }
+
+  async function sectionTwo() {
+    lockInput(true);
+    sceneStart();
+
+    /* 1. Swiftee ducks back behind the board, and the warm-up clears away
+          while it is mid-air */
+    const out = mascotJumpOut();
+    await wait(260);
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    board.classList.add('sec2');
+    await out;
+    await wait(520);
+
+    /* 2. one triangle, drawn in the middle of the empty board */
+    const first = tris[0];
+    parkCentre(first);
+    lesson.classList.add('on');
+    lesson.setAttribute('aria-hidden', 'false');
+    await wait(80);
+    await revealShape(first);
+    await wait(320);
+
+    /* 3. Swiftee jumps back up to its spot and names what this is */
+    await mascotJumpIn();
+    await wait(240);
+    swiftee.hold('talking');
+    await typewrite(LESSON.types, LESSON.types.length * TYPE_MS);
+    swiftee.release();
+    await wait(700);
+
+    /* 4. it moves aside, and two more kinds join it, one at a time */
+    await slideHome(first);
+    await wait(220);
+    for (const tri of tris.slice(1)) {
+      await revealShape(tri);
+      await wait(260);
+    }
+    await wait(320);
+
+    /* 5. base and height on all three */
+    swiftee.hold('talking');
+    await typewrite(LESSON.dims, LESSON.dims.length * TYPE_MS);
+    swiftee.release();
+    await wait(380);
+    await drawDims();
+    await wait(520);
+
+    /* 6. the formula, word by word, lighting the lines it names */
+    await showFormula();
+    swiftee.play('happy', 1);
+
+    /* 7. two seconds to take it in, then on */
+    await wait(2000);
+    await showNext();
+    /* section 3 continues here */
+  }
+
   async function introScene() {
     intro.classList.add('on');
     await wait(140);
@@ -1233,7 +1648,12 @@
     await welcomeScreen();
     lockTrayHeight();
 
+    sceneStart();
     await introScene();
+
+    /* the intro is over and the warm-up owns the board from here: a skip of
+       the intro stops on this boundary */
+    sceneStart();
 
     for (const shape of shapes) {
       await revealShape(shape);
