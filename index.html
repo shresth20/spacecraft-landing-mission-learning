@@ -386,6 +386,11 @@
          says about the rhombus. -->
     <section class="rhom" id="rhom" aria-hidden="true">
       <div class="rhom-stage">
+        <!-- the practice figures: built by script.js for each question and
+             shown in place of the rhombus once it has been worked through -->
+        <div class="rhom-practice" id="rhomPractice" aria-live="polite">
+          <div class="fig-row" id="figRow"></div>
+        </div>
         <div class="rhom-shape" id="rhomShape" role="img" aria-label="A parallelogram that becomes a rhombus">
           <svg class="rhom-svg" id="rhomSvg" viewBox="0 14 440 268" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
             <defs>
@@ -444,6 +449,208 @@
 
         <!-- the working, beside the shape once it has moved left -->
         <div class="area-lines" id="rhomLines" aria-live="polite"></div>
+
+        <!-- the numbers: the formula with two empty slots, and the lengths
+             to drag into them -->
+        <div class="rhom-quiz" id="rhomQuiz">
+          <div class="area-line len-formula" id="rhomFormula">
+            <span class="seg">Area = ½ ×</span>
+            <span class="fslot" data-slot="1" role="button" tabindex="-1" aria-label="First length"></span>
+            <span class="seg">×</span>
+            <span class="fslot" data-slot="2" role="button" tabindex="-1" aria-label="Second length"></span>
+          </div>
+          <div class="para-tray len-tray" id="rhomTray3">
+            <button class="chip" type="button" data-len="16"><span>16 cm</span></button>
+            <button class="chip" type="button" data-len="12"><span>12 cm</span></button>
+            <button class="chip" type="button" data-len="28"><span>28 cm</span></button>
+            <button class="chip" type="button" data-len="8"><span>8 cm</span></button>
+          </div>
+        </div>
+
+        <!-- the practice questions' answers: chips built by script.js -->
+        <div class="para-tray practice-tray" id="practiceTray"></div>
+
+        <!-- Swiftee hops down here to explain the answer to a question -->
+        <div class="practice-say" id="practiceSay">
+          <div class="mascot" id="practiceMascot" aria-hidden="true"></div>
+          <p class="say-text" id="practiceText" aria-live="polite">
+            <span class="type-wrap">
+              <span class="type-ghost"></span>
+              <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+            </span>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- section 6: the trapezium ----------
+         The third special quadrilateral. Shares the middle cell with
+         everything before it, and is invisible until the board comes back
+         after Swiftee's aside. Level 1: one trapezium, built by script.js
+         from its corners, with the pair of "parallel" marks it takes once it
+         has been named from the drop-down under it. Level 2: six cards in
+         the same cell, built by script.js, three of them trapeziums; the
+         learner picks those out, each tap answered at once, then the three
+         line up and each takes a slot under it for its name to be dragged
+         into. -->
+    <section class="trap" id="trap" aria-hidden="true">
+      <div class="trap-stage">
+        <div class="trap-shape" id="trapShape" role="img" aria-label="A trapezium">
+          <svg class="trap-svg" id="trapSvg" viewBox="0 0 420 260" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <defs>
+              <clipPath id="wipeTrap"><rect class="wipe" x="0" y="0" width="420" height="260" /></clipPath>
+            </defs>
+            <!-- built by script.js from the shape's corners: the fill and the
+                 outline that draws itself -->
+            <g class="art"></g>
+            <!-- the marks that say "parallel", on the top and the bottom -->
+            <g class="trap-marks" id="trapMarks"></g>
+          </svg>
+        </div>
+        <!-- the cards of level 2, built by script.js -->
+        <div class="trap-cards" id="trapCards">
+          <div class="card-grid" id="cardGrid" role="group" aria-label="Shapes to choose from"></div>
+        </div>
+      </div>
+
+      <!-- two occupants of one cell, so the shape above never moves: the
+           name quiz of level 1, and the names to drag once the trapeziums
+           have lined up -->
+      <div class="trap-foot">
+        <!-- the name quiz: "This is a [ v ]", Swiftee beside it, its remark
+             in a banner under it -->
+        <div class="quiz-block" id="trapQuiz">
+          <div class="quiz-row">
+            <div class="quiz-sentence">
+              <span class="quiz-label">This is a</span>
+              <div class="dd" id="trapDD">
+                <button class="dd-btn" type="button" aria-haspopup="listbox" aria-expanded="false"
+                        aria-label="Choose the name of the shape">
+                  <span class="dd-value"></span>
+                  <svg class="dd-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-8 10z" /></svg>
+                </button>
+                <div class="dd-menu" role="listbox">
+                  <button class="dd-opt" type="button" role="option" data-value="kite">Kite</button>
+                  <button class="dd-opt" type="button" role="option" data-value="parallelogram">Parallelogram</button>
+                  <button class="dd-opt" type="button" role="option" data-value="trapezium">Trapezium</button>
+                </div>
+              </div>
+            </div>
+            <div class="mascot" id="trapMascot" aria-hidden="true"></div>
+          </div>
+          <p class="quiz-note trap-note" id="trapNote" aria-live="polite">
+            <span class="type-wrap">
+              <span class="type-ghost"></span>
+              <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+            </span>
+          </p>
+        </div>
+
+        <!-- the three names, dragged onto the three trapeziums -->
+        <div class="trap-tray" id="trapTray">
+          <button class="chip" type="button" data-kind="iso"><span>Isosceles Trapezium</span></button>
+          <button class="chip" type="button" data-kind="right"><span>Right-angled Trapezium</span></button>
+          <button class="chip" type="button" data-kind="scalene"><span>Scalene Trapezium</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- section 7: the area of a trapezium ----------
+         One continuous derivation, with Swiftee narrating every beat from
+         the heading and then from beside the working, played once for each
+         kind of trapezium: right-angled, scalene, isosceles. A trapezium
+         draws itself in the middle of the board, moves to the left and
+         takes its side names (a, b and h); a copy of it lifts off and turns
+         half a circle about the middle of its right-hand side to land
+         beside it, so the two make one rectangle (right-angled) or one
+         parallelogram (the others). The equal sides are shown equal, the
+         two top sides become one length a + b, and the whole's area is
+         worked out beside the shape; then the copy fades to a dashed
+         outline -- the trapezium is exactly half -- and the formula
+         follows. Everything in the svg is built by script.js from the
+         shape's corners. -->
+    <section class="rtrap" id="rtrap" aria-hidden="true">
+      <div class="rtrap-stage">
+        <div class="rtrap-shape" id="rtrapShape" role="img"
+             aria-label="A trapezium, and a copy of it turned around to make a rectangle or a parallelogram with it">
+          <svg class="rtrap-svg" id="rtrapSvg" viewBox="-80 -60 680 280" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <defs>
+              <clipPath id="wipeRtrap"><rect class="wipe" x="-80" y="-60" width="680" height="280" /></clipPath>
+            </defs>
+            <!-- the whole drawing slides as one: centred while the trapezium
+                 is alone, over to the left once the copy joins it -->
+            <g class="rt-scene" id="rtScene">
+              <!-- the copy, turned about the middle of the right-hand side; it
+                   is lifted over the trapezium while it turns and settles
+                   under it once it has landed -->
+              <g class="rt-copy" id="rtCopy"></g>
+              <!-- the trapezium: the fill, the outline that draws itself,
+                   and its two right-angle marks -->
+              <g class="art" id="rtArt"></g>
+              <!-- the side names, each on a two-headed arrow -->
+              <g class="rt-dims" id="rtDims"></g>
+              <!-- the glowing copies of the two sides being compared -->
+              <g class="rt-hl" id="rtHl"></g>
+              <!-- the turn: the pivot, the curved arrow round it, and the
+                   finger that follows the arrow -->
+              <g class="rt-guide" id="rtGuide"></g>
+            </g>
+          </svg>
+        </div>
+        <!-- the practice: figures built by script.js for each question,
+             shown in place of the derivation's drawing -->
+        <div class="rhom-practice rtrap-practice" id="rtrapPractice" aria-live="polite">
+          <div class="fig-row" id="rtFigRow"></div>
+        </div>
+      </div>
+
+      <!-- Swiftee hops down here for the working: its line about what is
+           being worked out, and the lines of working under it. The row
+           keeps its box from the first frame, so its arrival moves nothing. -->
+      <div class="rtrap-foot">
+        <div class="rtrap-say" id="rtrapSay">
+          <div class="mascot" id="rtrapMascot" aria-hidden="true"></div>
+          <div class="rtrap-col">
+            <p class="say-text rtrap-text" id="rtrapText" aria-live="polite">
+              <span class="type-wrap">
+                <span class="type-ghost"></span>
+                <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+              </span>
+            </p>
+            <div class="area-lines rtrap-lines" id="rtrapLines" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <!-- the practice's other occupants of the same cell, one at a time:
+             the formula with three empty boxes and the values to drag into
+             them; two questions with drop-downs; the answers to a question;
+             and the banner Swiftee hops down to for the comparison -->
+        <div class="rhom-quiz rtrap-quiz" id="rtrapQuiz">
+          <div class="area-line len-formula" id="rtrapFormula">
+            <span class="seg">A = ½ × (</span>
+            <span class="fslot" data-accept="a" role="button" tabindex="-1" aria-label="First parallel side"><i class="hint">a</i></span>
+            <span class="seg">+</span>
+            <span class="fslot" data-accept="b" role="button" tabindex="-1" aria-label="Second parallel side"><i class="hint">b</i></span>
+            <span class="seg">) ×</span>
+            <span class="fslot" data-accept="h" role="button" tabindex="-1" aria-label="Height"><i class="hint">h</i></span>
+          </div>
+          <div class="para-tray len-tray" id="rtrapTray">
+            <button class="chip" type="button" data-len="8"><span>8 cm</span></button>
+            <button class="chip" type="button" data-len="14"><span>14 cm</span></button>
+            <button class="chip" type="button" data-len="6"><span>6 cm</span></button>
+          </div>
+        </div>
+        <div class="area-lines rtrap-qs" id="rtrapQs" aria-live="polite"></div>
+        <div class="para-tray practice-tray" id="rtrapPTray"></div>
+        <div class="practice-say" id="rtrapPSay">
+          <div class="mascot" id="rtrapPMascot" aria-hidden="true"></div>
+          <p class="say-text" id="rtrapPText" aria-live="polite">
+            <span class="type-wrap">
+              <span class="type-ghost"></span>
+              <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+            </span>
+          </p>
+        </div>
       </div>
     </section>
 
@@ -529,6 +736,26 @@
          Back    -- go back to the scene before this one
          Skip    -- take me to the end of this scene
          Replay  -- play this scene again from its first frame -->
+  <!-- Jump straight to a section. Bottom-left, opposite the scene tools, and
+       stacked above the input lock for the same reason they are: while a scene
+       is playing is exactly when it is wanted. Its list is built from the
+       mission order in script.js, so it cannot drift out of step with it, and
+       it opens upward because the button sits on the floor of the screen. -->
+  <div class="jump" id="jump" hidden>
+    <button class="jump-btn" id="jumpBtn" type="button"
+            aria-haspopup="listbox" aria-expanded="false"
+            aria-label="Jump to a section" title="Jump to a section">
+      <svg class="jump-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7h16M4 12h16M4 17h10" />
+      </svg>
+      <span class="jump-label" id="jumpLabel">Section</span>
+      <svg class="jump-caret" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 15l6-6 6 6" />
+      </svg>
+    </button>
+    <div class="jump-menu" id="jumpMenu" role="listbox" aria-label="Sections"></div>
+  </div>
+
   <div class="hud-tools">
     <button class="tool-btn" id="backBtn" type="button" hidden
             aria-label="Back to the previous section" title="Back to the previous section">

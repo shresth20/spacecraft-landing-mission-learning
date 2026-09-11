@@ -115,6 +115,60 @@
  *      purple, with its own height, and the same question. Next
  *   8. the shape moves left and the working types out beside it: each
  *      triangle's area, and the rhombus as the sum of the two. Next
+ *   9. the numbers: the shape comes back to the middle, plain, with both
+ *      diagonals; "Drag the two lengths into the formula." -- the
+ *      diagonals are measured (16 cm and 12 cm) and four lengths appear
+ *      under "Area = ½ × [ ] × [ ]"; the two right ones dock, the answer is
+ *      said, and Next
+ *  10. practice, a Next between each: "Choose the correct area." of the
+ *      same rhombus; a rhombus of 240 sq. cm with one diagonal 30 cm --
+ *      "Find the other diagonal."; two rhombi to compare -- "Tap the
+ *      rhombus with the larger area." -- the working appears under each and
+ *      Swiftee hops down to say that a longer diagonal alone does not
+ *      decide it; and a slanted shape with a base and a height -- "Which
+ *      formula can you use here?"
+ *  11. Next -- the board goes and Swiftee says from its bubble that the
+ *      area of a rhombus is known, and another special quadrilateral is next
+ *
+ * Section 8, the trapezium, in two levels:
+ *   1. the board comes back and a trapezium draws itself on it; "This is a
+ *      [ v ]" with a drop-down (Kite / Parallelogram / Trapezium) appears
+ *      under it, and Swiftee jumps in beside the sentence: "Tap here!" Each
+ *      choice is answered in a banner under the sentence, and the shape
+ *      takes its "parallel" marks so the answer can be checked against it
+ *   2. Next -- the sentence goes and Swiftee ducks behind the board; the
+ *      shape fades and six cards take its place, three of them trapeziums.
+ *      Swiftee jumps up to the heading -- "Select all the trapeziums." --
+ *      and ducks back, taking the line with it. Each tap is answered at
+ *      once: a trapezium locks green with confetti, anything else shakes
+ *      red and steps back for good
+ *   3. Next -- the three other cards leave, the trapeziums line up in one
+ *      row and each takes a slot under it; the three names appear below,
+ *      and Swiftee jumps up: "Drag each block to the matching shape." --
+ *      the warm-up's line and voice-over. Each name is dragged onto its
+ *      shape, and Next
+ *
+ * Section 9, the area of a trapezium -- one unbroken piece, Swiftee
+ * narrating every beat, played three times: for the right-angled trapezium
+ * (two copies make a rectangle), then the scalene and the isosceles (two
+ * copies make a parallelogram):
+ *   1. the cards (or the last trapezium) go and a trapezium draws itself in
+ *      the middle of the board; it slides to the left and its sides are
+ *      named: a on top, b below, h up the left
+ *   2. a copy of it lifts off and turns half a circle about the middle of
+ *      its slanted side -- a finger pushes it round a curved arrow -- and
+ *      lands beside it: the two make the whole. The copy's sides are
+ *      named, the equal sides are shown equal (b and b, then a and a), and
+ *      the two names along each side of the rectangle merge into a + b
+ *   3. Swiftee hops down beside the working: (a + b) x h is the whole;
+ *      the copy fades to a dashed outline and the trapezium is half of it,
+ *      half of (a + b) x h; the copy goes, the trapezium comes back to the
+ *      middle, and the rule is boxed. Confetti, Next
+ *   4. practice, a Next between each: the values of a measured trapezium
+ *      dragged into A = 1/2 (a + b) x h, then the working step by step; a
+ *      second trapezium's sum of parallel sides and height from drop-downs,
+ *      then its area from chips; and two trapeziums to compare -- "Tap the
+ *      trapezium which has the largest area." -- the working under each
  */
 
 (function () {
@@ -247,7 +301,8 @@
   const swiftee = (function () {
     const S = window.SWIFTEE;
     const nodes = ['mascot', 'welcomeMascot', 'introMascot', 'hopper',
-                   'quizMascot', 'sideMascot', 'factMascot', 'rhomMascot', 'flyer']
+                   'quizMascot', 'sideMascot', 'factMascot', 'rhomMascot', 'practiceMascot',
+                   'trapMascot', 'rtrapMascot', 'rtrapPMascot', 'flyer']
       .map(id => document.getElementById(id))
       .filter(Boolean);
 
@@ -474,9 +529,13 @@
    * end of this bit" rather than "take me somewhere else": the learner is
    * handed the same Next button they would have reached by playing it.
    */
-  const backBtn  = document.getElementById('backBtn');
-  const skipBtn  = document.getElementById('skipBtn');
-  const resetBtn = document.getElementById('resetBtn');
+  const backBtn   = document.getElementById('backBtn');
+  const skipBtn   = document.getElementById('skipBtn');
+  const resetBtn  = document.getElementById('resetBtn');
+  const jump      = document.getElementById('jump');
+  const jumpBtn   = document.getElementById('jumpBtn');
+  const jumpMenu  = document.getElementById('jumpMenu');
+  const jumpLabel = document.getElementById('jumpLabel');
 
   /* Bumped when a scene opens and again when one reaches its hand-off. The
      scene in play is state rather than something read off a call stack: the
@@ -491,6 +550,59 @@
      played it the first time rather than a second, "from the top" path. */
   let sceneAgain = null;
   let replaying = false;
+
+  /* ---------- the mission, in order ----------
+   * The scenes chain by calling one another, which says what follows what but
+   * never lays the whole running order out in one place. The jump menu needs
+   * exactly that, so here it is -- and the menu is built from it, so the two
+   * cannot drift apart.
+   *
+   * The entries are function declarations, so they are all hoisted and defined
+   * by the time this array is evaluated, however far down the file they sit. */
+  const MISSION = [
+    { entry: sceneIntro,        name: 'Welcome' },
+    { entry: sceneWarmUp,       name: 'Warm-up \u00b7 name the shapes' },
+    { entry: sectionTwo,        name: 'Triangles \u00b7 base and height' },
+    { entry: sectionThree,      name: 'Quadrilateral \u00b7 one diagonal' },
+    { entry: sectionThreeAgain, name: 'Quadrilateral \u00b7 the other diagonal' },
+    { entry: sectionFour,       name: 'Quadrilateral \u00b7 with measurements' },
+    { entry: sectionFive,       name: 'Quadrilateral \u00b7 your own go' },
+    { entry: specialIntro,      name: 'Aside \u00b7 special quadrilaterals' },
+    { entry: paraSection,       name: 'Parallelogram \u00b7 its sides' },
+    { entry: paraArea,          name: 'Parallelogram \u00b7 its area' },
+    { entry: paraAreaQuestion,  name: 'Parallelogram \u00b7 the formula' },
+    { entry: paraCheck,         name: 'Parallelogram \u00b7 your own go' },
+    { entry: paraAside,         name: 'Aside \u00b7 on to the rhombus' },
+    { entry: rhombusSection,    name: 'Rhombus \u00b7 its sides' },
+    { entry: rhombusArea,       name: 'Rhombus \u00b7 its area' },
+    { entry: rhombusSum,        name: 'Rhombus \u00b7 the sum' },
+    { entry: rhombusNumbers,    name: 'Rhombus \u00b7 with numbers' },
+    { entry: rhombusPractice1,  name: 'Rhombus \u00b7 practice 1' },
+    { entry: rhombusPractice2,  name: 'Rhombus \u00b7 practice 2' },
+    { entry: rhombusPractice3,  name: 'Rhombus \u00b7 practice 3' },
+    { entry: rhombusPractice4,  name: 'Rhombus \u00b7 practice 4' },
+    { entry: rhombusAside,      name: 'Aside \u00b7 on to the trapezium' },
+    { entry: trapSection,       name: 'Trapezium \u00b7 its name' },
+    { entry: trapSelect,        name: 'Trapezium \u00b7 pick them out' },
+    { entry: trapMatch,         name: 'Trapezium \u00b7 its kinds' },
+    { entry: rtrapArea,         name: 'Right-angled trapezium \u00b7 its area' },
+    { entry: rtrapHalf,         name: 'Right-angled trapezium \u00b7 the formula' },
+    { entry: scalArea,          name: 'Scalene trapezium \u00b7 its area' },
+    { entry: scalHalf,          name: 'Scalene trapezium \u00b7 the formula' },
+    { entry: isoArea,           name: 'Isosceles trapezium \u00b7 its area' },
+    { entry: isoHalf,           name: 'Isosceles trapezium \u00b7 the formula' },
+    { entry: trapNumbers,       name: 'Trapezium \u00b7 drag the values' },
+    { entry: trapSteps,         name: 'Trapezium \u00b7 step by step' },
+    { entry: trapPractice1,     name: 'Trapezium \u00b7 practice 1' },
+    { entry: trapPractice2,     name: 'Trapezium \u00b7 practice 2' },
+    { entry: trapPractice3,     name: 'Trapezium \u00b7 practice 3' }
+  ];
+
+  /* where we are in that order, and the stage every scene we have opened was
+     opened on -- which is what lets one be gone back to exactly */
+  let sceneIndex = -1;
+  let jumping = false;
+  const sceneOpened = new Map();
 
   /* The scenes played so far, most recent last: { entry, stage }.
      `stage` is what the board looked like as the scene opened -- which is to
@@ -509,6 +621,7 @@
       void b.offsetHeight;
       b.classList.add('in');
     });
+    showJump();
   }
 
   /* Which tools are any use right now. Replay needs somewhere to go back to
@@ -527,17 +640,28 @@
      be replayed, and Replay stays down for it. */
   function sceneStart(again) {
     sceneSeq++;
-    sceneAgain = again || null;
-
-    /* A re-entry is not a step forward, so replaying a scene or going back to
-       one must not stack another copy of it on the history. */
-    if (again && (!sceneHistory.length ||
-                  sceneHistory[sceneHistory.length - 1].entry !== again)) {
-      sceneHistory.push({ entry: again, stage: stageNow() });
-    }
-
+    noteScene(again, stageNow());
     showTools();
     armTools();
+  }
+
+  /* Where we are, and what the board looked like when we got here.
+     The history is kept as a path through the mission rather than a browser
+     trail: arriving somewhere we have already been truncates back to it, so
+     Back always means the section before this one. That also makes a replay a
+     no-op on the history, since it finds itself already on the end. */
+  function noteScene(entry, stage) {
+    sceneAgain = entry || null;
+    if (!entry) return;
+
+    sceneIndex = MISSION.findIndex(function (m) { return m.entry === entry; });
+    sceneOpened.set(entry, stage);
+
+    const at = sceneHistory.findIndex(function (h) { return h.entry === entry; });
+    if (at !== -1) sceneHistory.length = at + 1;
+    else sceneHistory.push({ entry: entry, stage: stage });
+
+    markJump();
   }
 
   /* A scene has reached its hand-off. Only the counter moves, which is what
@@ -671,7 +795,7 @@
    * The board itself, Swiftee and the mission chrome are left alone: Replay
    * re-enters one scene, not the whole mission.
    */
-  const SCENE_ROOTS = ['bay', 'trayArea', 'lesson', 'quad', 'para', 'rhom', 'intro']
+  const SCENE_ROOTS = ['bay', 'trayArea', 'lesson', 'quad', 'para', 'rhom', 'trap', 'rtrap', 'intro']
     .map(function (id) { return document.getElementById(id); })
     .filter(Boolean);
 
@@ -806,7 +930,7 @@
     await new Promise(function (r) { setTimeout(r, 0); });
 
     replaying = false;
-    sceneAgain = entry;
+    noteScene(entry, stage);
     skipBtn.disabled = false;
     armTools();
 
@@ -834,6 +958,133 @@
 
   resetBtn.addEventListener('click', replayScene);
   backBtn.addEventListener('click', backScene);
+
+  /* ---------- jump to a section ----------
+   * Behind us, a scene can be entered outright: it has been played, so the
+   * stage it opens on was recorded on the way through.
+   *
+   * Ahead of us there is no such record -- and it could not simply be guessed,
+   * because a scene's stage is mostly built by the scenes before it (section 4
+   * inherits the quadrilateral from section 3 and takes it as given). So going
+   * forward is a run of skips, one hand-off at a time: every scene in between
+   * actually plays, which both leaves the board in a state its own code built
+   * and records each stage on the way, so coming back afterwards is exact.
+   */
+  MISSION.forEach(function (m, i) {
+    const opt = document.createElement('button');
+    opt.type = 'button';
+    opt.className = 'jump-opt';
+    opt.setAttribute('role', 'option');
+    opt.dataset.i = String(i);
+    opt.innerHTML = '<span class="jump-n"></span><span class="jump-name"></span>';
+    opt.querySelector('.jump-n').textContent = String(i + 1);
+    opt.querySelector('.jump-name').textContent = m.name;
+    opt.addEventListener('click', function (e) {
+      e.stopPropagation();
+      openJump(false);
+      jumpTo(i);
+    });
+    jumpMenu.appendChild(opt);
+  });
+
+  const jumpOpts = Array.from(jumpMenu.querySelectorAll('.jump-opt'));
+
+  /* the button says where we are; the list says which one that is, and which
+     of them would have to be played through to reach */
+  function markJump() {
+    const here = MISSION[sceneIndex];
+    jumpLabel.textContent = here ? here.name : 'Section';
+    jumpOpts.forEach(function (opt, i) {
+      opt.setAttribute('aria-selected', i === sceneIndex ? 'true' : 'false');
+      opt.classList.toggle('ahead', i > sceneIndex);
+    });
+  }
+
+  function openJump(on) {
+    jump.classList.toggle('open', !!on);
+    jumpBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on) jumpOpts[Math.max(0, sceneIndex)].scrollIntoView({ block: 'nearest' });
+  }
+
+  function showJump() {
+    jump.hidden = false;
+    void jump.offsetHeight;
+    jump.classList.add('in');
+  }
+
+  jumpBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (jumping || replaying) return;
+    const was = jump.classList.contains('open');
+    closeMenus();                     /* a quiz drop-down must not stay open under it */
+    openJump(!was);
+    sfx('click', .4);
+  });
+
+  /* anywhere else, and Escape, closes it -- the quiz drop-downs already do
+     the same, on the same two events */
+  document.addEventListener('click', function () { openJump(false); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') openJump(false);
+  });
+
+  async function jumpTo(i) {
+    if (jumping || replaying || !MISSION[i]) return;
+    const entry = MISSION[i].entry;
+
+    /* the scene in play: the same thing Replay means */
+    if (i === sceneIndex) return replayScene();
+
+    /* behind us, so the stage it opens on is known */
+    if (i < sceneIndex) {
+      const stage = sceneOpened.get(entry);
+      if (stage) return enterScene(entry, stage);
+    }
+
+    /* ahead: play through what is in between, as fast as Skip can */
+    jumping = true;
+    jumpBtn.disabled = true;
+    jumpBtn.classList.add('working');
+    TOOLS.forEach(function (b) { b.disabled = true; });
+
+    const guard = performance.now() + 180000;
+    let quiet = 0;
+
+    while (sceneIndex < i && sceneIndex !== -1 && performance.now() < guard) {
+      const atScene = sceneIndex;
+      const atSeq = sceneSeq;
+
+      /* A skip has a watchdog of its own and hands the game back if a scene is
+         long, so one is not always enough to reach a hand-off -- which is why
+         this keeps going rather than reading a single skip as the end of the
+         road. */
+      await skipScene();
+      if (pendingNext) await skipScene();     /* at the hand-off: take it */
+
+      /* Taking a hand-off only resolves the wait the scene was sitting on; the
+         next scene opens a beat later, of its own accord. Give it that beat,
+         or the jump reads its own success as a stall. */
+      const settle = performance.now() + 3000;
+      while (sceneIndex === atScene && performance.now() < settle) {
+        await new Promise(function (r) { requestAnimationFrame(r); });
+      }
+
+      /* Neither the scene nor the mission moved: let a few of those pass,
+         since a long scene makes no visible progress between skips, then give
+         up rather than spin to the guard. */
+      if (sceneIndex === atScene && sceneSeq === atSeq) {
+        if (++quiet >= 6) break;
+      } else {
+        quiet = 0;
+      }
+    }
+
+    jumping = false;
+    jumpBtn.disabled = false;
+    jumpBtn.classList.remove('working');
+    skipBtn.disabled = false;
+    armTools();
+  }
 
   /* ---------- opening: draw each shape, then pour the colour in ---------- */
   async function revealShape(shape) {
@@ -1581,12 +1832,19 @@
     const a = introMascot.animate(kf, { duration: 820, fill: 'forwards' });
     return a.finished.then(() => {
       /* bake the resting pose into the element so the next animation starts
-         from a clean transform instead of stacking on this one */
-      try { a.commitStyles(); } catch (e) {
-        introMascot.style.transform = 'translate(0px, 0px)';
-        introMascot.style.opacity = '1';
-      }
+         from a clean transform instead of stacking on this one. Written out
+         rather than committed from the animation: commitStyles() folds in
+         whatever else is animating the element, and after a section's exit
+         that can be the drop off the bottom of the screen, which would leave
+         the bird standing there out of sight. */
+      introMascot.style.transform = 'translate(0px, 0px)';
+      introMascot.style.opacity = '1';
       a.cancel();
+    }, function () {
+      /* cancelled by a replay or a jump: the scene is being taken down, so
+         there is no resting pose left to bake in. Every other animation in the
+         file tolerates this the same way -- and without a handler here the
+         rejection has nowhere to go. */
     });
   }
 
@@ -1667,7 +1925,13 @@
       { transform: 'translate(0, -30%) scale(1)', offset: .52, easing: 'cubic-bezier(.45, 0, .85, .5)' },
       { transform: 'translate(0, ' + drop + 'px) scale(1)' }
     ], { duration: 980, fill: 'forwards' });
-    try { await a.finished; } catch (e) { /* cancelled */ }
+    try { await a.finished; } catch (e) { return; /* cancelled */ }
+    /* The drop is baked into the element and the animation let go. Left
+       filling forwards on the hidden intro, the browser stops reporting it,
+       so the aside's tidy-up could not cancel it -- and the bird would stand
+       off the bottom of the screen while its bubble spoke. */
+    introMascot.style.transform = 'translate(0px, ' + drop + 'px)';
+    a.cancel();
   }
 
   async function showBoard() {
@@ -3883,6 +4147,17 @@
   const rhomChips1 = Array.from(rhomTray1.querySelectorAll('.chip'));
   const rhomChips2 = Array.from(rhomTray2.querySelectorAll('.chip'));
   const rhomLines  = document.getElementById('rhomLines');
+  const rhomQuiz   = document.getElementById('rhomQuiz');
+  const rhomFormula = document.getElementById('rhomFormula');
+  const rhomSlots  = Array.from(rhomFormula.querySelectorAll('.fslot'));
+  const rhomTray3  = document.getElementById('rhomTray3');
+  const rhomChips3 = Array.from(rhomTray3.querySelectorAll('.chip'));
+  const rhomPractice = document.getElementById('rhomPractice');
+  const figRow     = document.getElementById('figRow');
+  const practiceTray = document.getElementById('practiceTray');
+  const practiceSay  = document.getElementById('practiceSay');
+  const practiceMascot = document.getElementById('practiceMascot');
+  const practiceText = document.getElementById('practiceText');
   const rhomMascot = document.getElementById('rhomMascot');
   const rhomText   = document.getElementById('rhomText');
   const rhomTxt    = rhomText.querySelector('.txt');
@@ -4483,7 +4758,7 @@
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
-    rhom.classList.remove('wide');
+    rhom.classList.remove('wide', 'numbers');
     rhomLines.textContent = '';
     /* a replay has taken the built shape away: it is built again from the
        lengths the learner left it with, already revealed */
@@ -4589,25 +4864,14 @@
 
     /* a replay comes back to a bare shape: everything the lesson drew is put
        back as it stood at the hand-off */
-    if (!rhomEls || !rhomArt.contains(rhomEls.outline) || !rhomArea.firstChild) {
-      if (!rhomEls || !rhomArt.contains(rhomEls.outline)) {
-        buildRhom(true);
-        rhomEls.fill.style.opacity = 1;
-        rhomEls.outline.style.strokeDasharray = 'none';
-        rhomEls.outline.style.strokeDashoffset = '0';
-      }
-      const d = rawDiag();
-      rh.pose = settledPose(-Math.atan2(d.dy, d.dx));
-      renderRhom();
-      rhomShape.classList.add('tilt', 'done', 'clean');
-      buildRhomArea();
-      ['rd-d1', 'rd-h2'].forEach(c => { areaEl(c).style.opacity = 1; });
-      ['lbl-d1', 'lbl-h2', 'mark-up'].forEach(c => areaEl(c).classList.add('on'));
+    if (ensureTilted()) {
+      areaEl('rd-h2').style.opacity = 1;
+      ['lbl-h2', 'mark-up'].forEach(c => areaEl(c).classList.add('on'));
       rhomShape.classList.add('fill-green', 'quiet-green', 'fill-purple');
-      if (!rhomMascot.classList.contains('in') && !boardMascot.classList.contains('in')) boardMascot.classList.add('in');
+      if (!boardMascot.classList.contains('in')) boardMascot.classList.add('in');
     }
     rhomTray2.classList.add('off');
-    rhom.classList.remove('wide');
+    rhom.classList.remove('wide', 'numbers');
     rhomLines.textContent = '';
     rhomLines.classList.remove('off');
     await wait(460);
@@ -4636,7 +4900,2272 @@
     sfx('confetti', .8);
     await wait(2600);
     await showNext();
-    /* the next screens continue here */
+    await rhombusNumbers();
+  }
+
+  /* The tilted rhombus with d1 drawn along it, put back if a replay has
+     taken it away. Returns true when it had to be rebuilt, so the scene can
+     add whatever else it had on the shape at its hand-off. */
+  function ensureTilted() {
+    if (rhomEls && rhomArt.contains(rhomEls.outline) && rhomArea.firstChild) return false;
+    if (!rhomEls || !rhomArt.contains(rhomEls.outline)) {
+      buildRhom(true);
+      rhomEls.fill.style.opacity = 1;
+      rhomEls.outline.style.strokeDasharray = 'none';
+      rhomEls.outline.style.strokeDashoffset = '0';
+    }
+    const d = rawDiag();
+    rh.pose = settledPose(-Math.atan2(d.dy, d.dx));
+    renderRhom();
+    rhomShape.classList.add('tilt', 'done', 'clean');
+    buildRhomArea();
+    areaEl('rd-d1').style.opacity = 1;
+    areaEl('lbl-d1').classList.add('on');
+    return true;
+  }
+
+  /* ---------- the numbers ----------
+   * The working leaves and the shape comes back to the middle, plain again
+   * with both diagonals and the right angle between them. Swiftee asks for
+   * the two lengths to be dragged into the formula; the diagonals are
+   * measured off the shape -- a two-headed arrow under d1 reading 16 cm, one
+   * up the right of d2 reading 12 cm -- and the formula appears under the
+   * shape with two empty slots and four lengths to choose from. Either
+   * length may go in either slot; a wrong one is shaken off. Both in, the
+   * answer is said in the heading, and Next. */
+  const NUM = {
+    drag:  'Drag the two lengths into the formula.',
+    right: 'That’s Correct! Area = ½ × 16 × 12 = 96 sq. cm'
+  };
+  const NUM_D1 = '16 cm', NUM_D2 = '12 cm';
+  const NUM_NEED = ['16', '12'];
+
+  const dimEl = cls => rhomArea.querySelector('.' + cls);
+
+  /* the two measurements, laid over the settled shape: for each, a dotted
+     line out from each end of the diagonal, a two-headed arrow between them
+     and the length written on it */
+  function buildRhomDims() {
+    const P = rhomPts();
+    const H = 9;
+    const ln = (cls, a, b) => '<line class="' + cls + '" x1="' + fmt(a.x) + '" y1="' + fmt(a.y) + '" x2="' + fmt(b.x) + '" y2="' + fmt(b.y) + '" />';
+    /* an arrowhead at `tip`, pointing along (dx, dy) */
+    const head = (tip, dx, dy) => {
+      const nx = -dy, ny = dx;
+      return '<path class="d-head" d="M' + fmt(tip.x - dx * H + nx * H * .65) + ' ' + fmt(tip.y - dy * H + ny * H * .65) +
+             ' L' + fmt(tip.x) + ' ' + fmt(tip.y) +
+             ' L' + fmt(tip.x - dx * H - nx * H * .65) + ' ' + fmt(tip.y - dy * H - ny * H * .65) + '" />';
+    };
+    /* d1: under the shape */
+    const y = P.BR.y + 16;
+    const A = { x: P.BL.x, y: y }, B = { x: P.TR.x, y: y };
+    let g = '<g class="d-group d-d1">' +
+      ln('d-ext', P.BL, A) + ln('d-ext', P.TR, B) +
+      ln('d-arrow', A, B) + head(A, -1, 0) + head(B, 1, 0) +
+      '<text class="d-label" x="' + fmt((A.x + B.x) / 2) + '" y="' + fmt(y) + '" font-size="19" text-anchor="middle" dominant-baseline="middle">' + NUM_D1 + '</text>' +
+    '</g>';
+    /* d2: up the right of the shape, its length written along the arrow */
+    const x = P.TR.x + 24;
+    const C = { x: x, y: P.TL.y }, D = { x: x, y: P.BR.y };
+    const my = (C.y + D.y) / 2;
+    g += '<g class="d-group d-d2">' +
+      ln('d-ext', P.TL, C) + ln('d-ext', P.BR, D) +
+      ln('d-arrow', C, D) + head(C, 0, -1) + head(D, 0, 1) +
+      '<text class="d-label" x="' + fmt(x) + '" y="' + fmt(my) + '" font-size="19" text-anchor="middle" dominant-baseline="middle" ' +
+        'transform="rotate(-90 ' + fmt(x) + ' ' + fmt(my) + ')">' + NUM_D2 + '</text>' +
+    '</g>';
+    rhomArea.insertAdjacentHTML('beforeend', g);
+  }
+
+  /* a measurement comes on: the dotted lines run out from the corners, the
+     arrow grows between them, and the heads and the length appear */
+  async function showDim(cls) { await showDimGroup(dimEl(cls)); }
+  async function showDimGroup(g) {
+    const ext = Array.from(g.querySelectorAll('.d-ext'));
+    await Promise.all(ext.map(l => growLine(l, 380)));
+    ext.forEach(l => { l.style.opacity = .7; });
+    await growLine(g.querySelector('.d-arrow'), 720);
+    g.classList.add('on');
+    sfx('click', .35);
+    await wait(REDUCED ? 160 : 520);
+  }
+
+  /* The drag. Its own small plumbing, on the warm-up's pattern: a copy of
+     the chip follows the pointer, the slot under it lights, and a release
+     over a slot is judged. A chip may also be tapped and then a slot tapped.
+     Either of the two lengths may go in either slot, but not the same one
+     twice; a wrong one is shaken off and stays in the tray. A skip docks the
+     two itself; a replay takes the listeners off. */
+  function dragLengths() {
+    return waitForScene(resolve => {
+      let ldrag = null, lpicked = null, over = false;
+      const filled = () => rhomSlots.filter(s => s.classList.contains('filled'));
+      const taken  = () => filled().map(s => s.querySelector('.chip').dataset.len);
+      const slotAt = (x, y) => rhomSlots.find(s => {
+        const r = s.getBoundingClientRect();
+        return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+      }) || null;
+      const clearOver = () => rhomSlots.forEach(s => s.classList.remove('over'));
+      const unpick = () => { if (lpicked) lpicked.classList.remove('picked'); lpicked = null; };
+
+      const dockLen = (chip, slot, earned) => {
+        slot.appendChild(chip);
+        slot.classList.add('filled');
+        chip.classList.remove('picked', 'dragging');
+        chip.disabled = true;
+        slot.classList.add('correct');
+        setTimeout(() => slot.classList.remove('correct'), 520);
+        rhomShape.classList.add(chip.dataset.len === '16' ? 'lit-d1' : 'lit-d2');
+        sfx('correct', earned ? 1 : .55);
+        if (earned) {
+          swiftee.play('happy', 1);
+          sfx('confetti', .55);
+          requestAnimationFrame(() => burst(chip));
+        }
+      };
+
+      const tryPlace = (chip, slot) => {
+        if (!slot || slot.classList.contains('filled')) return;
+        const ok = NUM_NEED.indexOf(chip.dataset.len) !== -1 && taken().indexOf(chip.dataset.len) === -1;
+        if (!ok) {
+          sfx('wrong');
+          feedback(FEEDBACK.wrong);
+          swiftee.play('confused', 1);
+          slot.classList.add('reject');
+          chip.classList.add('reject');
+          setTimeout(() => { slot.classList.remove('reject'); chip.classList.remove('reject'); }, 430);
+          return;
+        }
+        dockLen(chip, slot, true);
+        if (filled().length === rhomSlots.length) finish(false);
+        else feedback(FEEDBACK.right);
+      };
+
+      const onDownL = e => {
+        if (!interactive || over) return;
+        const chip = e.currentTarget;
+        if (chip.disabled) return;
+        if (e.button !== undefined && e.button !== 0) return;
+        const rect = chip.getBoundingClientRect();
+        const ghost = chip.cloneNode(true);
+        ghost.classList.add('ghost');
+        Object.assign(ghost.style, {
+          position: 'fixed', left: rect.left + 'px', top: rect.top + 'px',
+          width: rect.width + 'px', height: rect.height + 'px',
+          margin: 0, pointerEvents: 'none', zIndex: 999, transform: 'scale(1.05)'
+        });
+        document.body.appendChild(ghost);
+        chip.classList.add('dragging');
+        unpick();
+        sfx('click', .5);
+        ldrag = { el: chip, ghost: ghost, offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top, start: { x: e.clientX, y: e.clientY } };
+        window.addEventListener('pointermove', onMoveL);
+        window.addEventListener('pointerup', onUpL);
+        window.addEventListener('pointercancel', onUpL);
+        e.preventDefault();
+      };
+      const onMoveL = e => {
+        if (!ldrag) return;
+        ldrag.ghost.style.left = (e.clientX - ldrag.offsetX) + 'px';
+        ldrag.ghost.style.top  = (e.clientY - ldrag.offsetY) + 'px';
+        clearOver();
+        const slot = slotAt(e.clientX, e.clientY);
+        if (slot && !slot.classList.contains('filled')) slot.classList.add('over');
+      };
+      const onUpL = e => {
+        if (!ldrag) return;
+        window.removeEventListener('pointermove', onMoveL);
+        window.removeEventListener('pointerup', onUpL);
+        window.removeEventListener('pointercancel', onUpL);
+        const { el, ghost, start } = ldrag;
+        ldrag = null;
+        ghost.remove();
+        el.classList.remove('dragging');
+        clearOver();
+        const slot = slotAt(e.clientX, e.clientY);
+        if (slot) return tryPlace(el, slot);
+        /* a tap, not a drag: the chip waits for a slot to be tapped */
+        if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) {
+          lpicked = el;
+          el.classList.add('picked');
+        }
+      };
+      const onSlotTap = e => {
+        if (!interactive || !lpicked) return;
+        const chip = lpicked;
+        unpick();
+        tryPlace(chip, e.currentTarget);
+      };
+
+      const cleanup = () => {
+        rhomChips3.forEach(c => c.removeEventListener('pointerdown', onDownL));
+        rhomSlots.forEach(s => s.removeEventListener('click', onSlotTap));
+        window.removeEventListener('pointermove', onMoveL);
+        window.removeEventListener('pointerup', onUpL);
+        window.removeEventListener('pointercancel', onUpL);
+        if (ldrag) { ldrag.ghost.remove(); ldrag.el.classList.remove('dragging'); ldrag = null; }
+        clearOver();
+        unpick();
+        skipFills.delete(fill);
+        sceneWaiters.delete(teardown);
+      };
+      const finish = auto => {
+        if (over) return;
+        over = true;
+        cleanup();
+        lockInput(true);
+        resolve();
+      };
+      /* a skip: the two right lengths go in by themselves */
+      const fill = () => {
+        if (over) return;
+        const free = () => rhomSlots.find(s => !s.classList.contains('filled'));
+        NUM_NEED.forEach(v => {
+          if (taken().indexOf(v) !== -1) return;
+          const chip = rhomChips3.find(c => c.dataset.len === v && !c.disabled);
+          const slot = free();
+          if (chip && slot) dockLen(chip, slot, false);
+        });
+        finish(true);
+      };
+      /* a replay retires the scene while the drag is open */
+      const teardown = () => { over = true; cleanup(); };
+
+      rhomChips3.forEach(c => c.addEventListener('pointerdown', onDownL));
+      rhomSlots.forEach(s => s.addEventListener('click', onSlotTap));
+      sceneWaiters.add(teardown);
+      skipFills.add(fill);
+      lockInput(false);
+    });
+  }
+
+  async function rhombusNumbers() {
+    lockInput(true);
+    sceneStart(rhombusNumbers);
+    const mine = runToken;
+    promptGhost.textContent = longest([NUM.drag, NUM.right]);
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+
+    /* a replay comes back to a bare shape, and to lengths still sitting in
+       the slots they were dropped in: the shape is put back and the lengths
+       go home */
+    const rebuilt = ensureTilted();
+    rhomChips3.forEach(c => { rhomTray3.appendChild(c); c.disabled = false; });
+    rhomArea.querySelectorAll('.d-group').forEach(g => g.remove());
+    if (!boardMascot.classList.contains('in')) boardMascot.classList.add('in');
+
+    /* 1. the working leaves; the shape keeps the left two fifths and the
+          right three fifths are cleared for the formula */
+    rhomLines.classList.add('off');
+    await wait(450);
+    rhom.classList.add('numbers');
+    await layoutWide(rhom, rhomSvg, true);
+    rhomLines.textContent = '';
+    rhomLines.classList.remove('off');
+
+    /* 2. the halves and their heights leave; d2 comes back, so the shape
+          stands plain with both diagonals and the right angle between them */
+    rhomShape.classList.remove('fill-green', 'quiet-green', 'fill-purple', 'lit-d1', 'lit-d2', 'lit-h1', 'lit-h2', 'lit-quad');
+    ['rd-h1', 'rd-h2'].forEach(c => { areaEl(c).style.opacity = ''; });
+    ['lbl-h1', 'lbl-h2', 'mark-down'].forEach(c => areaEl(c).classList.remove('on'));
+    await wait(600);
+    if (rebuilt) {
+      areaEl('rd-d2').style.opacity = 1;
+      areaEl('lbl-d2').classList.add('on');
+    } else {
+      await drawDiag('rd-d2', 'lbl-d2', 620);
+    }
+    areaEl('mark-up').classList.add('on');
+    await wait(400);
+
+    /* 3. Swiftee asks */
+    await heading(NUM.drag);
+    await wait(300);
+
+    /* 4. the diagonals are measured */
+    buildRhomDims();
+    await showDim('d-d1');
+    await showDim('d-d2');
+    await wait(200);
+
+    /* 5. the formula, then the lengths, then the drag */
+    rhomQuiz.classList.add('show');
+    await wait(200);
+    rhomFormula.classList.add('show');
+    sfx('click', .3);
+    await wait(REDUCED ? 160 : 520);
+    await dealChips(rhomChips3);
+    await dragLengths();
+    if (mine !== runToken) throw CANCELLED;
+
+    /* 6. both lengths are in: the answer, and on */
+    feedback(FEEDBACK.done);
+    onRhomWord('rhom');
+    await wait(900);
+    await heading(NUM.right);
+    swiftee.play('proud', 1);
+    skyConfetti(120, 3200);
+    sfx('confetti', .8);
+    await wait(2400);
+    await showNext();
+    await rhombusPractice1();
+  }
+
+  /* ---------- practice ----------
+   * Four questions, a Next between each. The first is asked of the measured
+   * rhombus itself. For the rest the rhombus fades and figures built for
+   * the question draw themselves in its place. Answers are chips under the
+   * shape, as before, except for the comparison, where the figures
+   * themselves (or the names under them) are tapped. */
+  const PRACTICE = {
+    area:     'Choose the correct area.',
+    areaOk:   'That’s Correct! ½ × 16 × 12 = 96 sq. cm',
+    find:     'This rhombus has an area of 240 sq. cm. Find the other diagonal.',
+    findOk:   'That’s Correct! ½ × 30 × d₂ = 240, so d₂ = 16 cm.',
+    larger:   'Tap the rhombus with the larger area.',
+    largerLine: [{ t: 'Rhombus II', w: 'rhom' }, { t: ' is larger – a longer diagonal alone does not decide it.' }],
+    which:    'Which formula can you use here?',
+    whichOk:  'That’s Correct! No diagonals are given, so use base × height.'
+  };
+  const PRACTICE_GHOST = [PRACTICE.area, PRACTICE.areaOk, PRACTICE.find, PRACTICE.findOk, PRACTICE.larger, PRACTICE.which, PRACTICE.whichOk];
+
+  /* the banner's ghost holds its whole line from the first frame */
+  segSpans(practiceText.querySelector('.type-ghost'), PRACTICE.largerLine).forEach((el, j) => { el.textContent = PRACTICE.largerLine[j].t; });
+  const practiceTxt = practiceText.querySelector('.txt');
+  const practiceCaret = practiceText.querySelector('.caret');
+
+  /* the answers to a question: chips built fresh each time */
+  function practiceChips(list, tray) {
+    tray = tray || practiceTray;
+    tray.classList.remove('off');
+    tray.innerHTML = list.map(c =>
+      '<button class="chip' + (c.formula ? ' formula' : '') + '" type="button" data-answer="' + c.v + '"><span>' + c.t + '</span></button>').join('');
+    return Array.from(tray.querySelectorAll('.chip'));
+  }
+
+  /* ---- the figures ----
+   * Each is its own little shape, in a 360 x 260 box: a fill behind a wipe,
+   * an outline that draws itself, and the lesson's marks over it. */
+  const FIG_W = 360, FIG_H = 260;
+  const figLine = (cls, a, b) => '<line class="' + cls + '" x1="' + fmt(a.x) + '" y1="' + fmt(a.y) + '" x2="' + fmt(b.x) + '" y2="' + fmt(b.y) + '" />';
+  const figHead = (tip, dx, dy) => {
+    const H = 9, nx = -dy, ny = dx;
+    return '<path class="d-head" d="M' + fmt(tip.x - dx * H + nx * H * .65) + ' ' + fmt(tip.y - dy * H + ny * H * .65) +
+           ' L' + fmt(tip.x) + ' ' + fmt(tip.y) +
+           ' L' + fmt(tip.x - dx * H - nx * H * .65) + ' ' + fmt(tip.y - dy * H - ny * H * .65) + '" />';
+  };
+  /* a two-headed arrow between a and b with its length written on it;
+     `ext` are the corners it measures from */
+  function figMeasure(cls, a, b, label, ext, rotate) {
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const u = rhUnit(b, a);
+    return '<g class="d-group ' + cls + '">' +
+      ext.map(e => figLine('d-ext', e.from, e.to)).join('') +
+      figLine('d-arrow', a, b) + figHead(a, -u.x, -u.y) + figHead(b, u.x, u.y) +
+      '<text class="d-label" x="' + fmt(mid.x) + '" y="' + fmt(mid.y) + '" font-size="17" text-anchor="middle" dominant-baseline="middle"' +
+        (rotate ? ' transform="rotate(-90 ' + fmt(mid.x) + ' ' + fmt(mid.y) + ')"' : '') + '>' + label + '</text>' +
+    '</g>';
+  }
+  function figShell(key, name, art, over, h) {
+    h = h || FIG_H;
+    return '<div class="fig" data-fig="' + key + '" tabindex="-1">' +
+      '<div class="fig-art"><svg viewBox="0 0 ' + FIG_W + ' ' + h + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
+        '<defs><clipPath id="wipeFig' + key + '"><rect class="wipe" x="0" y="0" width="' + FIG_W + '" height="' + h + '" /></clipPath></defs>' +
+        '<g class="art">' + art + '</g>' +
+        '<g class="fig-over" style="--pair: var(--heading)">' + over + '</g>' +
+      '</svg></div>' +
+      (name ? '<button class="chip formula fig-chip" type="button" tabindex="-1" data-answer="' + key + '"><span>' + name + '</span></button>' : '') +
+      '<p class="fig-work"><span class="type-wrap"><span class="type-ghost"></span>' +
+        '<span class="type"><span class="txt"></span><i class="caret" hidden aria-hidden="true"></i></span></span></p>' +
+    '</div>';
+  }
+  /* a rhombus with its diagonals flat and upright. d1 and d2 are in the
+     box's units; labD1 goes on an arrow under it, labD2 on an arrow to its
+     left -- or, with `unknown`, d2 is dashed and marked "?" */
+  function figRhombus(key, name, d1, d2, labD1, labD2, unknown) {
+    const cx = 185, cy = 118;
+    const L = { x: cx - d1 / 2, y: cy }, R = { x: cx + d1 / 2, y: cy };
+    const T = { x: cx, y: cy - d2 / 2 }, B = { x: cx, y: cy + d2 / 2 };
+    const O = { x: cx, y: cy }, M = 11;
+    const art =
+      '<polygon class="shape-fill" clip-path="url(#wipeFig' + key + ')" points="' + [L, T, R, B].map(pt).join(' ') + '" />' +
+      '<path class="shape-outline" d="M' + [L, T, R, B].map(p => fmt(p.x) + ' ' + fmt(p.y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
+    let over =
+      figLine('rd rd-d1', L, R) +
+      figLine('rd rd-d2' + (unknown ? ' dashed' : ''), T, B) +
+      '<path class="rmark mark-up" d="M' + fmt(O.x) + ' ' + fmt(O.y - M) + ' H' + fmt(O.x + M) + ' V' + fmt(O.y) + '" />';
+    if (unknown) {
+      over += '<text class="rd-lbl lbl-d2 lbl-q" x="' + fmt(cx + 14) + '" y="' + fmt(cy - d2 / 4) + '" font-size="26" text-anchor="start" dominant-baseline="middle">?</text>';
+    }
+    const y = B.y + 18;
+    over += figMeasure('d-d1', { x: L.x, y: y }, { x: R.x, y: y }, labD1,
+      [{ from: L, to: { x: L.x, y: y } }, { from: R, to: { x: R.x, y: y } }], false);
+    if (labD2 && !unknown) {
+      const x = L.x - 22;
+      over += figMeasure('d-d2', { x: x, y: T.y }, { x: x, y: B.y }, labD2,
+        [{ from: T, to: { x: x, y: T.y } }, { from: B, to: { x: x, y: B.y } }], true);
+    }
+    return figShell(key, name, art, over);
+  }
+  /* a slanted shape with all four sides equal, given by its base and its
+     height only: a rhombus too, but with no diagonal to be seen */
+  function figSlant(key) {
+    /* a base of 175 and a height of 105 (10 : 6), the slant chosen so the
+       side comes out the same length as the base */
+    const BL = { x: 15, y: 145 }, BR = { x: 190, y: 145 }, TL = { x: 155, y: 40 }, TR = { x: 330, y: 40 };
+    const F = { x: TL.x, y: BL.y };
+    const art =
+      '<polygon class="shape-fill" clip-path="url(#wipeFig' + key + ')" points="' + [BL, TL, TR, BR].map(pt).join(' ') + '" />' +
+      '<path class="shape-outline" d="M' + [BL, TL, TR, BR].map(p => fmt(p.x) + ' ' + fmt(p.y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
+    /* one tick across the middle of every side: four equal sides */
+    let over = '';
+    [[BL, TL], [TL, TR], [TR, BR], [BR, BL]].forEach(([a, b]) => {
+      const u = rhUnit(b, a), n = { x: -u.y, y: u.x }, C = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, t = 9;
+      const d = 'M' + fmt(C.x + n.x * t) + ' ' + fmt(C.y + n.y * t) + ' L' + fmt(C.x - n.x * t) + ' ' + fmt(C.y - n.y * t);
+      over += '<g class="eq-mark"><path class="halo" d="' + d + '" /><path class="ink" d="' + d + '" /></g>';
+    });
+    /* the height, dropped from the top-left corner onto the base */
+    const M = 11;
+    over += '<g class="d-group d-hgt">' +
+      figLine('d-height', TL, F) +
+      '<path class="d-mark" d="M' + fmt(F.x) + ' ' + fmt(F.y - M) + ' H' + fmt(F.x + M) + ' V' + fmt(F.y) + '" />' +
+      '<text class="d-label" x="' + fmt(F.x + 10) + '" y="' + fmt((TL.y + F.y) / 2) + '" font-size="17" text-anchor="start" dominant-baseline="middle">6 cm</text>' +
+    '</g>';
+    /* the base, measured under the shape */
+    const y = BL.y + 20;
+    over += figMeasure('d-d1', { x: BL.x, y: y }, { x: BR.x, y: y }, '10 cm',
+      [{ from: BL, to: { x: BL.x, y: y } }, { from: BR, to: { x: BR.x, y: y } }], false);
+    return figShell(key, '', art, over, 172);
+  }
+
+  const figEl = (key, row) => (row || figRow).querySelector('.fig[data-fig="' + key + '"]');
+
+  /* the figures are put up in place of the rhombus and draw themselves,
+     one a beat after the other; then each takes its marks */
+  async function showFigures(html, row, host) {
+    row = row || figRow;
+    host = host || rhomPractice;
+    row.innerHTML = html;
+    row.classList.remove('off');
+    row.classList.toggle('single', row.children.length === 1);
+    host.classList.add('on');
+    await wait(160);
+    const figs = Array.from(row.querySelectorAll('.fig'));
+    await Promise.all(figs.map(async (f, i) => { await wait(i * 260); await revealShape(f); }));
+    await wait(300);
+    for (const f of figs) await showFigMarks(f);
+  }
+  async function showFigMarks(f) {
+    const d1 = f.querySelector('.rd-d1'), d2 = f.querySelector('.rd-d2');
+    if (d1) await growLine(d1, 520);
+    if (d2) await growLine(d2, 440);
+    const mark = f.querySelector('.rmark');
+    if (mark) mark.classList.add('on');
+    const q = f.querySelector('.lbl-q');
+    if (q) { q.classList.add('on'); sfx('click', .35); }
+    const hgt = f.querySelector('.d-hgt');
+    if (hgt) {
+      await growLine(hgt.querySelector('.d-height'), 520);
+      hgt.classList.add('on');
+      sfx('click', .35);
+      await wait(REDUCED ? 120 : 360);
+    }
+    f.querySelectorAll('.eq-mark, .par-mark').forEach(m => m.classList.add('on'));
+    for (const g of Array.from(f.querySelectorAll('.d-group:not(.d-hgt)'))) await showDimGroup(g);
+  }
+
+  /* the old figures leave */
+  async function clearFigures(row) {
+    row = row || figRow;
+    if (!row.children.length) return;
+    row.classList.add('off');
+    await wait(450);
+    row.innerHTML = '';
+  }
+
+  /* Tap the right figure -- or the name under it, which is part of it. The
+     wrong one is shaken and steps back; the right one goes green. A skip
+     taps it. */
+  function askFigures(answer, row) {
+    return new Promise(resolve => {
+      const figs = Array.from((row || figRow).querySelectorAll('.fig'));
+      let over = false;
+      const finish = (fig, auto) => {
+        if (over) return;
+        over = true;
+        skipFills.delete(fill);
+        sceneWaiters.delete(teardown);
+        lockInput(true);
+        figs.forEach(f => { f.removeEventListener('click', onTap); f.classList.remove('pick'); });
+        feedbackGen++;
+        fig.classList.add('correct');
+        if (!auto) {
+          sfx('correct', .7);
+          const chip = fig.querySelector('.fig-chip');
+          if (chip) burst(chip);
+          swiftee.play('happy', 1);
+        }
+        resolve();
+      };
+      const onTap = e => {
+        const fig = e.currentTarget;
+        if (!interactive || fig.classList.contains('spent')) return;
+        if (fig.dataset.fig === answer) { finish(fig, false); return; }
+        sfx('wrong', .6);
+        feedback(FEEDBACK.wrong);
+        swiftee.play('confused', 1);
+        fig.classList.add('reject');
+        setTimeout(() => { fig.classList.remove('reject'); fig.classList.add('spent'); }, 440);
+      };
+      const fill = () => finish(figs.find(f => f.dataset.fig === answer), true);
+      const teardown = () => {
+        sceneWaiters.delete(teardown);
+        over = true;
+        skipFills.delete(fill);
+        figs.forEach(f => f.removeEventListener('click', onTap));
+      };
+      figs.forEach(f => { f.classList.add('pick'); f.addEventListener('click', onTap); });
+      sceneWaiters.add(teardown);
+      skipFills.add(fill);
+      lockInput(false);
+    });
+  }
+
+  /* the working under a figure types itself out */
+  async function figWorking(key, text, row) {
+    const f = figEl(key, row);
+    const work = f.querySelector('.fig-work');
+    work.querySelector('.type-ghost').textContent = text;
+    work.classList.add('show');
+    sfx('click', .3);
+    await wait(REDUCED ? 120 : 380);
+    await typer(work.querySelector('.txt'), work.querySelector('.caret'), AREA_MS)(text);
+  }
+
+  /* the measured rhombus, put back if a replay has taken it away: tilted,
+     both diagonals, the right angle, and the two lengths on it */
+  function ensureMeasured() {
+    const rebuilt = ensureTilted();
+    if (rebuilt) {
+      areaEl('rd-d2').style.opacity = 1;
+      ['lbl-d2', 'mark-up'].forEach(c => areaEl(c).classList.add('on'));
+    }
+    if (!rhomArea.querySelector('.d-group')) {
+      buildRhomDims();
+      rhomArea.querySelectorAll('.d-group').forEach(g => {
+        g.querySelectorAll('.d-ext').forEach(l => { l.style.opacity = .7; });
+        g.querySelector('.d-arrow').style.opacity = 1;
+        g.classList.add('on');
+      });
+    }
+    return rebuilt;
+  }
+
+  /* the common opening of a practice question: the heading clears, and
+     whatever the question before left is tidied */
+  function practiceOpen(again) {
+    lockInput(true);
+    sceneStart(again);
+    promptGhost.textContent = longest(PRACTICE_GHOST);
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    rhom.classList.remove('numbers');
+    rhomQuiz.classList.remove('show');
+    rhomChips3.forEach(c => { rhomTray3.appendChild(c); c.disabled = false; });
+    return runToken;
+  }
+
+  /* 1. the area of the measured rhombus */
+  async function rhombusPractice1() {
+    const mine = practiceOpen(rhombusPractice1);
+    rhomPractice.classList.remove('on');
+    rhomShape.classList.remove('away', 'lit-d1', 'lit-d2', 'lit-quad');
+    ensureMeasured();
+    if (!boardMascot.classList.contains('in')) boardMascot.classList.add('in');
+    await wait(460);
+
+    /* the shape comes back to the middle, the formula gone */
+    await layoutWide(rhom, rhomSvg, false);
+    await wait(300);
+
+    const chips = practiceChips([{ v: '96', t: '96 sq. cm' }, { v: '192', t: '192 sq. cm' }, { v: '28', t: '28 sq. cm' }]);
+    await dealChips(chips);
+    await wait(200);
+    await heading(PRACTICE.area);
+    await askChips(chips, '96');
+    if (mine !== runToken) throw CANCELLED;
+    onRhomWord('rhom');
+    await heading(PRACTICE.areaOk);
+    await wait(1800);
+    await showNext();
+    await rhombusPractice2();
+  }
+
+  /* 2. a rhombus of 240 sq. cm with one diagonal known */
+  async function rhombusPractice2() {
+    const mine = practiceOpen(rhombusPractice2);
+    practiceTray.classList.add('off');
+    if (!boardMascot.classList.contains('in')) boardMascot.classList.add('in');
+
+    /* the measured rhombus gives way to the question's own */
+    rhomShape.classList.add('away');
+    await clearFigures();
+    await wait(300);
+    await showFigures(figRhombus('a', '', 260, 150, '30 cm', '', true));
+    await wait(300);
+
+    const chips = practiceChips([{ v: '8', t: '8 cm' }, { v: '16', t: '16 cm' }, { v: '32', t: '32 cm' }]);
+    await dealChips(chips);
+    await wait(200);
+    await heading(PRACTICE.find);
+    await askChips(chips, '16');
+    if (mine !== runToken) throw CANCELLED;
+    /* the answer: the dashed diagonal becomes solid and takes its length */
+    const f = figEl('a');
+    f.querySelector('.rd-d2').classList.remove('dashed');
+    f.querySelector('.lbl-q').textContent = '16 cm';
+    await heading(PRACTICE.findOk);
+    await wait(1800);
+    await showNext();
+    await rhombusPractice3();
+  }
+
+  /* 3. two rhombi: which has the larger area? */
+  async function rhombusPractice3() {
+    const mine = practiceOpen(rhombusPractice3);
+    practiceTray.classList.add('off');
+    practiceSay.classList.remove('show');
+    rhomShape.classList.add('away');
+    /* Swiftee is at the heading for the question (a replay may find it
+       still down by the banner) */
+    if (practiceMascot.classList.contains('in')) practiceMascot.classList.remove('in');
+    if (!boardMascot.classList.contains('in')) boardMascot.classList.add('in');
+
+    await clearFigures();
+    await wait(300);
+    await showFigures(
+      figRhombus('I',  'Rhombus I',  260, 108, '24 cm', '10 cm', false) +
+      figRhombus('II', 'Rhombus II', 173, 195, '16 cm', '18 cm', false));
+    await wait(200);
+    await dealChips(Array.from(figRow.querySelectorAll('.fig-chip')));
+    await wait(200);
+    await heading(PRACTICE.larger);
+    await askFigures('II');
+    if (mine !== runToken) throw CANCELLED;
+    feedback(FEEDBACK.right);
+    await wait(700);
+
+    /* the working under each: the longer diagonal did not decide it */
+    await figWorking('I', '½ × 24 × 10 = 120 sq. cm');
+    await wait(400);
+    await figWorking('II', '½ × 16 × 18 = 144 sq. cm');
+    await wait(700);
+
+    /* Swiftee hops down beside the banner and says why */
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    practiceSay.classList.add('show');
+    await hopBetween(boardMascot, practiceMascot);
+    await wait(240);
+    swiftee.hold('talking');
+    await typeSegments(practiceTxt, practiceCaret, PRACTICE.largerLine, TYPE_MS, 320, null);
+    swiftee.release();
+    swiftee.play('proud', 1);
+    skyConfetti(90, 2800);
+    sfx('confetti', .7);
+    await wait(2200);
+    await showNext();
+    await rhombusPractice4();
+  }
+
+  /* 4. a shape with a base and a height, and no diagonal in sight */
+  async function rhombusPractice4() {
+    const mine = practiceOpen(rhombusPractice4);
+    rhomShape.classList.add('away');
+
+    /* Swiftee comes back up to the heading, and the banner goes */
+    if (practiceMascot.classList.contains('in')) {
+      await hopBetween(practiceMascot, boardMascot);
+    } else if (!boardMascot.classList.contains('in')) {
+      boardMascot.classList.add('in');
+    }
+    practiceSay.classList.remove('show');
+    practiceTxt.textContent = '';
+    await clearFigures();
+    await wait(300);
+    await showFigures(figSlant('s'));
+    await wait(300);
+
+    const chips = practiceChips([{ v: 'diag', t: '½ × (product of diagonals)', formula: true }, { v: 'bh', t: 'base × height', formula: true }]);
+    await dealChips(chips);
+    await wait(200);
+    await heading(PRACTICE.which);
+    await askChips(chips, 'bh');
+    if (mine !== runToken) throw CANCELLED;
+    await heading(PRACTICE.whichOk);
+    swiftee.play('proud', 1);
+    skyConfetti(120, 3200);
+    sfx('confetti', .8);
+    await wait(2400);
+    await showNext();
+    await rhombusAside();
+  }
+
+  /* the board goes, and Swiftee looks ahead from its bubble. Its own scene,
+     so Replay can re-enter it. */
+  const RHOM_ASIDE = [
+    'We now know how to find the area of a rhombus.',
+    'Let us now try finding the area of another special quadrilateral.'
+  ];
+  async function rhombusAside() {
+    await boardAside(RHOM_ASIDE, rhombusAside);
+    await trapSection();
+  }
+
+  /* ---------- section 8: the trapezium ----------
+   * The third special quadrilateral, in two levels.
+   *
+   * Level 1. Swiftee's aside is over: the bird drops out of the frame, the
+   * board comes back blank and a trapezium draws itself in the middle of it.
+   * "This is a [ v ]" appears under it with a drop-down -- Kite,
+   * Parallelogram, Trapezium -- and Swiftee jumps in beside the sentence and
+   * points the learner at the arrow, as it did for the quadrilateral. Each
+   * choice is answered in a banner under the sentence, red or green, and
+   * either way the shape takes its "parallel" marks, so the answer can be
+   * checked against the shape itself.
+   *
+   * Level 2. The sentence goes and Swiftee ducks behind the board; the
+   * trapezium fades and six cards take its place, three of them trapeziums
+   * (isosceles, scalene and right-angled) and three not. Swiftee jumps up to
+   * the heading, says "Select all the trapeziums.", and ducks back down,
+   * taking the line with it. Each tap is answered at once: a trapezium
+   * locks green with confetti out of the card, anything else shakes red and
+   * steps back for good. All three found: confetti and Next. Then the other three leave, the trapeziums glide
+   * into one row and each takes a slot under it; the three names appear
+   * below, and Swiftee jumps up to say "Drag each block to the matching
+   * shape." -- the warm-up's line, with the warm-up's voice-over. Each name
+   * is dragged (or tapped, then its slot tapped) onto its shape. */
+  const trap       = document.getElementById('trap');
+  const trapShape  = document.getElementById('trapShape');
+  const trapSvg    = document.getElementById('trapSvg');
+  const trapArt    = trapSvg.querySelector('.art');
+  const trapMarksG = document.getElementById('trapMarks');
+  const trapCards  = document.getElementById('trapCards');
+  const cardGrid   = document.getElementById('cardGrid');
+  const trapQuiz   = document.getElementById('trapQuiz');
+  const trapDD     = document.getElementById('trapDD');
+  const trapMascot = document.getElementById('trapMascot');
+  const trapNote   = document.getElementById('trapNote');
+  const trapNoteTxt   = trapNote.querySelector('.txt');
+  const trapNoteCaret = trapNote.querySelector('.caret');
+  const trapTray   = document.getElementById('trapTray');
+  const trapChips  = Array.from(trapTray.querySelectorAll('.chip'));
+
+  const TRAP = {
+    tap:    'Tap here!',
+    answer: 'trapezium',
+    notes: {
+      kite:          'Almost! A kite has two pairs of equal sides next to each other. Check the shape carefully.',
+      parallelogram: 'Almost! A parallelogram has two pairs of parallel sides. Check the shape carefully.',
+      trapezium:     'Correct! Look at the shape \u2014 it has only one pair of parallel sides.'
+    },
+    select: 'Select all the trapeziums.',
+    match:  'Drag each block to the matching shape.'
+  };
+  const TRAP_GHOST = [TRAP.select, TRAP.match, FEEDBACK.done];
+
+  /* the banner's ghost holds its longest line from the first frame */
+  trapNote.querySelector('.type-ghost').textContent =
+    longest([TRAP.tap].concat(Object.keys(TRAP.notes).map(k => TRAP.notes[k])));
+  const trapSay    = typer(trapNoteTxt, trapNoteCaret, 45);
+  const trapQuizDD = ddController(trapDD);
+
+  /* the trapezium's corners, clockwise from the top left, in the svg's units */
+  const TRAP_PTS = [{ x: 62, y: 8 }, { x: 358, y: 8 }, { x: 412, y: 252 }, { x: 8, y: 252 }];
+
+  /* the "parallel" mark: two chevrons astride the middle of a side, pointing
+     the way the side runs, with a halo so they read over the outline */
+  function parMark(a, b) {
+    const u = rhUnit(b, a), n = { x: -u.y, y: u.x };
+    const M = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const s = 8;
+    let d = '';
+    [-6, 6].forEach(off => {
+      const C = { x: M.x + u.x * off, y: M.y + u.y * off };
+      d += 'M' + fmt(C.x - u.x * s + n.x * s) + ' ' + fmt(C.y - u.y * s + n.y * s) +
+           ' L' + fmt(C.x) + ' ' + fmt(C.y) +
+           ' L' + fmt(C.x - u.x * s - n.x * s) + ' ' + fmt(C.y - u.y * s - n.y * s);
+    });
+    return '<g class="par-mark"><path class="halo" d="' + d + '" /><path class="ink" d="' + d + '" /></g>';
+  }
+
+  function buildTrap() {
+    const P = TRAP_PTS;
+    trapArt.innerHTML =
+      '<polygon class="shape-fill" clip-path="url(#wipeTrap)" points="' + P.map(pt).join(' ') + '" />' +
+      '<path class="shape-outline" d="M' + P.map(p => fmt(p.x) + ' ' + fmt(p.y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
+    trapMarksG.innerHTML = parMark(P[0], P[1]) + parMark(P[3], P[2]);
+    trapShape.classList.remove('marked', 'away');
+  }
+
+  /* Swiftee's answer to a choice, in the banner under the sentence -- green
+     for the right name, red for a wrong one. The shape takes its parallel
+     marks on the first answer, whichever it is, so the learner can check
+     the answer against the shape itself. */
+  function trapAnswer(v) {
+    trapNote.classList.remove('ok', 'bad');
+    trapNote.classList.add(v === TRAP.answer ? 'ok' : 'bad');
+    if (!trapShape.classList.contains('marked')) {
+      trapShape.classList.add('marked');
+      sfx('click', .35);
+    }
+    return trapSay(TRAP.notes[v] || TRAP.notes.parallelogram);
+  }
+
+  /* the names go home between scenes: a replay may find them docked in a
+     card that the teardown has just taken away */
+  function homeTrapChips() {
+    trapChips.forEach(c => { trapTray.appendChild(c); c.disabled = false; });
+  }
+
+  /* Swiftee says a line from its place by the heading, with a voice-over
+     when there is one for it: the line types across the clip, as a briefing
+     does, and falls back to the usual pace when the clip will not play. */
+  async function voiced(text, vo) {
+    feedbackGen++;
+    let length = 0, playing = false;
+    if (vo && !fastForward) {
+      length = await durationOf(vo);
+      try { vo.currentTime = 0; await vo.play(); playing = true; } catch (e) { /* no sound, then */ }
+    }
+    swiftee.hold('talking');
+    await typewrite(text, (playing && length > .5) ? length * 1000 * .82 : text.length * TYPE_MS);
+    if (playing && !vo.ended) {
+      await waitOrSkip(done => {
+        const end = () => { vo.removeEventListener('ended', end); done(); };
+        vo.addEventListener('ended', end);
+        setTimeout(end, 12000);            /* never hang on a stalled clip */
+      });
+    }
+    swiftee.release();
+  }
+
+  /* ---- level 1: name the shape ---- */
+  async function trapSection() {
+    lockInput(true);
+    sceneStart(trapSection);
+    const mine = runToken;
+    homeTrapChips();
+    /* the bird is behind the board for the whole of level 1 (it jumps in
+       beside the sentence, not the heading), and the drop-down is empty: a
+       Back into this scene may find both otherwise */
+    boardMascot.classList.remove('in');
+    trapDD.querySelector('.dd-value').textContent = '';
+
+    /* 1. the aside ends: the bubble pops away and Swiftee drops out of the
+          frame, as it did before the board first arrived */
+    bubble.classList.add('out');
+    bubble.classList.remove('show');
+    await wait(300);
+    await introExit();
+    intro.classList.remove('on', 'aside');
+
+    /* the board comes back blank: the rhombus scenes are cleared off it
+       while it is still invisible, and the heading's ghost takes the longest
+       line of these scenes while there is nothing on the board to move */
+    board.classList.add('sec6');
+    promptGhost.textContent = longest(TRAP_GHOST);
+    buildTrap();
+    await wait(200);
+    await showBoard();
+    await wait(300);
+
+    /* 2. the trapezium: outline first, then the colour */
+    trap.classList.add('on');
+    trap.setAttribute('aria-hidden', 'false');
+    await wait(120);
+    await revealShape(trapShape);
+    await wait(380);
+
+    /* 3. "This is a ..." with a drop-down; Swiftee jumps in beside it and
+          points the learner at the arrow */
+    trapNote.classList.remove('ok', 'bad');
+    trapQuiz.classList.add('show');
+    await wait(REDUCED ? 200 : 440);
+    await mascotJumpIn(trapMascot);
+    await wait(200);
+    trapDD.classList.add('hint');
+    swiftee.hold('talking');
+    await trapSay(TRAP.tap);
+    swiftee.release();
+    lockInput(false);
+    await trapQuizDD.ask(v => v === TRAP.answer, trapAnswer, trapAnswer);
+    lockInput(true);
+    /* a replay lets go of the wait above too, having already retired this
+       run of the scene: unwind here rather than carry on into the fresh one */
+    if (mine !== runToken) throw CANCELLED;
+    await wait(2600);
+
+    /* 4. named: Next */
+    await showNext();
+    await trapSelect();
+  }
+
+  /* ---- the cards ----
+   * Each is a rounded card with one shape outlined on it, in a 320 x 200
+   * box; the shapes are drawn in a 200 x 130 space and set in the middle.
+   * `trap` says whether the shape is a trapezium -- exactly one pair of
+   * parallel sides -- and the three that are not have none. */
+  const CARDS = {
+    iso:     { trap: true,  pts: '50,25 150,25 175,105 25,105' },
+    q1:      { trap: false, pts: '30,20 110,45 170,105 30,105' },
+    scalene: { trap: true,  pts: '40,25 140,25 180,105 20,105' },
+    q2:      { trap: false, pts: '45,30 130,20 165,105 25,95' },
+    right:   { trap: true,  pts: '25,25 130,25 175,105 25,105' },
+    q3:      { trap: false, pts: '70,20 150,40 175,105 25,105' }
+  };
+  const CARD_ORDER  = ['iso', 'q1', 'scalene', 'q2', 'right', 'q3'];   /* as dealt: left to right, top to bottom */
+  const MATCH_ORDER = ['iso', 'right', 'scalene'];                     /* as lined up for the names */
+
+  const cardsNow   = () => Array.from(cardGrid.querySelectorAll('.card'));
+  const isTrapCard = c => c.dataset.trap === '1';
+
+  function buildCards(keys) {
+    cardGrid.innerHTML = keys.map((k, i) => {
+      const c = CARDS[k];
+      return '<div class="card" data-kind="' + k + '" data-trap="' + (c.trap ? 1 : 0) + '" role="button" tabindex="-1" ' +
+                  'aria-pressed="false" aria-label="Shape ' + (i + 1) + '">' +
+        '<svg class="card-box" viewBox="0 0 320 200" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
+          '<rect class="card-bg" x="2" y="2" width="316" height="196" rx="30" />' +
+          '<polygon class="card-shape" points="' + c.pts + '" transform="translate(60 35)" />' +
+        '</svg>' +
+        (c.trap ? '<div class="slot card-slot" data-accept="' + k + '" aria-label="Name of this trapezium"></div>' : '') +
+      '</div>';
+    }).join('');
+    return cardsNow();
+  }
+
+  /* Tap a card, and it is answered at once: a trapezium locks green with
+     confetti out of it; anything else shakes red and steps back, and takes
+     no more taps. Resolves once all three trapeziums are found. A skip
+     finds them itself; a replay lets go. */
+  function selectCards() {
+    return waitForScene(resolve => {
+      const cards = cardsNow();
+      let over = false;
+
+      const onTap = e => {
+        if (!interactive || over) return;
+        const c = e.currentTarget;
+        if (c.classList.contains('correct') || c.classList.contains('spent')) return;
+
+        /* ---- not a trapezium: red shake, then it steps back for good ---- */
+        if (!isTrapCard(c)) {
+          sfx('wrong');
+          swiftee.play('confused', 1);
+          c.classList.add('reject');
+          c.setAttribute('aria-disabled', 'true');
+          setTimeout(() => { c.classList.remove('reject'); c.classList.add('spent'); }, 440);
+          return;
+        }
+
+        /* ---- a trapezium: it locks green, confetti out of the card ---- */
+        c.classList.add('correct');
+        c.setAttribute('aria-pressed', 'true');
+        sfx('correct', .85);
+        sfx('confetti', .5);
+        swiftee.play('happy', 1);
+        requestAnimationFrame(() => burst(c.querySelector('.card-box')));
+        if (cards.filter(isTrapCard).every(k => k.classList.contains('correct'))) finish(false);
+      };
+
+      const cleanup = () => {
+        cards.forEach(c => { c.removeEventListener('click', onTap); c.classList.remove('pick'); });
+        skipFills.delete(fill);
+        sceneWaiters.delete(teardown);
+      };
+      const finish = auto => {
+        if (over) return;
+        over = true;
+        cleanup();
+        lockInput(true);
+        cards.forEach(c => {
+          if (!isTrapCard(c)) return;
+          c.classList.add('correct');
+          c.setAttribute('aria-pressed', 'true');
+        });
+        if (!auto) {
+          swiftee.play('proud', 1);
+          skyConfetti(90, 2800);
+          sfx('confetti', .7);
+        }
+        resolve();
+      };
+      const fill = () => finish(true);
+      /* a replay retires the scene while the question is open: the cards go
+         with it, so there is only the bookkeeping to undo */
+      const teardown = () => { over = true; cleanup(); };
+
+      cards.forEach(c => { c.classList.add('pick'); c.addEventListener('click', onTap); });
+      sceneWaiters.add(teardown);
+      skipFills.add(fill);
+      lockInput(false);
+    });
+  }
+
+  /* ---- level 2, first half: pick the trapeziums out ---- */
+  async function trapSelect() {
+    lockInput(true);
+    sceneStart(trapSelect);
+    const mine = runToken;
+    homeTrapChips();
+    boardMascot.classList.remove('in');    /* it jumps in from behind the board below */
+    promptGhost.textContent = longest(TRAP_GHOST);
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+
+    /* 1. the sentence goes and Swiftee ducks behind the board; the
+          trapezium fades while it is mid-air */
+    trapQuiz.classList.add('off');
+    const out = trapMascot.classList.contains('in') ? mascotJumpOut(trapMascot) : wait(0);
+    await wait(260);
+    trapShape.classList.add('away');
+    await out;
+    trapQuiz.classList.remove('show', 'off');
+    trap.classList.add('lvl2');            /* the sentence's row gives up its room */
+    await wait(REDUCED ? 200 : 480);
+
+    /* 2. the six cards, dealt one after another */
+    const cards = buildCards(CARD_ORDER);
+    cardGrid.classList.remove('row');
+    trapCards.classList.remove('match');
+    trapCards.classList.add('on');
+    await wait(120);
+    for (const c of cards) {
+      c.classList.add('reveal');
+      sfx('click', .22);
+      await wait(130);
+    }
+    await wait(500);
+
+    /* 3. Swiftee jumps up from behind the board, says what to do, and
+          ducks back down to leave the board to the learner -- taking the
+          line with it, so the board is the cards and nothing else */
+    await mascotJumpIn();
+    await wait(240);
+    await heading(TRAP.select);
+    await wait(900);
+    const down = mascotJumpOut();
+    await wait(260);
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    await down;
+    await wait(200);
+
+    /* 4. the learner picks the trapeziums out, each tap answered at once */
+    await selectCards();
+    if (mine !== runToken) throw CANCELLED;
+    await wait(2000);
+
+    /* 5. Next */
+    await showNext();
+    await trapMatch();
+  }
+
+  /* the three trapeziums, lined up: put back if a replay has taken the
+     cards down. True if they had to be rebuilt. */
+  function ensureCards() {
+    if (cardGrid.children.length) return false;
+    buildCards(MATCH_ORDER).forEach(c => c.classList.add('reveal'));
+    cardGrid.classList.add('row');
+    trapCards.classList.add('on', 'match');
+    trapShape.classList.add('away');
+    return true;
+  }
+
+  /* The cards that stay glide from where they were to their new places:
+     measured before and after the change, then each is animated from the
+     one to the other. A card keeps its proportions, so a uniform scale is
+     exact -- the box is measured by its drawn rounded rectangle, which the
+     svg centres, so the svg's own centre is the right origin. */
+  async function flipCards(cards, mutate) {
+    const boxes = cards.map(c => c.querySelector('.card-box'));
+    const bgs   = cards.map(c => c.querySelector('.card-bg'));
+    const before = bgs.map(b => b.getBoundingClientRect());
+    mutate();
+    if (REDUCED) return wait(120);
+    const after = bgs.map(b => b.getBoundingClientRect());
+    const anims = [];
+    boxes.forEach((box, i) => {
+      const a = before[i], b = after[i];
+      if (!a.width || !b.width) return;
+      const dx = (a.left + a.width / 2) - (b.left + b.width / 2);
+      const dy = (a.top + a.height / 2) - (b.top + b.height / 2);
+      const s  = a.width / b.width;
+      anims.push(box.animate(
+        [{ transform: 'translate(' + fmt(dx) + 'px, ' + fmt(dy) + 'px) scale(' + s + ')' }, { transform: 'none' }],
+        { duration: 860, delay: i * 90, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'backwards' }
+      ));
+    });
+    await Promise.all(anims.map(a => a.finished.catch(() => {})));
+  }
+
+  /* Drag a chip onto a slot -- or tap the chip, then the slot. `fits` says
+     whether a chip belongs in a slot; a wrong drop shakes both and the chip
+     stays where it was; a right one docks, and `onDock` is told. Resolves
+     once every slot is filled. A skip fills them; a replay lets go. */
+  function dragMatch(chips, slots, fits, onDock) {
+    return waitForScene(resolve => {
+      let mdrag = null, mpicked = null, over = false;
+      const free = () => slots.filter(s => !s.classList.contains('filled'));
+      const slotAt = (x, y) => free().find(s => {
+        const r = s.getBoundingClientRect();
+        return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+      }) || null;
+      const clearOver = () => slots.forEach(s => s.classList.remove('over'));
+      const unpick = () => { if (mpicked) mpicked.classList.remove('picked'); mpicked = null; };
+
+      const dockIn = (chip, slot, earned) => {
+        slot.appendChild(chip);
+        slot.classList.add('filled');
+        chip.classList.remove('picked', 'dragging');
+        chip.disabled = true;
+        slot.classList.add('correct');
+        setTimeout(() => slot.classList.remove('correct'), 520);
+        if (onDock) onDock(chip, slot);
+        sfx('correct', earned ? 1 : .55);
+        if (earned) {
+          swiftee.play('happy', 1);
+          sfx('confetti', .55);
+          requestAnimationFrame(() => burst(chip));
+        }
+      };
+      const tryPlace = (chip, slot) => {
+        if (!slot || slot.classList.contains('filled')) return;
+        if (!fits(chip, slot)) {
+          sfx('wrong');
+          feedback(FEEDBACK.wrong);
+          swiftee.play('confused', 1);
+          slot.classList.add('reject');
+          chip.classList.add('reject');
+          setTimeout(() => { slot.classList.remove('reject'); chip.classList.remove('reject'); }, 430);
+          return;
+        }
+        dockIn(chip, slot, true);
+        if (!free().length) finish(false);
+        else feedback(FEEDBACK.right);
+      };
+
+      const onDownM = e => {
+        if (!interactive || over) return;
+        const chip = e.currentTarget;
+        if (chip.disabled) return;
+        if (e.button !== undefined && e.button !== 0) return;
+        const rect = chip.getBoundingClientRect();
+        const ghost = chip.cloneNode(true);
+        ghost.classList.add('ghost');
+        Object.assign(ghost.style, {
+          position: 'fixed', left: rect.left + 'px', top: rect.top + 'px',
+          width: rect.width + 'px', height: rect.height + 'px',
+          margin: 0, pointerEvents: 'none', zIndex: 999, transform: 'scale(1.05)'
+        });
+        document.body.appendChild(ghost);
+        chip.classList.add('dragging');
+        unpick();
+        sfx('click', .5);
+        mdrag = { el: chip, ghost: ghost, offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top, start: { x: e.clientX, y: e.clientY } };
+        window.addEventListener('pointermove', onMoveM);
+        window.addEventListener('pointerup', onUpM);
+        window.addEventListener('pointercancel', onUpM);
+        e.preventDefault();
+      };
+      const onMoveM = e => {
+        if (!mdrag) return;
+        mdrag.ghost.style.left = (e.clientX - mdrag.offsetX) + 'px';
+        mdrag.ghost.style.top  = (e.clientY - mdrag.offsetY) + 'px';
+        clearOver();
+        const slot = slotAt(e.clientX, e.clientY);
+        if (slot) slot.classList.add('over');
+      };
+      const onUpM = e => {
+        if (!mdrag) return;
+        window.removeEventListener('pointermove', onMoveM);
+        window.removeEventListener('pointerup', onUpM);
+        window.removeEventListener('pointercancel', onUpM);
+        const { el, ghost, start } = mdrag;
+        mdrag = null;
+        ghost.remove();
+        el.classList.remove('dragging');
+        clearOver();
+        const slot = slotAt(e.clientX, e.clientY);
+        if (slot) return tryPlace(el, slot);
+        /* a tap, not a drag: the chip waits for a slot to be tapped */
+        if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) {
+          mpicked = el;
+          el.classList.add('picked');
+        }
+      };
+      const onSlotTap = e => {
+        if (!interactive || !mpicked) return;
+        const chip = mpicked;
+        unpick();
+        tryPlace(chip, e.currentTarget);
+      };
+
+      const cleanup = () => {
+        chips.forEach(c => c.removeEventListener('pointerdown', onDownM));
+        slots.forEach(s => s.removeEventListener('click', onSlotTap));
+        window.removeEventListener('pointermove', onMoveM);
+        window.removeEventListener('pointerup', onUpM);
+        window.removeEventListener('pointercancel', onUpM);
+        if (mdrag) { mdrag.ghost.remove(); mdrag.el.classList.remove('dragging'); mdrag = null; }
+        clearOver();
+        unpick();
+        skipFills.delete(fill);
+        sceneWaiters.delete(teardown);
+      };
+      const finish = auto => {
+        if (over) return;
+        over = true;
+        cleanup();
+        lockInput(true);
+        resolve();
+      };
+      /* a skip: each name goes onto its own shape by itself */
+      const fill = () => {
+        if (over) return;
+        free().forEach(slot => {
+          const chip = chips.find(c => !c.disabled && fits(c, slot));
+          if (chip) dockIn(chip, slot, false);
+        });
+        finish(true);
+      };
+      /* a replay retires the scene while the drag is open */
+      const teardown = () => { over = true; cleanup(); };
+
+      chips.forEach(c => c.addEventListener('pointerdown', onDownM));
+      slots.forEach(s => s.addEventListener('click', onSlotTap));
+      sceneWaiters.add(teardown);
+      skipFills.add(fill);
+      lockInput(false);
+    });
+  }
+
+  /* ---- level 2, second half: name the three ---- */
+  async function trapMatch() {
+    lockInput(true);
+    sceneStart(trapMatch);
+    const mine = runToken;
+    homeTrapChips();
+    boardMascot.classList.remove('in');    /* it jumps in from behind the board below */
+    promptGhost.textContent = longest(TRAP_GHOST);
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    trap.classList.add('lvl2');
+
+    const rebuilt = ensureCards();
+    const traps  = cardsNow().filter(isTrapCard);
+    const others = cardsNow().filter(c => !isTrapCard(c));
+
+    if (!rebuilt) {
+      /* 1. the three that are not trapeziums leave */
+      await wait(300);
+      others.forEach(c => c.classList.add('gone'));
+      await wait(REDUCED ? 150 : 460);
+
+      /* 2. the trapeziums glide into one row, in the order the names will
+            be asked, and the green rings from the last question come off */
+      await flipCards(traps, () => {
+        others.forEach(c => { c.hidden = true; });
+        traps.forEach(c => {
+          c.classList.remove('correct');
+          c.style.order = String(MATCH_ORDER.indexOf(c.dataset.kind));
+        });
+        cardGrid.classList.add('row');
+        trapCards.classList.add('match');
+      });
+    }
+    await wait(260);
+
+    /* 3. a slot under each, left to right; then the three names, shuffled
+          so their order never mirrors the shapes' */
+    const slots = MATCH_ORDER.map(k => cardGrid.querySelector('.card[data-kind="' + k + '"] .card-slot'));
+    for (const s of slots) {
+      s.classList.add('reveal');
+      sfx('click', .3);
+      await wait(150);
+    }
+    await wait(300);
+    const deck = trapChips.slice();
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    deck.forEach(c => trapTray.appendChild(c));
+    trapTray.classList.add('show');
+    await wait(120);
+    await dealChips(deck);
+    await wait(300);
+
+    /* 4. Swiftee jumps up from behind the board and says what to do, with
+          the warm-up's voice-over for the same line */
+    await mascotJumpIn();
+    await wait(260);
+    await voiced(TRAP.match, ROUNDS[1].audio);
+
+    /* 5. the names go onto the shapes */
+    await dragMatch(deck, slots,
+      (chip, slot) => chip.dataset.kind === slot.dataset.accept,
+      (chip, slot) => slot.closest('.card').classList.add('named'));
+    if (mine !== runToken) throw CANCELLED;
+
+    /* 6. all three named: Well Done, and Next */
+    feedback(FEEDBACK.done);
+    swiftee.play('proud', 1);
+    skyConfetti(120, 3200);
+    sfx('confetti', .8);
+    await wait(2600);
+    await showNext();
+    await rtrapArea();
+  }
+
+  /* ---------- section 9: the area of a trapezium, three times ----------
+   * One continuous derivation -- no Next until the formula is in -- with
+   * Swiftee narrating every beat, from the heading first and then from
+   * beside the working. It is played three times, once for each kind of
+   * trapezium the learner has just named: right-angled (two copies make a
+   * rectangle), then scalene and isosceles (two copies make a
+   * parallelogram). The choreography is one piece of code; the kind only
+   * changes the corners and the words. Each kind has two entry points, so
+   * Replay and the jump menu can land on the rectangle as well as on the
+   * start.
+   *
+   *   1. the last drawing goes (or, the first time, the cards) and a
+   *      trapezium draws itself in the middle of the board; the
+   *      right-angled one has its two right angles marked: "Let us try to
+   *      find the area of this ... trapezium."
+   *   2. it slides to the left and its sides are named on arrows: a along
+   *      the top, b along the bottom, h up the left -- with the height
+   *      itself dotted in when the left side is slanted
+   *   3. a copy in sky blue appears over it, lifts, and turns half a circle
+   *      about the middle of the right-hand side -- a finger pushes it round
+   *      a curved arrow -- to land on the right, where the two make one
+   *      rectangle or parallelogram; the copy's sides are named too, b on
+   *      top and a below
+   *   4. the equal sides are shown equal: b and b glow green together, then
+   *      a and a
+   *   5. the two names along the top merge into one, a + b, and so do the
+   *      two along the bottom
+   *   6. the drawing moves to the left half of the board and Swiftee hops
+   *      down to the right half, beside the working: Total area = length ×
+   *      breadth (or base × height) = (a + b) × h, lighting what it names
+   *   7. the copy fades to a dashed outline -- the trapezium is exactly
+   *      half: Area of Trapezium = Half of total area = ½ × (a + b) × h
+   *   8. the copy goes, the trapezium comes back to the middle with a, b
+   *      and h and its parallel marks, and the rule is boxed: Area of
+   *      Trapezium = ½ × (sum of parallel sides) × height. Confetti, Next. */
+  const rtrap       = document.getElementById('rtrap');
+  const rtrapShape  = document.getElementById('rtrapShape');
+  const rtrapSvg    = document.getElementById('rtrapSvg');
+  const rtScene     = document.getElementById('rtScene');
+  const rtArt       = document.getElementById('rtArt');
+  const rtCopy      = document.getElementById('rtCopy');
+  const rtDims      = document.getElementById('rtDims');
+  const rtHl        = document.getElementById('rtHl');
+  const rtGuide     = document.getElementById('rtGuide');
+  const rtrapSay    = document.getElementById('rtrapSay');
+  const rtrapMascot = document.getElementById('rtrapMascot');
+  const rtrapText   = document.getElementById('rtrapText');
+  const rtrapLines  = document.getElementById('rtrapLines');
+
+  /* the geometry every kind shares, in the svg's units: the parallel sides
+     a (top) and b (bottom) and the height h. A kind is told by how far its
+     top side is set in from the left, x0: none for the right-angled
+     trapezium, whose left side stands square; half of b - a for the
+     isosceles, so both slants match; something else for the scalene. */
+  const RT_A = 200, RT_B = 300, RT_H = 160;
+  /* the middle of the viewBox, where the drawing is centred */
+  const RT_MID = 260;
+
+  function rtKind(key, name, x0, whole, dims) {
+    const P = { TL: { x: x0, y: 0 }, TR: { x: x0 + RT_A, y: 0 }, BR: { x: RT_B, y: RT_H }, BL: { x: 0, y: RT_H } };
+    /* the copy is the shape turned half a circle about M, the middle of the
+       right-hand side, which is also the middle of the whole the two make */
+    const M = { x: (P.TR.x + P.BR.x) / 2, y: RT_H / 2 };
+    const rot = p => ({ x: 2 * M.x - p.x, y: 2 * M.y - p.y });
+    const W = RT_A + RT_B;                            /* the whole's base */
+    const right = Math.max(P.TR.x, P.BR.x);          /* the trapezium's own right edge */
+    const shortName = name === 'Right-angled' ? name : name.toLowerCase();
+    return {
+      key: key, name: name, x0: x0, P: P, M: M, rot: rot, W: W, whole: whole,
+      /* where the drawing sits: alone, the trapezium is centred; with the
+         copy, the pair is */
+      home: RT_MID - right / 2,
+      pair: RT_MID - (x0 + W) / 2,
+      say: {
+        here:  'Let us try to find the area of this ' + name + ' trapezium.',
+        sides: 'Its parallel sides are a and b, and its height is h.',
+        copy:  'Let us take a copy of it and rotate it.',
+        made:  'The two trapeziums fit together to make a ' + whole + '!',
+        eqB:   'Look! Side b of the copy is equal to side b.',
+        eqA:   'And side a of the copy is equal to side a.',
+        sum:   whole === 'rectangle' ? 'So the rectangle is a + b long and h wide.'
+                                     : 'So the parallelogram has base a + b and height h.',
+        /* from beside the working */
+        area:  'The area of the whole ' + whole + ' is:',
+        half:  'Our trapezium is exactly half of this ' + whole + '.',
+        so:    'So, the area of the trapezium is:',
+        rule:  'This works for every trapezium!'
+      },
+      lines: {
+        total:  [{ t: 'Total area = ' }, { t: dims[0], w: 'ab' }, { t: ' × ' }, { t: dims[1], w: 'h' }],
+        total2: [{ t: '= ' }, { t: '(a + b)', w: 'ab' }, { t: ' × ' }, { t: 'h', w: 'h' }],
+        half:   [{ t: 'Area of ' }, { t: 'Trapezium', w: 'trap' }, { t: ' = Half of total area' }],
+        half2:  [{ t: '= ½ × ' }, { t: '(a + b)', w: 'ab' }, { t: ' × ' }, { t: 'h', w: 'h' }],
+        /* the last two run to two lines by design -- the name, then the
+           formula under it -- so they never break mid-formula in the column */
+        final:  [{ t: 'Area of ' }, { t: name + ' Trapezium', w: 'trap' }, { t: String.fromCharCode(10) + '= ½ × (a + b) × h' }],
+        rule:   [{ t: 'Area of Trapezium' + String.fromCharCode(10) + '= ½ × ' }, { t: '(sum of parallel sides)', w: 'ab' }, { t: ' × ' }, { t: 'height', w: 'h' }]
+      },
+      shortName: shortName
+    };
+  }
+  const RT_KINDS = {
+    right:   rtKind('right',   'Right-angled', 0,                    'rectangle',     ['length', 'breadth']),
+    scalene: rtKind('scalene', 'Scalene',      70,                   'parallelogram', ['base', 'height']),
+    iso:     rtKind('iso',     'Isosceles',    (RT_B - RT_A) / 2,    'parallelogram', ['base', 'height'])
+  };
+  const rtHeadLines = k => [k.say.here, k.say.sides, k.say.copy, k.say.made, k.say.eqB, k.say.eqA, k.say.sum];
+  const rtSayLines  = k => [k.say.area, k.say.half, k.say.so, k.say.rule];
+
+  /* the kind on the board right now, and where its drawing sits */
+  let rk = RT_KINDS.right;
+  let rtX = rk.home;
+
+  /* the say line's ghost holds the longest line of any kind from the first
+     frame, so the row is one size for all three */
+  rtrapText.querySelector('.type-ghost').textContent =
+    longest(Object.keys(RT_KINDS).reduce((all, k) => all.concat(rtSayLines(RT_KINDS[k])), []));
+  const rtSay = typer(rtrapText.querySelector('.txt'), rtrapText.querySelector('.caret'), 45);
+
+  /* the finger: the rhombus hint's, so the two are one drawing */
+  const HAND_D = rhomHint.querySelector('path').getAttribute('d');
+
+  const rtDim  = cls => rtDims.querySelector('.' + cls);
+  const rtLine = (cls, a, b) => '<line class="' + cls + '" x1="' + fmt(a.x) + '" y1="' + fmt(a.y) + '" x2="' + fmt(b.x) + '" y2="' + fmt(b.y) + '" />';
+
+  /* a two-headed arrow from a to b, with its letter set at (lx, ly): the
+     parallelogram's dimension language, so the same classes style it.
+     `extra` is anything else the group carries, drawn after the arrow. */
+  function rtArrow(cls, a, b, label, lx, ly, anchor, extra) {
+    const u = rhUnit(b, a), HEAD = 10;
+    const head = (tip, d) => {
+      const n = { x: -d.y, y: d.x };
+      return '<path class="d-head" d="M' + fmt(tip.x - d.x * HEAD + n.x * HEAD * .65) + ' ' + fmt(tip.y - d.y * HEAD + n.y * HEAD * .65) +
+        ' L' + fmt(tip.x) + ' ' + fmt(tip.y) +
+        ' L' + fmt(tip.x - d.x * HEAD - n.x * HEAD * .65) + ' ' + fmt(tip.y - d.y * HEAD - n.y * HEAD * .65) + '" />';
+    };
+    return '<g class="d-group ' + cls + '">' +
+      rtLine('d-arrow', a, b) +
+      head(a, { x: -u.x, y: -u.y }) + head(b, u) +
+      (extra || '') +
+      '<text class="d-label" x="' + fmt(lx) + '" y="' + fmt(ly) + '" font-size="21" text-anchor="' + anchor + '" dominant-baseline="middle">' + label + '</text>' +
+    '</g>';
+  }
+
+  /* the whole drawing for one kind, put back to its first frame */
+  function buildRtrap(kind) {
+    rk = kind || rk;
+    const P = rk.P, M = rk.M, rot = rk.rot, W = rk.W;
+    const pts = [P.TL, P.TR, P.BR, P.BL];
+    const path = 'M' + pts.map(p => fmt(p.x) + ' ' + fmt(p.y)).join(' L') + ' Z';
+    const S = 16;                                  /* the right-angle marks' side */
+    rtArt.innerHTML =
+      '<polygon class="shape-fill" clip-path="url(#wipeRtrap)" points="' + pts.map(pt).join(' ') + '" />' +
+      '<path class="shape-outline" d="' + path + '" fill="none" stroke-width="5" />' +
+      /* the right-angled trapezium's two right angles, in its left corners */
+      (rk.x0 === 0 ?
+        '<path class="rt-mark" d="M' + fmt(P.TL.x) + ' ' + fmt(P.TL.y + S) + ' h' + S + ' v' + (-S) + '" />' +
+        '<path class="rt-mark" d="M' + fmt(P.BL.x) + ' ' + fmt(P.BL.y - S) + ' h' + S + ' v' + S + '" />' : '');
+
+    /* the copy: the same corners, turned by its transform */
+    rtCopy.innerHTML =
+      '<polygon class="rt-cfill" points="' + pts.map(pt).join(' ') + '" />' +
+      '<path class="rt-cline" d="' + path + '" />' +
+      '<path class="rt-cdash" d="' + path + '" />';
+    rtCopy.setAttribute('transform', 'rotate(0 ' + fmt(M.x) + ' ' + fmt(M.y) + ')');
+    rtCopy.classList.remove('show', 'flying');
+    rtScene.insertBefore(rtCopy, rtArt);           /* under the trapezium until it lifts */
+
+    /* the names: a and b along the trapezium's top and bottom and h up its
+       left; b and a along the copy's top and bottom; and a + b along the
+       whole of the top and of the bottom. When the left side is slanted,
+       the height is also dotted in from the top-left corner straight down
+       to the base, with a right angle at its foot, so h is seen to be the
+       distance between the parallel sides and not the slanted side. */
+    const G = 26, LAB = 17, yT = -G, yB = RT_H + G, MK = 12;
+    const top = (cls, x1, x2, lab) => rtArrow(cls + ' rt-len', { x: x1, y: yT }, { x: x2, y: yT }, lab, (x1 + x2) / 2, yT - LAB, 'middle');
+    const bot = (cls, x1, x2, lab) => rtArrow(cls + ' rt-len', { x: x1, y: yB }, { x: x2, y: yB }, lab, (x1 + x2) / 2, yB + LAB + 1, 'middle');
+    const inner = rk.x0 === 0 ? '' :
+      rtLine('d-height', P.TL, { x: P.TL.x, y: RT_H }) +
+      '<path class="d-mark" d="M' + fmt(P.TL.x) + ' ' + fmt(RT_H - MK) + ' H' + fmt(P.TL.x + MK) + ' V' + fmt(RT_H) + '" />';
+    rtDims.innerHTML =
+      top('top-a', P.TL.x, P.TR.x, 'a') +
+      bot('bot-b', P.BL.x, P.BR.x, 'b') +
+      rtArrow('left-h rt-hgt', { x: -G, y: 0 }, { x: -G, y: RT_H }, 'h', -G - LAB, RT_H / 2, 'end', inner) +
+      top('top-b', P.TR.x, P.TR.x + RT_B, 'b') +
+      bot('bot-a', P.BR.x, W, 'a') +
+      top('top-ab', P.TL.x, P.TL.x + W, 'a + b') +
+      bot('bot-ab', P.BL.x, W, 'a + b') +
+      '<g class="rt-par">' + parMark(P.TL, P.TR) + parMark(P.BL, P.BR) + '</g>';
+
+    /* the glowing copies of the sides compared: b along the trapezium's
+       bottom and the copy's top, a along the trapezium's top and the copy's
+       bottom */
+    rtHl.innerHTML =
+      rtLine('hl-b1', P.BL, P.BR) + rtLine('hl-b2', rot(P.BR), rot(P.BL)) +
+      rtLine('hl-a1', P.TL, P.TR) + rtLine('hl-a2', rot(P.TR), rot(P.TL));
+
+    /* the turn: a dot on M, an arc round it from the left over the top to
+       the right, an arrowhead at its end, and the finger */
+    const R = 64, a0 = Math.PI * 200 / 180, a1 = Math.PI * 340 / 180;
+    const at = t => ({ x: M.x + R * Math.cos(t), y: M.y + R * Math.sin(t) });
+    const S0 = at(a0), S1 = at(a1);
+    const d = { x: -Math.sin(a1), y: Math.cos(a1) }, n = { x: -d.y, y: d.x }, HD = 11;
+    rtGuide.innerHTML =
+      '<circle class="rt-pivot" cx="' + fmt(M.x) + '" cy="' + fmt(M.y) + '" r="5" />' +
+      '<path class="rt-arc" d="M' + fmt(S0.x) + ' ' + fmt(S0.y) + ' A' + R + ' ' + R + ' 0 0 1 ' + fmt(S1.x) + ' ' + fmt(S1.y) + '" />' +
+      '<path class="rt-arc-head" d="M' + fmt(S1.x - d.x * HD + n.x * HD * .7) + ' ' + fmt(S1.y - d.y * HD + n.y * HD * .7) +
+        ' L' + fmt(S1.x) + ' ' + fmt(S1.y) +
+        ' L' + fmt(S1.x - d.x * HD - n.x * HD * .7) + ' ' + fmt(S1.y - d.y * HD - n.y * HD * .7) + '" />' +
+      '<g class="rt-hand"><path d="' + HAND_D + '" /></g>';
+    rtGuide.classList.remove('show', 'tip');
+
+    rtX = rk.home;
+    rtScene.setAttribute('transform', 'translate(' + fmt(rtX) + ' 0)');
+    rtrapShape.classList.remove('marked', 'parallel', 'ghost', 'alone', 'lit-rect', 'pulse');
+  }
+
+  /* the drawing slides from where it is to x */
+  function rtSlide(x, ms) {
+    const from = rtX;
+    rtX = x;
+    return tween(ms || 820, p => {
+      rtScene.setAttribute('transform', 'translate(' + fmt(from + (x - from) * p) + ' 0)');
+    }, easeInOut);
+  }
+
+  /* a name arrives: its arrow grows along the side (and the dotted height
+     with it, where there is one), then the heads and the letter come on */
+  async function rtDraw(cls, ms) {
+    const g = rtDim(cls);
+    await Promise.all(Array.from(g.querySelectorAll('.d-arrow, .d-height')).map(l => growLine(l, ms || 560)));
+    g.classList.add('on');
+    sfx('click', .3);
+    await wait(REDUCED ? 80 : 240);
+  }
+
+  /* a name already in place, without the choreography */
+  function rtSet(cls, gone) {
+    const g = rtDim(cls);
+    g.querySelectorAll('.d-arrow, .d-height').forEach(l => { l.style.opacity = 1; });
+    g.classList.add('on');
+    g.classList.toggle('gone', !!gone);
+  }
+
+  /* the outline of the whole glows, as one */
+  function rtGlow() {
+    rtrapShape.classList.remove('lit-rect');
+    void rtrapShape.offsetWidth;
+    rtrapShape.classList.add('lit-rect');
+  }
+
+  /* the finger rides the tip of the arc as it draws */
+  function rtHandAt(hand, q) {
+    hand.setAttribute('transform', 'translate(' + fmt(q.x - 20.7) + ' ' + fmt(q.y - 5.4) + ') scale(1.8)');
+  }
+
+  /* The copy lifts off the trapezium and turns half a circle about M,
+     pushed round by a finger riding a curved arrow that draws itself as the
+     copy turns. It lands on the right, settles under the trapezium (so the
+     side they share keeps the trapezium's colour), and the whole's outline
+     glows once. */
+  async function rtTurnCopy() {
+    const M = fmt(rk.M.x) + ' ' + fmt(rk.M.y);
+    /* the copy peels up a little as it appears, so it reads as a second
+       sheet lying over the trapezium rather than as the trapezium changing
+       colour; the offset is taken back as it turns */
+    const PEEL = { x: 10, y: -12 };
+    rtScene.insertBefore(rtCopy, rtDims);          /* over the trapezium while in the air */
+    rtCopy.setAttribute('transform', 'translate(' + PEEL.x + ' ' + PEEL.y + ') rotate(0 ' + M + ')');
+    rtCopy.classList.add('show');
+    const arc  = rtGuide.querySelector('.rt-arc');
+    const hand = rtGuide.querySelector('.rt-hand');
+    let L = 200;
+    try { L = arc.getTotalLength() || L; } catch (e) { /* keep guard */ }
+    arc.style.strokeDasharray = L;
+    arc.style.strokeDashoffset = L;
+    rtHandAt(hand, arc.getPointAtLength(0));
+    rtGuide.classList.add('show');
+    await wait(REDUCED ? 100 : 560);
+
+    rtCopy.classList.add('flying');
+    sfx('click', .35);
+    await tween(1600, p => {
+      const lift = 34 * Math.sin(Math.PI * p);
+      const ox = PEEL.x * (1 - p), oy = PEEL.y * (1 - p) - lift;
+      rtCopy.setAttribute('transform', 'translate(' + fmt(ox) + ' ' + fmt(oy) + ') rotate(' + fmt(180 * p) + ' ' + M + ')');
+      arc.style.strokeDashoffset = L * (1 - p);
+      rtHandAt(hand, arc.getPointAtLength(L * p));
+    }, easeInOut);
+    rtGuide.classList.add('tip');
+    rtCopy.classList.remove('flying');
+    rtCopy.setAttribute('transform', 'rotate(180 ' + M + ')');
+    rtScene.insertBefore(rtCopy, rtArt);           /* landed: under the trapezium */
+    rtGlow();
+    sfx('correct', .45);
+    await wait(REDUCED ? 100 : 520);
+    rtGuide.classList.remove('show');
+  }
+
+  /* two equal sides shown equal: a glow grows along both together, their
+     names go green with it, and both fade again */
+  async function rtCompare(k) {
+    const names = k === 'b' ? ['bot-b', 'top-b'] : ['top-a', 'bot-a'];
+    const lines = [1, 2].map(i => rtHl.querySelector('.hl-' + k + i));
+    await Promise.all(lines.map(l => growLine(l, 720)));
+    names.forEach(c => rtDim(c).classList.add('eq'));
+    sfx('correct', .4);
+    await wait(REDUCED ? 300 : 1500);
+    lines.forEach(l => { l.style.opacity = ''; });
+    names.forEach(c => rtDim(c).classList.remove('eq'));
+    await wait(REDUCED ? 100 : 460);
+  }
+
+  /* the two names along the top become one, a + b -- and the bottom's too */
+  async function rtMerge() {
+    ['top-a', 'top-b', 'bot-b', 'bot-a'].forEach(c => rtDim(c).classList.add('gone'));
+    await wait(REDUCED ? 60 : 200);
+    await Promise.all([rtDraw('top-ab', 760), rtDraw('bot-ab', 760)]);
+  }
+
+  /* a key word has landed in the working: light what it names */
+  function onRtWord(w) {
+    if (w === 'ab') {
+      ['top-a', 'bot-b', 'top-b', 'bot-a', 'top-ab', 'bot-ab'].forEach(c => rtDim(c).classList.add('lit'));
+      return;
+    }
+    if (w === 'h') { rtDim('left-h').classList.add('lit'); return; }
+    /* the trapezium itself: it swells once */
+    rtrapShape.classList.remove('pulse');
+    void rtrapShape.offsetWidth;
+    rtrapShape.classList.add('pulse');
+    setTimeout(() => rtrapShape.classList.remove('pulse'), 700);
+  }
+
+  /* Swiftee's line from beside the working */
+  async function rtTalk(text) {
+    swiftee.hold('talking');
+    await rtSay(text);
+    swiftee.release();
+  }
+
+  /* a line of working, said along with */
+  async function rtWork(segs) {
+    swiftee.hold('talking');
+    const line = await showTypedLine(segs, rtrapLines, onRtWord);
+    swiftee.release();
+    return line;
+  }
+
+  /* the lines of working step back together */
+  async function rtClear() {
+    const lines = Array.from(rtrapLines.children);
+    if (!lines.length) return;
+    lines.forEach(l => l.classList.add('off'));
+    await wait(REDUCED ? 100 : 420);
+    lines.forEach(l => l.remove());
+  }
+
+  /* the whole as the first scene leaves it, without the choreography: for
+     a replay of, or a jump into, the second scene */
+  function rtWhole(kind) {
+    buildRtrap(kind);
+    const outline = rtArt.querySelector('.shape-outline');
+    outline.style.strokeDasharray = 'none';
+    outline.style.strokeDashoffset = '0';
+    rtArt.querySelector('.shape-fill').style.opacity = 1;
+    rtrapShape.classList.add('marked');
+    rtX = rk.pair;
+    rtScene.setAttribute('transform', 'translate(' + fmt(rtX) + ' 0)');
+    rtCopy.classList.add('show');
+    rtCopy.setAttribute('transform', 'rotate(180 ' + fmt(rk.M.x) + ' ' + fmt(rk.M.y) + ')');
+    ['top-a', 'top-b', 'bot-b', 'bot-a'].forEach(c => rtSet(c, true));
+    ['left-h', 'top-ab', 'bot-ab'].forEach(c => rtSet(c, false));
+  }
+
+  /* ---- the whole: the trapezium, and a copy that completes it ---- */
+  async function rtArea(kind, entry) {
+    lockInput(true);
+    sceneStart(entry);
+    promptGhost.textContent = longest(rtHeadLines(kind));
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    board.classList.add('sec7');
+
+    /* 1. the board is cleared for the trapezium. The first time the cards
+          fade under it; after that the last kind's drawing and working fade
+          and Swiftee hops back up to the heading (a Back into this scene
+          may find the bird elsewhere, so it jumps up if it is not there) */
+    const wasOn = rtrap.classList.contains('on') && !!rtArt.firstChild;
+    if (wasOn) {
+      const clearing = rtClear();
+      rtrapSay.classList.remove('show');
+      rtrapShape.classList.add('away');
+      if (rtrapMascot.classList.contains('in')) await hopBetween(rtrapMascot, boardMascot);
+      await clearing;
+      await wait(REDUCED ? 100 : 360);
+    }
+    rtrap.classList.remove('wide');              /* the drawing has the whole width until the working */
+    rtrapSay.classList.remove('show');
+    rtrapLines.textContent = '';
+    rtrapLines.classList.remove('rule');
+    buildRtrap(kind);
+    rtrapShape.classList.remove('away');
+    if (!wasOn) {
+      await wait(REDUCED ? 150 : 480);
+      rtrap.classList.add('on');
+      rtrap.setAttribute('aria-hidden', 'false');
+      await wait(120);
+    }
+    if (!boardMascot.classList.contains('in')) { await mascotJumpIn(); await wait(200); }
+    await revealShape(rtrapShape);
+    await wait(200);
+    rtrapShape.classList.add('marked');
+    if (rk.x0 === 0) sfx('click', .35);
+    await wait(360);
+    await heading(rk.say.here);
+    await wait(1100);
+
+    /* 2. it moves over to the left, and its sides are named as Swiftee
+          says them: a along the top, b along the bottom, h up the left */
+    await rtSlide(rk.pair);
+    await wait(200);
+    let said = heading(rk.say.sides);
+    await wait(300);
+    await rtDraw('top-a');
+    await rtDraw('bot-b');
+    await rtDraw('left-h');
+    await said;
+    await wait(900);
+
+    /* 3. a copy lifts off and turns half a circle to land beside it: the
+          two make a rectangle or a parallelogram, and the copy's sides are
+          named too */
+    said = heading(rk.say.copy);
+    await wait(500);
+    await rtTurnCopy();
+    await said;
+    await wait(200);
+    said = heading(rk.say.made);
+    await wait(300);
+    await rtDraw('top-b');
+    await rtDraw('bot-a');
+    await said;
+    await wait(900);
+
+    /* 4. the equal sides, shown equal: b and b, then a and a */
+    said = heading(rk.say.eqB);
+    await rtCompare('b');
+    await said;
+    await wait(300);
+    said = heading(rk.say.eqA);
+    await rtCompare('a');
+    await said;
+    await wait(300);
+
+    /* 5. the two names along the top become one, a + b; the bottom's too */
+    said = heading(rk.say.sum);
+    await wait(300);
+    await rtMerge();
+    await said;
+    await wait(1100);
+  }
+
+  /* ---- the half ----
+     A fresh entry (Replay, or the jump menu) finds the first scene's
+     drawing gone and puts the whole back as it was left. */
+  async function rtHalf(kind, entry) {
+    lockInput(true);
+    sceneStart(entry);
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    board.classList.add('sec7');
+    rtrap.classList.add('on');
+    rtrap.setAttribute('aria-hidden', 'false');
+    if (rk !== kind || !rtArt.firstChild || !rtCopy.classList.contains('show')) rtWhole(kind);
+    rtrapLines.textContent = '';
+    rtrapLines.classList.remove('rule');
+    /* the last kind's closing line must not show while the row comes back */
+    rtrapText.querySelector('.txt').textContent = '';
+    rtrapText.querySelector('.caret').hidden = true;
+
+    /* 6. the drawing moves to the left half of the board and Swiftee hops
+          down to the right half, beside the working: the whole's area,
+          from the two lengths it has just named */
+    rtrapSay.classList.add('show');
+    await layoutWide(rtrap, rtrapSvg);
+    await wait(REDUCED ? 100 : 260);
+    if (boardMascot.classList.contains('in')) await hopBetween(boardMascot, rtrapMascot);
+    else await mascotJumpIn(rtrapMascot);
+    await wait(260);
+    await rtTalk(rk.say.area);
+    await wait(200);
+    await rtWork(rk.lines.total);
+    await wait(500);
+    await rtWork(rk.lines.total2);
+    rtGlow();
+    await wait(1800);
+
+    /* 7. the copy fades to a dashed outline: the trapezium is exactly half
+          of the whole, so its area is half of the whole's */
+    await rtClear();
+    rtDims.querySelectorAll('.d-group').forEach(g => g.classList.remove('lit'));
+    rtrapShape.classList.add('ghost');
+    await rtTalk(rk.say.half);
+    await wait(300);
+    await rtWork(rk.lines.half);
+    await wait(500);
+    await rtWork(rk.lines.half2);
+    await wait(1800);
+
+    /* 8. the copy goes; the trapezium comes back to the middle with its own
+          names and its parallel marks, and the rule is boxed */
+    await rtClear();
+    rtrapShape.classList.add('alone');
+    ['top-ab', 'bot-ab'].forEach(c => rtDim(c).classList.add('gone'));
+    rtDims.querySelectorAll('.d-group').forEach(g => g.classList.remove('lit'));
+    await wait(REDUCED ? 100 : 500);
+    ['top-a', 'bot-b'].forEach(c => rtDim(c).classList.remove('gone'));
+    await rtSlide(rk.home);
+    rtrapShape.classList.add('parallel');
+    sfx('click', .3);
+    await wait(400);
+    rtrapLines.classList.add('rule');
+    await rtTalk(rk.say.so);
+    await wait(200);
+    await rtWork(rk.lines.final);
+    await wait(900);
+    await rtTalk(rk.say.rule);
+    await wait(200);
+    await rtWork(rk.lines.rule);
+    swiftee.play('proud', 1);
+    skyConfetti(120, 3200);
+    sfx('confetti', .8);
+    await wait(2600);
+    await showNext();
+  }
+
+  /* the six scenes: each kind's whole, straight on into its half (no Next
+     between them -- the derivation is one piece), then Next and the next
+     kind. Each is its own function, so Replay and the jump menu can re-enter
+     it on its own. */
+  async function rtrapArea() { await rtArea(RT_KINDS.right, rtrapArea); await rtrapHalf(); }
+  async function rtrapHalf() { await rtHalf(RT_KINDS.right, rtrapHalf); await scalArea(); }
+  async function scalArea()  { await rtArea(RT_KINDS.scalene, scalArea);  await scalHalf(); }
+  async function scalHalf()  { await rtHalf(RT_KINDS.scalene, scalHalf);  await isoArea(); }
+  async function isoArea()   { await rtArea(RT_KINDS.iso, isoArea);       await isoHalf(); }
+  async function isoHalf()   { await rtHalf(RT_KINDS.iso, isoHalf);         await trapNumbers(); }
+
+  /* ---------- section 9, the practice: the trapezium's area in use ----------
+   * Five questions on what the derivation built, a Next between each, on
+   * the rhombus practice's pattern: the derivation's drawing fades and
+   * figures built for each question draw themselves in its place.
+   *
+   *   1. "Drag the values into the area formula." -- a trapezium measured
+   *      8 cm, 14 cm and 6 cm; A = ½ × ( [a] + [b] ) × [h] under it with
+   *      the three values to drag in. Either parallel side may go in either
+   *      of the first two boxes; anything else is shaken off
+   *   2. the figure moves to the left and Swiftee hops down to the right:
+   *      "Follow each simplification step." -- the working from the formula
+   *      in words down to 66 sq. cm, one line at a time
+   *   3. a trapezium measured 18 cm, 20 cm and 10 cm, with two drop-downs
+   *      under it: the sum of the parallel sides, and the height
+   *   4. the same figure: "Choose the correct area of the above trapezium."
+   *      over three chips
+   *   5. two trapeziums: "Tap the trapezium which has the largest area." --
+   *      the working appears under each, and Swiftee hops down to say which */
+  const rtrapPractice = document.getElementById('rtrapPractice');
+  const rtFigRow      = document.getElementById('rtFigRow');
+  const rtrapQuiz     = document.getElementById('rtrapQuiz');
+  const rtrapFormula  = document.getElementById('rtrapFormula');
+  const tpSlots       = Array.from(rtrapFormula.querySelectorAll('.fslot'));
+  const rtrapTray     = document.getElementById('rtrapTray');
+  const tpChips       = Array.from(rtrapTray.querySelectorAll('.chip'));
+  const rtrapQs       = document.getElementById('rtrapQs');
+  const rtrapPTray    = document.getElementById('rtrapPTray');
+  const rtrapPSay     = document.getElementById('rtrapPSay');
+  const rtrapPMascot  = document.getElementById('rtrapPMascot');
+  const rtrapPText    = document.getElementById('rtrapPText');
+
+  const TP = {
+    drag:    'Drag the values into the area formula.',
+    dragOk:  'That’s Correct! A = ½ × (8 + 14) × 6',
+    steps:   'Follow each simplification step.',
+    read:    'Look at the trapezium and choose the correct values.',
+    readOk:  'That’s Correct! 18 + 20 = 38 cm, and the height is 10 cm.',
+    area:    'Choose the correct area of the above trapezium.',
+    areaOk:  'That’s Correct! ½ × 38 × 10 = 190 sq. cm',
+    larger:  'Tap the trapezium which has the largest area.',
+    largerLine: [{ t: 'Trapezium I', w: 'trap' }, { t: ' has the largest area.' }]
+  };
+  const TP_GHOST = [TP.drag, TP.dragOk, TP.read, TP.readOk, TP.area, TP.areaOk, TP.larger];
+  const TP_STEPS = [
+    [{ t: 'A = ½ × ' }, { t: '(sum of parallel sides)', w: 'ab' }, { t: ' × ' }, { t: 'perpendicular height', w: 'h' }],
+    [{ t: 'A = ½ × ' }, { t: '(8 + 14)', w: 'ab' }, { t: ' × ' }, { t: '6', w: 'h' }],
+    [{ t: 'A = ½ × 22 × 6' }],
+    [{ t: 'A = 11 × 6' }],
+    [{ t: 'A = ' }, { t: '66 sq. cm', w: 'trap' }]
+  ];
+
+  /* the banner's ghost holds its whole line from the first frame */
+  segSpans(rtrapPText.querySelector('.type-ghost'), TP.largerLine).forEach((el, j) => { el.textContent = TP.largerLine[j].t; });
+
+  /* ---- the figures ----
+   * A trapezium in the practice's 360 x 260 box, from its four corners:
+   * the two parallel sides measured on arrows above and below, the height
+   * dotted in from one corner to the opposite parallel side with a right
+   * angle at its foot, and the parallel marks. `hgt` says which corner the
+   * height drops from and which way its label and mark sit. */
+  function figTrap(key, name, P, labels, hgt) {
+    const pts = [P.TL, P.TR, P.BR, P.BL];
+    const art =
+      '<polygon class="shape-fill" clip-path="url(#wipeFig' + key + ')" points="' + pts.map(pt).join(' ') + '" />' +
+      '<path class="shape-outline" d="M' + pts.map(p => fmt(p.x) + ' ' + fmt(p.y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
+    const yT = P.TL.y - 22, yB = P.BL.y + 22;
+    let over =
+      figMeasure('d-top rt-len', { x: P.TL.x, y: yT }, { x: P.TR.x, y: yT }, labels.a, [], false) +
+      figMeasure('d-bot rt-len', { x: P.BL.x, y: yB }, { x: P.BR.x, y: yB }, labels.b, [], false);
+    /* the height: from `from` straight to the other parallel side */
+    const from = P[hgt.from], foot = { x: from.x, y: hgt.from.charAt(0) === 'T' ? P.BL.y : P.TL.y };
+    const M = 11, up = foot.y > from.y ? -1 : 1, side = hgt.side;
+    over += '<g class="d-group d-hgt">' +
+      figLine('d-height', from, foot) +
+      '<path class="d-mark" d="M' + fmt(foot.x) + ' ' + fmt(foot.y + up * M) + ' H' + fmt(foot.x + side * M) + ' V' + fmt(foot.y) + '" />' +
+      '<text class="d-label" x="' + fmt(foot.x + side * 10) + '" y="' + fmt((from.y + foot.y) / 2) + '" font-size="17" text-anchor="' + (side > 0 ? 'start' : 'end') + '" dominant-baseline="middle">' + labels.h + '</text>' +
+    '</g>';
+    over += '<g class="rt-par">' + parMark(P.TL, P.TR) + parMark(P.BL, P.BR) + '</g>';
+    return figShell(key, name, art, over);
+  }
+  /* the four figures, in the box's units */
+  const TP_FIGS = {
+    /* 8, 14 and 6: the bottom is 300 wide, the top set in and shorter */
+    n:  { P: { TL: { x: 85, y: 62 }, TR: { x: 256, y: 62 }, BR: { x: 330, y: 190 }, BL: { x: 30, y: 190 } },
+          labels: { a: '8 cm', b: '14 cm', h: '6 cm' }, hgt: { from: 'TL', side: 1 } },
+    /* 18, 20 and 10 */
+    p:  { P: { TL: { x: 50, y: 40 }, TR: { x: 320, y: 40 }, BR: { x: 330, y: 190 }, BL: { x: 30, y: 190 } },
+          labels: { a: '18 cm', b: '20 cm', h: '10 cm' }, hgt: { from: 'TL', side: 1 } },
+    /* 40 on top, 25 below, 20 high: the height rises from the bottom-right corner */
+    I:  { P: { TL: { x: 30, y: 40 }, TR: { x: 330, y: 40 }, BR: { x: 236, y: 190 }, BL: { x: 48, y: 190 } },
+          labels: { a: '40 cm', b: '25 cm', h: '20 cm' }, hgt: { from: 'BR', side: -1 } },
+    /* 30 on top, 40 below, 15 high, its right side square */
+    II: { P: { TL: { x: 105, y: 78 }, TR: { x: 330, y: 78 }, BR: { x: 330, y: 190 }, BL: { x: 30, y: 190 } },
+          labels: { a: '30 cm', b: '40 cm', h: '15 cm' }, hgt: { from: 'TL', side: 1 } }
+  };
+  const tpFig = (key, name) => figTrap(key, name || '', TP_FIGS[key].P, TP_FIGS[key].labels, TP_FIGS[key].hgt);
+  const tpFigEl = key => figEl(key, rtFigRow);
+
+  /* a figure already drawn, with all its marks, without the choreography:
+     for a replay of, or a jump into, a question that inherits its figure */
+  function tpEnsureFig(key) {
+    if (tpFigEl(key)) return false;
+    rtFigRow.innerHTML = tpFig(key);
+    rtFigRow.classList.remove('off');
+    rtFigRow.classList.add('single');
+    rtrapPractice.classList.add('on');
+    const f = tpFigEl(key);
+    const outline = f.querySelector('.shape-outline');
+    outline.style.strokeDasharray = 'none';
+    outline.style.strokeDashoffset = '0';
+    f.querySelector('.shape-fill').style.opacity = 1;
+    f.querySelectorAll('.d-arrow, .d-height').forEach(l => { l.style.opacity = 1; });
+    f.querySelectorAll('.d-group').forEach(g => g.classList.add('on'));
+    f.querySelectorAll('.par-mark').forEach(m => m.classList.add('on'));
+    return true;
+  }
+
+  /* a value lands in the working or the formula: the part of the figure it
+     names lights up */
+  function tpLight(key, what) {
+    const f = tpFigEl(key);
+    if (!f) return;
+    const cls = { a: '.d-top', b: '.d-bot', ab: '.d-top, .d-bot', h: '.d-hgt' }[what];
+    if (cls) f.querySelectorAll(cls).forEach(g => g.classList.add('lit'));
+  }
+  function onTpWord(w) {
+    if (w === 'ab' || w === 'h') { tpLight('n', w); return; }
+    const f = tpFigEl('n');
+    if (!f) return;
+    f.classList.remove('pulse');
+    void f.offsetWidth;
+    f.classList.add('pulse');
+    setTimeout(() => f.classList.remove('pulse'), 700);
+  }
+
+  /* the values go home between scenes: a replay may find them docked */
+  function homeTpChips() {
+    tpChips.forEach(c => { rtrapTray.appendChild(c); c.disabled = false; c.classList.remove('reveal', 'picked', 'dragging', 'reject'); });
+    tpSlots.forEach(s => s.classList.remove('filled', 'over', 'correct', 'reject'));
+  }
+
+  /* the common opening of a practice question: the heading clears, the
+     derivation's drawing stays away, and Swiftee is put back at the heading
+     if the last question left it down by the working or the banner */
+  async function tpOpen(again) {
+    lockInput(true);
+    sceneStart(again);
+    const mine = runToken;
+    promptGhost.textContent = longest(TP_GHOST);
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    board.classList.add('sec7');
+    rtrap.classList.add('on');
+    rtrap.setAttribute('aria-hidden', 'false');
+    rtrapShape.classList.add('away');
+    rtrapLines.classList.remove('rule', 'steps');
+    const clearing = rtClear();
+    rtrapSay.classList.remove('show');
+    rtrapPSay.classList.remove('show');
+    if (rtrapMascot.classList.contains('in')) await hopBetween(rtrapMascot, boardMascot);
+    else if (rtrapPMascot.classList.contains('in')) await hopBetween(rtrapPMascot, boardMascot);
+    else if (!boardMascot.classList.contains('in')) await mascotJumpIn();
+    await clearing;
+    rtrapLines.textContent = '';
+    rtrapText.querySelector('.txt').textContent = '';
+    return mine;
+  }
+
+  /* 1. the values into the formula */
+  async function trapNumbers() {
+    const mine = await tpOpen(trapNumbers);
+    homeTpChips();
+    rtrapQuiz.classList.remove('show');
+    rtrapFormula.classList.remove('show');
+    rtrapQs.classList.remove('show');
+    rtrapPTray.classList.add('off');
+    await wait(300);
+    rtrap.classList.remove('wide');
+    await clearFigures(rtFigRow);
+    tpSlots.forEach(s => s.classList.remove('filled'));
+    await showFigures(tpFig('n'), rtFigRow, rtrapPractice);
+    await wait(300);
+
+    /* Swiftee asks; the formula comes up with its three empty boxes, and
+       the values under it */
+    await heading(TP.drag);
+    await wait(300);
+    rtrapQuiz.classList.add('show');
+    await wait(200);
+    rtrapFormula.classList.add('show');
+    sfx('click', .3);
+    await wait(REDUCED ? 160 : 520);
+    await dealChips(tpChips);
+
+    /* the drag: either parallel side in either of the first two boxes, but
+       not the same one twice; only the height in the last */
+    const taken = () => tpSlots.filter(s => s.classList.contains('filled')).map(s => s.querySelector('.chip').dataset.len);
+    const fits = (chip, slot) => {
+      const v = chip.dataset.len;
+      if (slot.dataset.accept === 'h') return v === '6';
+      return (v === '8' || v === '14') && taken().indexOf(v) === -1;
+    };
+    await dragMatch(tpChips, tpSlots, fits, chip => tpLight('n', { 8: 'a', 14: 'b', 6: 'h' }[chip.dataset.len]));
+    if (mine !== runToken) throw CANCELLED;
+
+    /* all three in: the formula, filled */
+    feedback(FEEDBACK.done);
+    await wait(900);
+    await heading(TP.dragOk);
+    swiftee.play('proud', 1);
+    skyConfetti(120, 3200);
+    sfx('confetti', .8);
+    await wait(2400);
+    await showNext();
+    await trapSteps();
+  }
+
+  /* 2. step by step to the answer */
+  async function trapSteps() {
+    lockInput(true);
+    sceneStart(trapSteps);
+    promptGhost.textContent = longest(TP_GHOST);
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    board.classList.add('sec7');
+    rtrap.classList.add('on');
+    rtrap.setAttribute('aria-hidden', 'false');
+    rtrapShape.classList.add('away');
+    rtrapPSay.classList.remove('show');
+    rtrapQs.classList.remove('show');
+    rtrapPTray.classList.add('off');
+    tpEnsureFig('n');
+    const fig = tpFigEl('n');
+    fig.querySelectorAll('.d-group').forEach(g => g.classList.remove('lit'));
+    rtrapLines.textContent = '';
+    rtrapLines.classList.remove('rule');
+    rtrapLines.classList.add('steps');
+    rtrapText.querySelector('.txt').textContent = '';
+    rtrapText.querySelector('.caret').hidden = true;
+
+    /* the formula and the values leave; the figure moves to the left half
+       and Swiftee hops down to the right half */
+    rtrapQuiz.classList.remove('show');
+    await wait(REDUCED ? 100 : 460);
+    rtrapSay.classList.add('show');
+    await layoutWide(rtrap, fig.querySelector('svg'));
+    await wait(REDUCED ? 100 : 260);
+    if (boardMascot.classList.contains('in')) await hopBetween(boardMascot, rtrapMascot);
+    else if (!rtrapMascot.classList.contains('in')) await mascotJumpIn(rtrapMascot);
+    await wait(260);
+    await rtTalk(TP.steps);
+    await wait(300);
+
+    /* the working, a line at a time, lighting the figure as it goes */
+    for (let i = 0; i < TP_STEPS.length; i++) {
+      swiftee.hold('talking');
+      await showTypedLine(TP_STEPS[i], rtrapLines, onTpWord);
+      swiftee.release();
+      await wait(i < TP_STEPS.length - 1 ? 520 : 300);
+    }
+    swiftee.play('proud', 1);
+    skyConfetti(120, 3200);
+    sfx('confetti', .8);
+    await wait(2600);
+    await showNext();
+    await trapPractice1();
+  }
+
+  /* 3. read the sum of the parallel sides and the height off a trapezium */
+  async function trapPractice1() {
+    const mine = await tpOpen(trapPractice1);
+    rtrapQuiz.classList.remove('show');
+    rtrapPTray.classList.add('off');
+    rtrapQs.classList.remove('show');
+    rtrapQs.textContent = '';
+
+    /* the last figure goes, and the question's own draws itself in the
+       middle of the board */
+    await clearFigures(rtFigRow);
+    rtrap.classList.remove('wide');
+    await wait(200);
+    await showFigures(tpFig('p'), rtFigRow, rtrapPractice);
+    await wait(300);
+
+    /* two questions at once, read off the figure; the part named lights
+       up as each is got right */
+    await heading(TP.read);
+    const right = () => feedback(FEEDBACK.right);
+    const wrong = () => feedback(FEEDBACK.wrong);
+    const q1 = questionLine('Sum of parallel sides is',
+      [{ v: '30', t: '30 cm' }, { v: '38', t: '38 cm' }, { v: '28', t: '28 cm' }]);
+    const q2 = questionLine('Height is',
+      [{ v: '18', t: '18 cm' }, { v: '20', t: '20 cm' }, { v: '10', t: '10 cm' }]);
+    rtrapQs.classList.add('show');
+    await showLine(q1.line, rtrapQs);
+    await showLine(q2.line, rtrapQs);
+    lockInput(false);
+    await Promise.all([
+      q1.dd.ask(v => v === '38', () => { right(); tpLight('p', 'ab'); }, wrong),
+      q2.dd.ask(v => v === '10', () => { right(); tpLight('p', 'h'); }, wrong)
+    ]);
+    lockInput(true);
+    if (mine !== runToken) throw CANCELLED;
+    await wait(600);
+    await heading(TP.readOk);
+    swiftee.play('happy', 1);
+    await wait(2000);
+    await showNext();
+    await trapPractice2();
+  }
+
+  /* 4. the area of the same trapezium */
+  async function trapPractice2() {
+    const mine = await tpOpen(trapPractice2);
+    rtrapQuiz.classList.remove('show');
+    rtrap.classList.remove('wide');
+    tpEnsureFig('p');
+
+    /* the two questions go; the area chips come */
+    rtrapQs.classList.remove('show');
+    await wait(REDUCED ? 100 : 460);
+    rtrapQs.textContent = '';
+    const chips = practiceChips([{ v: '190', t: '190 sq. cm' }, { v: '380', t: '380 sq. cm' }, { v: '270', t: '270 sq. cm' }], rtrapPTray);
+    await dealChips(chips);
+    await wait(200);
+    await heading(TP.area);
+    await askChips(chips, '190');
+    if (mine !== runToken) throw CANCELLED;
+    tpLight('p', 'ab');
+    tpLight('p', 'h');
+    await heading(TP.areaOk);
+    await wait(1800);
+    await showNext();
+    await trapPractice3();
+  }
+
+  /* 5. two trapeziums: which has the larger area? */
+  async function trapPractice3() {
+    const mine = await tpOpen(trapPractice3);
+    rtrapQuiz.classList.remove('show');
+    rtrapQs.classList.remove('show');
+    rtrapPTray.classList.add('off');
+    rtrap.classList.remove('wide');
+
+    await clearFigures(rtFigRow);
+    await wait(300);
+    await showFigures(tpFig('I', 'Trapezium I') + tpFig('II', 'Trapezium II'), rtFigRow, rtrapPractice);
+    await wait(200);
+    await dealChips(Array.from(rtFigRow.querySelectorAll('.fig-chip')));
+    await wait(200);
+    await heading(TP.larger);
+    await askFigures('I', rtFigRow);
+    if (mine !== runToken) throw CANCELLED;
+    feedback(FEEDBACK.right);
+    await wait(700);
+
+    /* the working under each */
+    await figWorking('I', '½ × (40 + 25) × 20 = 650 sq. cm', rtFigRow);
+    await wait(400);
+    await figWorking('II', '½ × (30 + 40) × 15 = 525 sq. cm', rtFigRow);
+    await wait(700);
+
+    /* Swiftee hops down beside the banner and says which */
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    rtrapPSay.classList.add('show');
+    await hopBetween(boardMascot, rtrapPMascot);
+    await wait(240);
+    swiftee.hold('talking');
+    await typeSegments(rtrapPText.querySelector('.txt'), rtrapPText.querySelector('.caret'), TP.largerLine, TYPE_MS, 320, null);
+    swiftee.release();
+    swiftee.play('proud', 1);
+    skyConfetti(90, 2800);
+    sfx('confetti', .7);
+    await wait(2200);
+    await showNext();
+    /* the next section continues from here */
   }
 
   async function introScene() {
