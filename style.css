@@ -169,6 +169,23 @@
 
 * { box-sizing: border-box; }
 
+/* ---------- the half ----------
+ * "½" is written as a stacked fraction wherever it appears: a 1 over a
+ * bar over a 2, sized to sit inside the line it is part of. */
+.frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  margin: 0 .1em;
+  font-size: .7em;
+  line-height: .95;
+  font-weight: 900;
+  transform: translateY(-.05em);
+}
+.frac .num { padding: 0 .2em .06em; border-bottom: .17em solid currentColor; }
+.frac .den { padding: .02em .2em 0; }
+
 html, body {
   height: 100%;
   margin: 0;
@@ -261,12 +278,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(4px, 1vw, 14px);
+  gap: clamp(2px, .5vw, 8px);
   margin: 0 0 clamp(6px, 1.6vh, 16px);
   min-width: 0;
 }
-
+/* Swiftee and the line it shows are centred together, the bird right at the
+   left end of the words: the heading's box is only as wide as its line
+   (script.js sets the ghost per line and reserves the row's height) */
 .prompt {
+  flex: 0 1 auto;
   margin: 0;
   min-width: 0;
   text-align: center;
@@ -292,8 +312,25 @@ body {
   text-align: left;
   white-space: pre-wrap;
 }
+/* the heading's line lands centred in its box, so a line that wraps centres
+   both its rows */
+.prompt .type { text-align: center; }
+
+/* ---------- the words ease in ----------
+ * script.js lays a line out whole, a span per word, and shows the words one
+ * after another: each fades up and sharpens where it already sits. */
+.wd { opacity: 0; }
+.wd.in { animation: wd-in .46s cubic-bezier(.2, .7, .3, 1) both; }
+@keyframes wd-in {
+  from { opacity: 0; filter: blur(4px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wd.in { animation-duration: .08s; }
+}
 .caret {
-  display: inline-block;
+  /* the lines ease in word by word now, so the typewriter's caret never shows */
+  display: none;
   width: 2px;
   height: .92em;
   margin-left: 2px;
@@ -1973,6 +2010,56 @@ body {
 .fig-work .type-wrap { display: inline-block; vertical-align: top; }
 .fig-work .type { white-space: nowrap; }
 .fig-work .caret { background: var(--heading); }
+/* the working step by step: the lines in a box that is held at their full
+   height from the first, the winner's box in the correct green and the
+   other's in the wrong red */
+.fig-work {
+  --step-gap: clamp(2px, .6vh, 6px);
+  --step-pad: clamp(6px, 1.2vh, 12px);
+}
+/* the box's height is reserved from the first frame in a row laid out for
+   the working, so the figure above does not shrink when the box appears */
+.fig-row.stepped .fig-work,
+.fig-work.steps {
+  min-height: calc(var(--lines, 3) * 1.3em + (var(--lines, 3) - 1) * var(--step-gap) + 2 * var(--step-pad) + 4px);
+}
+.fig-work.steps {
+  display: grid;
+  justify-items: start;
+  align-content: center;
+  gap: var(--step-gap);
+  padding: var(--step-pad) clamp(12px, 1.8vw, 22px);
+  border: 2px solid var(--wrong);
+  border-radius: 14px;
+  background: var(--board-highlight);
+  transition: opacity .4s ease, transform .4s ease, border-color .4s ease;
+}
+.fig.correct .fig-work.steps { border-color: var(--correct); }
+/* two figures with the working step by step under each: the column is laid
+   out top to bottom and the art takes whatever height the name and the box
+   leave it, so the row never runs out of its stage; the drawing's labels are
+   set a little larger to read at the smaller size */
+.fig-row.stepped .fig {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: clamp(4px, 1vh, 10px);
+  padding-bottom: 0;
+}
+.fig-row.stepped .fig-art {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.fig-row.stepped .fig-art svg { height: 100%; }
+.fig-row.stepped .fig-chip,
+.fig-row.stepped .fig-work { flex: none; }
+.fig-row.stepped .fig-work { font-size: clamp(13px, 2.2vh, 20px); }
+.fig-row.stepped .fig .d-label { font-size: 21px; }
 .fig .eq-mark.on { opacity: 1; transform: none; }
 
 /* the answers to a question, and Swiftee's banner. The banner's line may
@@ -3461,14 +3548,17 @@ body {
  * or going moves nothing either. */
 .rtrap-foot {
   display: grid;
-  justify-items: center;
+  /* stretched, not centred: an occupant that wraps its text needs the
+     whole width to measure against, and each centres its own content */
+  justify-items: stretch;
   align-items: center;
 }
 /* every occupant shares the one cell, so the row is only as tall as the
    tallest of them and the drawing above keeps its room */
-.rtrap-foot > * { grid-area: 1 / 1; }
+.rtrap-foot > * { grid-area: 1 / 1; min-width: 0; }
 .rtrap-say {
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: clamp(10px, 2.2vw, 30px);
   max-width: 100%;
@@ -3509,6 +3599,7 @@ body {
 }
 .rtrap.wide .rtrap-say {
   flex-direction: column;
+  justify-content: flex-start;
   align-items: flex-start;
   width: 100%;
   gap: clamp(6px, 1.6vh, 16px);

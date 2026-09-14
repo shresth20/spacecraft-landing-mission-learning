@@ -206,6 +206,65 @@
   });
   const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /* ---------- the half ----------
+   * Every "½" in the lesson is drawn as a stacked fraction, a 1 over a bar
+   * over a 2, the way it is written on paper. Text that may carry one goes
+   * through setTxt(), which falls back to plain text when there is none. */
+  const FRAC_HALF = '<span class="frac"><span class="num">1</span><span class="den">2</span></span>';
+  const escHTML = str => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const fracHTML = str => escHTML(str).split('½').join(FRAC_HALF);
+  function setTxt(el, text) {
+    if (text.indexOf('½') < 0) el.textContent = text;
+    else el.innerHTML = fracHTML(text);
+  }
+
+  /* ---------- word by word ----------
+   * The typewriters land a word at a time rather than a letter: these are
+   * the places a text is cut, after each word together with the spaces that
+   * follow it. Pacing stays per character, so a long word takes longer. */
+  function wordCuts(text) {
+    const cuts = [];
+    const re = /\S+\s*/g;
+    let m;
+    while ((m = re.exec(text)) !== null) cuts.push(m.index + m[0].length);
+    if (!cuts.length || cuts[cuts.length - 1] !== text.length) cuts.push(text.length);
+    return cuts;
+  }
+
+  /* ---------- the words ease in ----------
+   * A line is laid out whole, every word in a span of its own, and the words
+   * are then shown one after another, each easing in where it already sits,
+   * so nothing reflows as the line arrives. Pacing is per character, as the
+   * typewriter's was: a long word holds the line a little longer. */
+  const WORD_IN_MS = 200;      /* the tail of a line: its last word finishing */
+  function wordSpans(el, text) {
+    el.textContent = '';
+    let from = 0;
+    return wordCuts(text).map(cut => {
+      const sp = document.createElement('span');
+      sp.className = 'wd';
+      setTxt(sp, text.slice(from, cut));
+      from = cut;
+      el.appendChild(sp);
+      return { el: sp, cut: cut };
+    });
+  }
+  /* show the words from `due`, each when its first character would have
+     been typed; `alive` may say the line has been taken over. Resolves to
+     the time the line is complete. */
+  async function revealWords(words, due, perChar, alive) {
+    let from = 0;
+    for (const w of words) {
+      if (alive && !alive()) return due;
+      const left = due + from * perChar - performance.now();
+      if (left > 0) await wait(left);
+      w.el.classList.add('in');
+      from = w.cut;
+    }
+    return due + from * perChar;
+  }
+  const wordsSettle = () => wait(REDUCED ? 0 : WORD_IN_MS);
+
   /* ---------- pieces ---------- */
   const board       = document.getElementById('board');
   const prompt      = document.getElementById('prompt');
@@ -247,10 +306,10 @@
   /* The heading's ghost holds the longest line of the level from the first
      frame, so the heading -- and Swiftee standing beside it -- keeps one width
      and one place for the whole mission, lesson included. */
-  promptGhost.textContent = Object.keys(ROUNDS)
+  promptReserve(Object.keys(ROUNDS)
     .map(n => ROUNDS[n].text)
     .concat(SHAPES_READY, LESSON.types, LESSON.dims)
-    .reduce((a, b) => (b.length > a.length ? b : a), '');
+    .reduce((a, b) => (b.length > a.length ? b : a), ''));
 
   const slotsOf = n => allSlots.filter(s => s.dataset.round === String(n));
   const chipsOf = n => allChips.filter(c => c.dataset.round === String(n));
@@ -314,6 +373,22 @@
     const FRAME_MS = 1000 / S.fps;
     const clipOf = name => S.clips[name];
 
+    /* A sprite drawn bigger than its 256px cell -- Swiftee alone on the
+       landscape in the intro -- is painted from the 2x sheets, or it comes
+       out soft. Each node is re-measured a few times a second, so one that
+       has just been shown picks its sheet within a few frames. */
+    const HI_MIN = S.cell * 1.1;
+    /* the excited loop has no single 2x sheet, so it stays at 1x */
+    const hiImg = img => (/swiftee_excited@1x/.test(img) ? img : img.replace('/1x/', '/2x/').replace('@1x', '@2x'));
+    function imgFor(n, d) {
+      const now = performance.now();
+      if (frame === 0 || !(now - (n._hiT || 0) < 200)) {
+        n._hi = n.getBoundingClientRect().height > HI_MIN;
+        n._hiT = now;
+      }
+      return n._hi ? hiImg(d.img) : d.img;
+    }
+
     let program = [];    /* steps still to run: { clip, repeat } */
     let step = null;
     let frame = 0;
@@ -328,7 +403,7 @@
       const px = d.cols > 1 ? (col / (d.cols - 1)) * 100 : 0;
       const py = d.rows > 1 ? (row / (d.rows - 1)) * 100 : 0;
       nodes.forEach(n => {
-        n.style.setProperty('--sw-img', 'url("' + d.img + '")');
+        n.style.setProperty('--sw-img', 'url("' + imgFor(n, d) + '")');
         n.style.setProperty('--sw-size', (d.cols * 100) + '% ' + (d.rows * 100) + '%');
         n.style.setProperty('--sw-pos', px + '% ' + py + '%');
       });
@@ -417,7 +492,11 @@
         nodes.forEach(n => n.classList.toggle('show', !!on));
       },
       ms: ms,
-      sheets: Object.keys(S.clips).map(k => S.clips[k].img)
+      /* every 1x sheet, and the 2x sheets of the clips the intro plays big */
+      sheets: Object.keys(S.clips).map(k => S.clips[k].img).concat(
+        [S.idle].concat(['waving', 'talking'].map(k => S.states[k]).filter(Boolean)
+          .map(st => [st.start, st.loop, st.stop]).reduce((a, b) => a.concat(b), []))
+          .filter(Boolean).map(k => hiImg(clipOf(k).img)))
     };
   })();
 
@@ -1131,19 +1210,30 @@
    * Paced against a wall clock rather than a chain of timeouts, so a slow
    * frame costs nothing: the line always lands on time. */
   async function typeInto(txt, blink, text, totalMs) {
-    txt.textContent = '';
-    blink.hidden = false;
-    const step = totalMs / text.length;
-    const t0 = performance.now();
-    for (let i = 0; i < text.length; i++) {
-      txt.textContent = text.slice(0, i + 1);
-      const due = t0 + (i + 1) * step;
-      const left = due - performance.now();
-      if (left > 0) await wait(left);
-    }
     blink.hidden = true;
+    const words = wordSpans(txt, text);
+    const end = await revealWords(words, performance.now(), totalMs / Math.max(1, text.length));
+    const left = end - performance.now();
+    if (left > 0) await wait(left);
+    await wordsSettle();
   }
-  const typewrite = (text, totalMs) => typeInto(promptTxt, caret, text, totalMs);
+  const typewrite = (text, totalMs) => { promptLine(text); return typeInto(promptTxt, caret, text, totalMs); };
+
+  /* The heading's box is the line it shows, so Swiftee stands right beside
+     the words wherever they centre. The row is held at the height of the
+     longest line a scene will show, so a line that wraps deeper than the
+     last moves nothing below it. */
+  function promptReserve(text) {
+    wordSpans(promptGhost, text);
+    prompt.style.minHeight = '';
+    const h = prompt.getBoundingClientRect().height;
+    const lh = parseFloat(getComputedStyle(prompt).fontSize) * 1.3;
+    prompt.style.minHeight = Math.max(1, Math.round(h / lh)) * 1.3 + 'em';
+    promptGhost.textContent = '';
+  }
+  /* a ghost is built the way its live line is -- a span per word -- so the
+     two lay out identically; a plain run can differ by a hair and wrap */
+  const promptLine = text => wordSpans(promptGhost, text);
 
   /* ---------- feedback in the heading ----------
    * Swiftee's reaction to a drop, typed where the instruction was: a quick
@@ -1160,16 +1250,10 @@
 
   async function feedback(text) {
     const gen = ++feedbackGen;
-    promptTxt.textContent = '';
-    caret.hidden = false;
-    const t0 = performance.now();
-    for (let i = 0; i < text.length; i++) {
-      if (gen !== feedbackGen) return;               /* superseded */
-      promptTxt.textContent = text.slice(0, i + 1);
-      const left = t0 + (i + 1) * FEEDBACK_MS - performance.now();
-      if (left > 0) await wait(left);
-    }
-    if (gen === feedbackGen) caret.hidden = true;
+    promptLine(text);
+    caret.hidden = true;
+    const words = wordSpans(promptTxt, text);
+    await revealWords(words, performance.now(), FEEDBACK_MS, () => gen === feedbackGen);
   }
 
   /* ---------- the ghost chip that demonstrates the drag ---------- */
@@ -1861,7 +1945,7 @@
     bubble.style.width = '';
     bubble.style.height = '';
     bubble.style.left = '';
-    bubbleGhost.textContent = text;
+    wordSpans(bubbleGhost, text);
 
     /* before its pop-in the box sits scaled down to a dot, so it is measured
        with the scale lifted for the instant of the measurement */
@@ -2070,7 +2154,7 @@
   /* The formula in pieces: the two words the lesson is about are their own
      spans, so each can light up the moment it has finished typing. */
   const FORMULA = [
-    { t: 'Area = 1/2(' },
+    { t: 'Area = ½(' },
     { t: 'Base',   w: 'base' },
     { t: ' × ' },
     { t: 'Height', w: 'height' },
@@ -2090,7 +2174,7 @@
   }
   /* the ghost carries the whole formula from the start, so the box is sized
      before the first character lands */
-  formulaSpans(formulaGhost).forEach((el, i) => { el.textContent = FORMULA[i].t; });
+  formulaSpans(formulaGhost).forEach((el, i) => { wordSpans(el, FORMULA[i].t); });
 
   /* The first triangle is drawn in the middle of the empty board, so before
      it draws it is carried from its own cell to the centre of the row... */
@@ -2175,25 +2259,22 @@
     sfx('click', .35);
     await wait(REDUCED ? 200 : 560);
 
-    formulaCaret.hidden = false;
+    const words = FORMULA.map((seg, i) => wordSpans(spans[i], seg.t));
     let due = performance.now();
     for (let i = 0; i < FORMULA.length; i++) {
       const seg = FORMULA[i];
-      for (let c = 0; c < seg.t.length; c++) {
-        spans[i].textContent = seg.t.slice(0, c + 1);
-        due += FORMULA_MS;
+      due = await revealWords(words[i], due, FORMULA_MS);
+      if (seg.w) {
         const left = due - performance.now();
         if (left > 0) await wait(left);
-      }
-      if (seg.w) {
         spans[i].classList.add('lit');
         lightDims(seg.w);
         due += FORMULA_PAUSE;
-        const left = due - performance.now();
-        if (left > 0) await wait(left);
       }
     }
-    formulaCaret.hidden = true;
+    const left = due - performance.now();
+    if (left > 0) await wait(left);
+    await wordsSettle();
   }
 
   async function sectionTwo() {
@@ -2375,8 +2456,8 @@
 
   /* every ghost holds its longest line from the first frame, so no box under
      the shape changes size once it is on screen */
-  noteGhost.textContent = longest([QUAD.tap].concat(Object.keys(QUAD.notes).map(k => QUAD.notes[k])));
-  sayGhost.textContent  = longest([QUAD.general, QUAD.area]);
+  wordSpans(noteGhost, longest([QUAD.tap].concat(Object.keys(QUAD.notes).map(k => QUAD.notes[k]))));
+  wordSpans(sayGhost, longest([QUAD.general, QUAD.area]));
 
   /* ---------- building a quadrilateral ---------- */
   const fmt = n => Math.round(n * 10) / 10;
@@ -2482,16 +2563,13 @@
     let gen = 0;
     return async function (text) {
       const g = ++gen;
-      txt.textContent = '';
-      blink.hidden = false;
-      const t0 = performance.now();
-      for (let i = 0; i < text.length; i++) {
-        if (g !== gen) return;
-        txt.textContent = text.slice(0, i + 1);
-        const left = t0 + (i + 1) * perChar - performance.now();
-        if (left > 0) await wait(left);
-      }
-      if (g === gen) blink.hidden = true;
+      blink.hidden = true;
+      const words = wordSpans(txt, text);
+      const end = await revealWords(words, performance.now(), perChar, () => g === gen);
+      if (g !== gen) return;
+      const left = end - performance.now();
+      if (left > 0) await wait(left);
+      await wordsSettle();
     };
   }
   const note  = typer(noteTxt, noteCaret, 55);        /* Swiftee's remark on an answer */
@@ -2509,25 +2587,23 @@
      and a callback each time a key word completes */
   async function typeSegments(txt, blink, segs, perChar, pause, onWord) {
     const spans = segSpans(txt, segs);
-    blink.hidden = false;
+    blink.hidden = true;
+    /* every word of every segment is in place before the first shows */
+    const words = segs.map((seg, i) => wordSpans(spans[i], seg.t));
     let due = performance.now();
     for (let i = 0; i < segs.length; i++) {
-      const seg = segs[i];
-      for (let c = 0; c < seg.t.length; c++) {
-        spans[i].textContent = seg.t.slice(0, c + 1);
-        due += perChar;
+      due = await revealWords(words[i], due, perChar);
+      if (segs[i].w) {
         const left = due - performance.now();
         if (left > 0) await wait(left);
-      }
-      if (seg.w) {
         spans[i].classList.add('lit');
-        if (onWord) onWord(seg.w);
+        if (onWord) onWord(segs[i].w);
         due += pause;
-        const left = due - performance.now();
-        if (left > 0) await wait(left);
       }
     }
-    blink.hidden = true;
+    const left = due - performance.now();
+    if (left > 0) await wait(left);
+    await wordsSettle();
   }
 
   /* an eased 0 -> 1 over ms, driven by the frame clock; a skip lands it at 1.
@@ -2646,7 +2722,7 @@
       b.type = 'button';
       b.setAttribute('role', 'option');
       b.dataset.value = o.v;
-      b.textContent = o.t;
+      setTxt(b, o.t);
       menu.appendChild(b);
     });
     return root;
@@ -3029,7 +3105,7 @@
       '<span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span>';
     /* the ghost carries the whole line, so the box is sized before the first
        character lands */
-    segSpans(line.querySelector('.type-ghost'), segs).forEach((el, j) => { el.textContent = segs[j].t; });
+    segSpans(line.querySelector('.type-ghost'), segs).forEach((el, j) => { wordSpans(el, segs[j].t); });
     await showLine(line, root);
     await typeSegments(line.querySelector('.txt'), line.querySelector('.caret'), segs, AREA_MS, AREA_PAUSE, onWord || onAreaWord);
     return line;
@@ -3044,7 +3120,7 @@
     const seg = (cls, text) => {
       const el = document.createElement('span');
       el.className = cls;
-      el.textContent = text;
+      setTxt(el, text);
       return el;
     };
     const dd1 = makeDD(opts, true), dd2 = makeDD(opts, true);
@@ -3165,7 +3241,7 @@
     /* the heading's ghost takes the longest line of the quadrilateral
        scenes; the board is blank, so the row can re-measure with nothing on
        it to move */
-    promptGhost.textContent = longest([QUAD.join, QUAD.divided, QUAD.twoNew, FOUR.pick, FIVE.turn, QUAD.joinWrong('bottom', 'right')]);
+    promptReserve(longest([QUAD.join, QUAD.divided, QUAD.twoNew, FOUR.pick, FIVE.turn, QUAD.joinWrong('bottom', 'right')]));
 
     /* 2. the quadrilateral: outline first, then the colour */
     buildQuad(SPEC_A);
@@ -3541,7 +3617,7 @@
      is sized before a character lands */
   Object.keys(PARA.facts).forEach(k => {
     const segs = PARA.facts[k];
-    segSpans(factEls[k].querySelector('.type-ghost'), segs).forEach((el, j) => { el.textContent = segs[j].t; });
+    segSpans(factEls[k].querySelector('.type-ghost'), segs).forEach((el, j) => { wordSpans(el, segs[j].t); });
   });
 
   /* ---------- building the parallelogram ----------
@@ -3804,8 +3880,8 @@
        it while it is still invisible, and the heading's ghost takes the
        longest line of this scene while there is nothing on the board to move */
     board.classList.add('sec4');
-    promptGhost.textContent = longest([PARA.ask, PARA.right, PARA.look1, PARA.never, PARA.look2, PARA.measure, PARA.fit1, PARA.fit2]
-      .concat(Object.keys(PARA2).map(k => PARA2[k]), PARA3.turn));
+    promptReserve(longest([PARA.ask, PARA.right, PARA.look1, PARA.never, PARA.look2, PARA.measure, PARA.fit1, PARA.fit2]
+      .concat(Object.keys(PARA2).map(k => PARA2[k]), PARA3.turn)));
     buildPara();
     await wait(200);
     await showBoard();
@@ -4172,7 +4248,7 @@
   };
 
   /* the say line's ghost holds its whole line from the first frame */
-  segSpans(rhomText.querySelector('.type-ghost'), RHOM.final).forEach((el, j) => { el.textContent = RHOM.final[j].t; });
+  segSpans(rhomText.querySelector('.type-ghost'), RHOM.final).forEach((el, j) => { wordSpans(el, RHOM.final[j].t); });
 
   /* the geometry, in the svg's units: the pinned corner, the slant of the
      left side as a unit vector, the two lengths the shape opens with, how
@@ -4521,7 +4597,7 @@
        it while it is still invisible, and the heading's ghost takes the
        longest line of this scene while there is nothing on the board to move */
     board.classList.add('sec5');
-    promptGhost.textContent = longest([RHOM.drag, RHOM.sides, RHOM.right, RHOM.named]);
+    promptReserve(longest([RHOM.drag, RHOM.sides, RHOM.right, RHOM.named]));
     buildRhom();
     await wait(200);
     await showBoard();
@@ -4751,7 +4827,7 @@
     lockInput(true);
     sceneStart(rhombusArea);
     const mine = runToken;
-    promptGhost.textContent = longest(Object.keys(RHOM2).map(k => RHOM2[k]));
+    promptReserve(longest(Object.keys(RHOM2).map(k => RHOM2[k])));
 
     /* 1. the last scene clears: Swiftee ducks behind the board from beside
           the shape, its line goes, and the shape stands alone */
@@ -4857,7 +4933,7 @@
   async function rhombusSum() {
     lockInput(true);
     sceneStart(rhombusSum);
-    promptGhost.textContent = longest(Object.keys(RHOM2).map(k => RHOM2[k]));
+    promptReserve(longest(Object.keys(RHOM2).map(k => RHOM2[k])));
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
@@ -5143,7 +5219,7 @@
     lockInput(true);
     sceneStart(rhombusNumbers);
     const mine = runToken;
-    promptGhost.textContent = longest([NUM.drag, NUM.right]);
+    promptReserve(longest([NUM.drag, NUM.right]));
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
@@ -5232,7 +5308,10 @@
   const PRACTICE_GHOST = [PRACTICE.area, PRACTICE.areaOk, PRACTICE.find, PRACTICE.findOk, PRACTICE.larger, PRACTICE.which, PRACTICE.whichOk];
 
   /* the banner's ghost holds its whole line from the first frame */
-  segSpans(practiceText.querySelector('.type-ghost'), PRACTICE.largerLine).forEach((el, j) => { el.textContent = PRACTICE.largerLine[j].t; });
+  segSpans(practiceText.querySelector('.type-ghost'), PRACTICE.largerLine).forEach((el, j) => {
+    wordSpans(el, PRACTICE.largerLine[j].t);
+    if (PRACTICE.largerLine[j].w) el.classList.add('lit');     /* sized for the bolder, lit form */
+  });
   const practiceTxt = practiceText.querySelector('.txt');
   const practiceCaret = practiceText.querySelector('.caret');
 
@@ -5241,7 +5320,7 @@
     tray = tray || practiceTray;
     tray.classList.remove('off');
     tray.innerHTML = list.map(c =>
-      '<button class="chip' + (c.formula ? ' formula' : '') + '" type="button" data-answer="' + c.v + '"><span>' + c.t + '</span></button>').join('');
+      '<button class="chip' + (c.formula ? ' formula' : '') + '" type="button" data-answer="' + c.v + '"><span>' + fracHTML(c.t) + '</span></button>').join('');
     return Array.from(tray.querySelectorAll('.chip'));
   }
 
@@ -5277,8 +5356,8 @@
         '<g class="fig-over" style="--pair: var(--heading)">' + over + '</g>' +
       '</svg></div>' +
       (name ? '<button class="chip formula fig-chip" type="button" tabindex="-1" data-answer="' + key + '"><span>' + name + '</span></button>' : '') +
-      '<p class="fig-work"><span class="type-wrap"><span class="type-ghost"></span>' +
-        '<span class="type"><span class="txt"></span><i class="caret" hidden aria-hidden="true"></i></span></span></p>' +
+      '<div class="fig-work"><span class="type-wrap"><span class="type-ghost"></span>' +
+        '<span class="type"><span class="txt"></span><i class="caret" hidden aria-hidden="true"></i></span></span></div>' +
     '</div>';
   }
   /* a rhombus with its diagonals flat and upright. d1 and d2 are in the
@@ -5383,6 +5462,7 @@
     row.classList.add('off');
     await wait(450);
     row.innerHTML = '';
+    row.classList.remove('stepped');
   }
 
   /* Tap the right figure -- or the name under it, which is part of it. The
@@ -5437,11 +5517,28 @@
   async function figWorking(key, text, row) {
     const f = figEl(key, row);
     const work = f.querySelector('.fig-work');
-    work.querySelector('.type-ghost').textContent = text;
+    wordSpans(work.querySelector('.type-ghost'), text);
     work.classList.add('show');
     sfx('click', .3);
     await wait(REDUCED ? 120 : 380);
     await typer(work.querySelector('.txt'), work.querySelector('.caret'), AREA_MS)(text);
+  }
+
+  /* the working under a figure step by step: its box appears first, held at
+     the height of all its lines so nothing above moves, and the lines type
+     themselves into it one at a time */
+  async function figSteps(key, lines, row, onWord) {
+    const f = figEl(key, row);
+    const work = f.querySelector('.fig-work');
+    work.textContent = '';
+    work.style.setProperty('--lines', lines.length);
+    work.classList.add('steps', 'show');
+    sfx('click', .3);
+    await wait(REDUCED ? 120 : 420);
+    for (let i = 0; i < lines.length; i++) {
+      await showTypedLine(lines[i], work, onWord);
+      if (i < lines.length - 1) await wait(REDUCED ? 120 : 420);
+    }
   }
 
   /* the measured rhombus, put back if a replay has taken it away: tilted,
@@ -5468,7 +5565,7 @@
   function practiceOpen(again) {
     lockInput(true);
     sceneStart(again);
-    promptGhost.textContent = longest(PRACTICE_GHOST);
+    promptReserve(longest(PRACTICE_GHOST));
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
@@ -5778,7 +5875,7 @@
        while it is still invisible, and the heading's ghost takes the longest
        line of these scenes while there is nothing on the board to move */
     board.classList.add('sec6');
-    promptGhost.textContent = longest(TRAP_GHOST);
+    promptReserve(longest(TRAP_GHOST));
     buildTrap();
     await wait(200);
     await showBoard();
@@ -5924,7 +6021,7 @@
     const mine = runToken;
     homeTrapChips();
     boardMascot.classList.remove('in');    /* it jumps in from behind the board below */
-    promptGhost.textContent = longest(TRAP_GHOST);
+    promptReserve(longest(TRAP_GHOST));
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
@@ -6164,7 +6261,7 @@
     const mine = runToken;
     homeTrapChips();
     boardMascot.classList.remove('in');    /* it jumps in from behind the board below */
-    promptGhost.textContent = longest(TRAP_GHOST);
+    promptReserve(longest(TRAP_GHOST));
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
@@ -6615,7 +6712,7 @@
   async function rtArea(kind, entry) {
     lockInput(true);
     sceneStart(entry);
-    promptGhost.textContent = longest(rtHeadLines(kind));
+    promptReserve(longest(rtHeadLines(kind)));
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
@@ -6826,9 +6923,19 @@
     area:    'Choose the correct area of the above trapezium.',
     areaOk:  'That’s Correct! ½ × 38 × 10 = 190 sq. cm',
     larger:  'Tap the trapezium which has the largest area.',
+    work:    'Let’s work out the area of each trapezium.',
     largerLine: [{ t: 'Trapezium I', w: 'trap' }, { t: ' has the largest area.' }]
   };
-  const TP_GHOST = [TP.drag, TP.dragOk, TP.read, TP.readOk, TP.area, TP.areaOk, TP.larger];
+  const TP_GHOST = [TP.drag, TP.dragOk, TP.read, TP.readOk, TP.area, TP.areaOk, TP.larger, TP.work];
+  /* the two workings of the last question, a line at a time under each */
+  const TP_WORK = {
+    I:  [[{ t: 'A = ½ × ' }, { t: '(40 + 25)', w: 'ab' }, { t: ' × ' }, { t: '20', w: 'h' }],
+         [{ t: 'A = 65 × 10' }],
+         [{ t: 'A = ' }, { t: '650 sq. cm', w: 'trap' }]],
+    II: [[{ t: 'A = ½ × ' }, { t: '(30 + 40)', w: 'ab' }, { t: ' × ' }, { t: '15', w: 'h' }],
+         [{ t: 'A = 35 × 15' }],
+         [{ t: 'A = ' }, { t: '525 sq. cm', w: 'trap' }]]
+  };
   const TP_STEPS = [
     [{ t: 'A = ½ × ' }, { t: '(sum of parallel sides)', w: 'ab' }, { t: ' × ' }, { t: 'perpendicular height', w: 'h' }],
     [{ t: 'A = ½ × ' }, { t: '(8 + 14)', w: 'ab' }, { t: ' × ' }, { t: '6', w: 'h' }],
@@ -6838,7 +6945,12 @@
   ];
 
   /* the banner's ghost holds its whole line from the first frame */
-  segSpans(rtrapPText.querySelector('.type-ghost'), TP.largerLine).forEach((el, j) => { el.textContent = TP.largerLine[j].t; });
+  segSpans(rtrapPText.querySelector('.type-ghost'), TP.largerLine).forEach((el, j) => {
+    wordSpans(el, TP.largerLine[j].t);
+    /* the key word lands bolder than it is typed: the ghost is sized for
+       the bolder form, or the line would overflow its box and wrap */
+    if (TP.largerLine[j].w) el.classList.add('lit');
+  });
 
   /* ---- the figures ----
    * A trapezium in the practice's 360 x 260 box, from its four corners:
@@ -6846,7 +6958,7 @@
    * dotted in from one corner to the opposite parallel side with a right
    * angle at its foot, and the parallel marks. `hgt` says which corner the
    * height drops from and which way its label and mark sit. */
-  function figTrap(key, name, P, labels, hgt) {
+  function figTrap(key, name, P, labels, hgt, h) {
     const pts = [P.TL, P.TR, P.BR, P.BL];
     const art =
       '<polygon class="shape-fill" clip-path="url(#wipeFig' + key + ')" points="' + pts.map(pt).join(' ') + '" />' +
@@ -6864,7 +6976,7 @@
       '<text class="d-label" x="' + fmt(foot.x + side * 10) + '" y="' + fmt((from.y + foot.y) / 2) + '" font-size="17" text-anchor="' + (side > 0 ? 'start' : 'end') + '" dominant-baseline="middle">' + labels.h + '</text>' +
     '</g>';
     over += '<g class="rt-par">' + parMark(P.TL, P.TR) + parMark(P.BL, P.BR) + '</g>';
-    return figShell(key, name, art, over);
+    return figShell(key, name, art, over, h);
   }
   /* the four figures, in the box's units */
   const TP_FIGS = {
@@ -6876,12 +6988,12 @@
           labels: { a: '18 cm', b: '20 cm', h: '10 cm' }, hgt: { from: 'TL', side: 1 } },
     /* 40 on top, 25 below, 20 high: the height rises from the bottom-right corner */
     I:  { P: { TL: { x: 30, y: 40 }, TR: { x: 330, y: 40 }, BR: { x: 236, y: 190 }, BL: { x: 48, y: 190 } },
-          labels: { a: '40 cm', b: '25 cm', h: '20 cm' }, hgt: { from: 'BR', side: -1 } },
+          labels: { a: '40 cm', b: '25 cm', h: '20 cm' }, hgt: { from: 'BR', side: -1 }, h: 228 },
     /* 30 on top, 40 below, 15 high, its right side square */
     II: { P: { TL: { x: 105, y: 78 }, TR: { x: 330, y: 78 }, BR: { x: 330, y: 190 }, BL: { x: 30, y: 190 } },
-          labels: { a: '30 cm', b: '40 cm', h: '15 cm' }, hgt: { from: 'TL', side: 1 } }
+          labels: { a: '30 cm', b: '40 cm', h: '15 cm' }, hgt: { from: 'TL', side: 1 }, h: 228 }
   };
-  const tpFig = (key, name) => figTrap(key, name || '', TP_FIGS[key].P, TP_FIGS[key].labels, TP_FIGS[key].hgt);
+  const tpFig = (key, name) => figTrap(key, name || '', TP_FIGS[key].P, TP_FIGS[key].labels, TP_FIGS[key].hgt, TP_FIGS[key].h);
   const tpFigEl = key => figEl(key, rtFigRow);
 
   /* a figure already drawn, with all its marks, without the choreography:
@@ -6889,7 +7001,7 @@
   function tpEnsureFig(key) {
     if (tpFigEl(key)) return false;
     rtFigRow.innerHTML = tpFig(key);
-    rtFigRow.classList.remove('off');
+    rtFigRow.classList.remove('off', 'stepped');
     rtFigRow.classList.add('single');
     rtrapPractice.classList.add('on');
     const f = tpFigEl(key);
@@ -6911,15 +7023,20 @@
     const cls = { a: '.d-top', b: '.d-bot', ab: '.d-top, .d-bot', h: '.d-hgt' }[what];
     if (cls) f.querySelectorAll(cls).forEach(g => g.classList.add('lit'));
   }
-  function onTpWord(w) {
-    if (w === 'ab' || w === 'h') { tpLight('n', w); return; }
-    const f = tpFigEl('n');
-    if (!f) return;
-    f.classList.remove('pulse');
-    void f.offsetWidth;
-    f.classList.add('pulse');
-    setTimeout(() => f.classList.remove('pulse'), 700);
+  /* a key word has landed in a figure's working: a length lights the
+     measurement it names, the result swells the figure once */
+  function tpWordLighter(key) {
+    return function (w) {
+      if (w === 'ab' || w === 'h') { tpLight(key, w); return; }
+      const f = tpFigEl(key);
+      if (!f) return;
+      f.classList.remove('pulse');
+      void f.offsetWidth;
+      f.classList.add('pulse');
+      setTimeout(() => f.classList.remove('pulse'), 700);
+    };
   }
+  const onTpWord = tpWordLighter('n');
 
   /* the values go home between scenes: a replay may find them docked */
   function homeTpChips() {
@@ -6934,7 +7051,7 @@
     lockInput(true);
     sceneStart(again);
     const mine = runToken;
-    promptGhost.textContent = longest(TP_GHOST);
+    promptReserve(longest(TP_GHOST));
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
@@ -7008,7 +7125,7 @@
   async function trapSteps() {
     lockInput(true);
     sceneStart(trapSteps);
-    promptGhost.textContent = longest(TP_GHOST);
+    promptReserve(longest(TP_GHOST));
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
@@ -7134,6 +7251,9 @@
 
     await clearFigures(rtFigRow);
     await wait(300);
+    /* the row is laid out for the working to come, so nothing moves when
+       the boxes appear under the figures */
+    rtFigRow.classList.add('stepped');
     await showFigures(tpFig('I', 'Trapezium I') + tpFig('II', 'Trapezium II'), rtFigRow, rtrapPractice);
     await wait(200);
     await dealChips(Array.from(rtFigRow.querySelectorAll('.fig-chip')));
@@ -7144,11 +7264,17 @@
     feedback(FEEDBACK.right);
     await wait(700);
 
-    /* the working under each */
-    await figWorking('I', '½ × (40 + 25) × 20 = 650 sq. cm', rtFigRow);
+    /* the working under each, step by step: Swiftee says what is coming
+       from the heading, then each trapezium's lines type out in turn */
+    await heading(TP.work);
+    await wait(500);
+    for (const key of ['I', 'II']) {
+      swiftee.hold('talking');
+      await figSteps(key, TP_WORK[key], rtFigRow, tpWordLighter(key));
+      swiftee.release();
+      await wait(500);
+    }
     await wait(400);
-    await figWorking('II', '½ × (30 + 40) × 15 = 525 sq. cm', rtFigRow);
-    await wait(700);
 
     /* Swiftee hops down beside the banner and says which */
     feedbackGen++;
