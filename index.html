@@ -32,6 +32,9 @@
           <span class="type-ghost" id="promptGhost"></span>
           <span class="type" id="promptType" aria-live="polite"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
         </span>
+        <!-- Swiftee's reaction to an answer, for the screen reader only: on
+             the board the bird and the sound do the acknowledging -->
+        <span class="quip" id="quip" aria-live="polite"></span>
       </h1>
     </header>
 
@@ -42,7 +45,7 @@
           <div class="shape" data-shape="rect" role="img" aria-label="A rectangle">
             <!-- overflow is visible, so the dimension labels sit outside the
                  viewBox without changing the artwork's layout box -->
-            <svg viewBox="0 0 240 132" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+            <svg viewBox="-40 0 320 170" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
               <defs>
                 <clipPath id="wipeRect"><rect class="wipe" x="0" y="0" width="240" height="132" /></clipPath>
               </defs>
@@ -53,9 +56,8 @@
               </g>
               <!-- shown in round 2, after the first wrong drop -->
               <g class="labels">
-                <text class="shape-label" x="120" y="150" font-size="13" text-anchor="middle">length</text>
-                <text class="shape-label" x="250" y="66" font-size="13" text-anchor="middle"
-                      dominant-baseline="middle" transform="rotate(-90 250 66)">breadth</text>
+                <g class="wdim wdim-h"><line class="wdim-line" x1="4" y1="144" x2="236" y2="144" /><path class="wdim-head" d="M12 139 L4 144 L12 149 M228 139 L236 144 L228 149" /><text class="shape-label" x="120" y="160" font-size="13" text-anchor="middle">length</text></g>
+                <g class="wdim wdim-v"><line class="wdim-line" x1="252" y1="4" x2="252" y2="128" /><path class="wdim-head" d="M247 12 L252 4 L257 12 M247 120 L252 128 L257 120" /><text class="shape-label" x="268" y="66" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 268 66)">breadth</text></g>
               </g>
             </svg>
           </div>
@@ -72,7 +74,7 @@
       <div class="cell">
         <div class="shape-stage">
           <div class="shape" data-shape="square" role="img" aria-label="A square">
-            <svg viewBox="0 0 160 160" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+            <svg viewBox="-40 0 240 200" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
               <defs>
                 <clipPath id="wipeSquare"><rect class="wipe" x="0" y="0" width="160" height="160" /></clipPath>
               </defs>
@@ -82,9 +84,8 @@
                 <path class="shape-outline" d="M4 4 H156 V156 H4 Z" fill="none" stroke-width="5" />
               </g>
               <g class="labels">
-                <text class="shape-label" x="80" y="178" font-size="13" text-anchor="middle">side</text>
-                <text class="shape-label" x="174" y="80" font-size="13" text-anchor="middle"
-                      dominant-baseline="middle" transform="rotate(-90 174 80)">side</text>
+                <g class="wdim wdim-h"><line class="wdim-line" x1="4" y1="170" x2="156" y2="170" /><path class="wdim-head" d="M12 165 L4 170 L12 175 M148 165 L156 170 L148 175" /><text class="shape-label" x="80" y="186" font-size="13" text-anchor="middle">side</text></g>
+                <g class="wdim wdim-v"><line class="wdim-line" x1="172" y1="4" x2="172" y2="156" /><path class="wdim-head" d="M167 12 L172 4 L177 12 M167 148 L172 156 L177 148" /><text class="shape-label" x="188" y="80" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 188 80)">side</text></g>
               </g>
             </svg>
           </div>
@@ -99,7 +100,7 @@
       <div class="cell">
         <div class="shape-stage">
           <div class="shape" data-shape="triangle" role="img" aria-label="A triangle">
-            <svg viewBox="0 0 200 172" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+            <svg viewBox="-45 0 290 210" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
               <defs>
                 <clipPath id="wipeTri"><rect class="wipe" x="0" y="0" width="200" height="172" /></clipPath>
               </defs>
@@ -110,9 +111,8 @@
               </g>
               <g class="labels">
                 <line class="height-line" x1="100" y1="10" x2="100" y2="166" />
-                <text class="shape-label" x="100" y="188" font-size="13" text-anchor="middle">base</text>
-                <text class="shape-label" x="114" y="92" font-size="13" text-anchor="middle"
-                      dominant-baseline="middle" transform="rotate(-90 114 92)">height</text>
+                <g class="wdim wdim-h"><line class="wdim-line" x1="5" y1="182" x2="195" y2="182" /><path class="wdim-head" d="M13 177 L5 182 L13 187 M187 177 L195 182 L187 187" /><text class="shape-label" x="100" y="198" font-size="13" text-anchor="middle">base</text></g>
+                <g class="wdim wdim-v"><line class="wdim-line" x1="-14" y1="6" x2="-14" y2="166" /><path class="wdim-head" d="M-19 14 L-14 6 L-9 14 M-19 158 L-14 166 L-9 158" /><text class="shape-label" x="-30" y="86" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 -30 86)">height</text></g>
               </g>
             </svg>
           </div>
@@ -147,7 +147,9 @@
               </g>
               <g class="dims">
                 <line class="dim dim-base"   x1="22"  y1="186" x2="218" y2="186" />
+                <path class="dim-head head-base" d="M30 181 L22 186 L30 191 M210 181 L218 186 L210 191" />
                 <line class="dim dim-height" x1="120" y1="16"  x2="120" y2="176" />
+                <path class="dim-head head-height" d="M115 24 L120 16 L125 24 M115 168 L120 176 L125 168" />
                 <path class="dim-mark" d="M132 176 V164 H120" />
                 <text class="dim-label lbl-base" x="120" y="203" font-size="13" text-anchor="middle">Base</text>
                 <text class="dim-label lbl-height" x="133" y="98" font-size="13" text-anchor="middle"
@@ -170,7 +172,9 @@
               </g>
               <g class="dims">
                 <line class="dim dim-base"   x1="30" y1="186" x2="214" y2="186" />
+                <path class="dim-head head-base" d="M38 181 L30 186 L38 191 M206 181 L214 186 L206 191" />
                 <line class="dim dim-height" x1="20" y1="26"  x2="20"  y2="176" />
+                <path class="dim-head head-height" d="M15 34 L20 26 L25 34 M15 168 L20 176 L25 168" />
                 <path class="dim-mark" d="M42 176 V164 H30" />
                 <text class="dim-label lbl-base" x="122" y="203" font-size="13" text-anchor="middle">Base</text>
                 <text class="dim-label lbl-height" x="9" y="101" font-size="13" text-anchor="middle"
@@ -193,9 +197,11 @@
               </g>
               <g class="dims">
                 <line class="dim dim-base"   x1="118" y1="186" x2="226" y2="186" />
+                <path class="dim-head head-base" d="M126 181 L118 186 L126 191 M218 181 L226 186 L218 191" />
                 <!-- the base carried on to meet the height -->
                 <line class="dim dim-ext"    x1="118" y1="176" x2="40"  y2="176" />
                 <line class="dim dim-height" x1="40"  y1="22"  x2="40"  y2="176" />
+                <path class="dim-head head-height" d="M35 30 L40 22 L45 30 M35 168 L40 176 L45 168" />
                 <path class="dim-mark" d="M52 176 V164 H40" />
                 <text class="dim-label lbl-base" x="172" y="203" font-size="13" text-anchor="middle">Base</text>
                 <text class="dim-label lbl-height" x="29" y="100" font-size="13" text-anchor="middle"
@@ -338,9 +344,9 @@
 
         <!-- the area quiz: three formulas, tap the right one -->
         <div class="para-tray area-tray" id="areaTray">
-          <button class="chip formula" type="button" data-answer="half"><span><span class="frac"><span class="num">1</span><span class="den">2</span></span> (base &times; height)</span></button>
+          <button class="chip formula" type="button" data-answer="half"><span><span class="frac"><span class="num">1</span><span class="den">2</span></span> &times; base &times; height</span></button>
           <button class="chip formula" type="button" data-answer="bh"><span>base &times; height</span></button>
-          <button class="chip formula" type="button" data-answer="double"><span>2(base &times; height)</span></button>
+          <button class="chip formula" type="button" data-answer="double"><span>2 &times; base &times; height</span></button>
         </div>
 
         <!-- the working, beside the shape once it has moved left; script.js
@@ -665,7 +671,7 @@
       </div>
       <div class="tray" id="tray2" data-round="2">
         <button class="chip formula" type="button" data-round="2" data-word="rect"><span>Length &times; Breadth</span></button>
-        <button class="chip formula" type="button" data-round="2" data-word="triangle"><span><span class="frac"><span class="num">1</span><span class="den">2</span></span>(Base &times; Height)</span></button>
+        <button class="chip formula" type="button" data-round="2" data-word="triangle"><span><span class="frac"><span class="num">1</span><span class="den">2</span></span> &times; Base &times; Height</span></button>
         <button class="chip formula" type="button" data-round="2" data-word="square"><span>(Side)<sup>2</sup></span></button>
       </div>
     </div>

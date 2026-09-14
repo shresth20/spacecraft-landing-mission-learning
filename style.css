@@ -40,12 +40,45 @@
   /* Shapes -- one fill/border pair each, as in the reference art. The
      per-shape pair is bound to --shape-fill / --shape-border further down,
      inside each .shape, so the artwork rules stay shape-agnostic. */
-  --rect-fill:     #F98078;
-  --rect-border:   #C63A50;
-  --square-fill:   #C3A3F6;
-  --square-border: #7C33BD;
-  --tri-fill:      #90D7B5;
-  --tri-border:    #14796A;
+  --rect-fill:     var(--shape-aqua);
+  --rect-border:   var(--border-aqua);
+  --square-fill:   var(--shape-purple);
+  --square-border: var(--border-purple);
+  --tri-fill:      var(--shape-peach);
+  --tri-border:    var(--border-peach);
+
+  /* The game's shape palette: twelve fill/border pairs, each mid-strength so
+     it stands off the pale pink board yet stays soft enough for the room. A
+     new shape picks a pair from here rather than inventing its own -- but
+     not coral, mint or light green (red and green are kept for the
+     right/wrong feedback, so no shape may look like an answer), and not
+     sky blue or warm yellow, which were tried and turned down. */
+  --shape-coral:    #FF8F83;  --border-coral:    #D7475C;
+  --shape-purple:   #B98BFF;  --border-purple:   #6A35D9;
+  --shape-mint:     #91DFC7;  --border-mint:     #168F80;
+  --shape-blue:     #83CFF4;  --border-blue:     #367EBC;
+  --shape-peach:    #FFA45C;  --border-peach:    #E0632A;
+  --shape-pink:     #FF8CC6;  --border-pink:     #D8348A;
+  --shape-aqua:     #62E0DA;  --border-aqua:     #0B9BA3;
+  --shape-lavender: #9BA6FF;  --border-lavender: #4C55D6;
+  --shape-yellow:   #FFD66E;  --border-yellow:   #CE8B31;
+  --shape-berry:    #E874C8;  --border-berry:    #A2308A;
+  --shape-green:    #A9DF83;  --border-green:    #579B4D;
+  --shape-orange:   #FFA17C;  --border-orange:   #D65C45;
+
+  /* The pale sibling of each pair: what a name or formula card wears once it
+     has been docked under its shape, so a finished column reads as one
+     colour from the artwork down to the answer. Never shown on a card that
+     is still in the tray -- that would hand the learner the answer. */
+  --rect-chip-bg:       #CFF7F5;   /* aqua     */
+  --rect-chip-border:   #22B4B9;
+  --rect-chip-text:     #0B6468;
+  --square-chip-bg:     #E9DBFF;   /* purple   */
+  --square-chip-border: #8F5CE8;
+  --square-chip-text:   #4E2494;
+  --tri-chip-bg:        #FFE3CC;   /* peach    */
+  --tri-chip-border:    #F0803F;
+  --tri-chip-text:      #8A3A12;
 
   /* Section 2 -- the three triangles borrow the warm-up's three pairs, so
      the lesson is re-skinned by the same edit as the game. */
@@ -56,7 +89,7 @@
   --tri-c-fill:   var(--tri-fill);
   --tri-c-border: var(--tri-border);
 
-  /* Section 3 -- the quadrilateral is the warm-up's peach, and the two
+  /* Section 3 -- the quadrilateral is the warm-up's aqua, and the two
      triangles it is cut into take the other two pairs, so the split reads at
      a glance and the lesson is re-skinned by the same edit as the game. */
   --quad-fill:        var(--rect-fill);
@@ -66,31 +99,31 @@
   --quad-green:       var(--tri-fill);
   --quad-green-dark:  var(--tri-border);
 
-  /* Section 4 -- the parallelogram is amber, as in the reference art, and
+  /* Section 4 -- the parallelogram is the palette's pink, and
      the two pairs of opposite sides are told apart by the two highlight hues
      below: the top and bottom pair in blue, the left and right pair in
      purple. Neither is the shape's own colour, so a lit side always reads
      against the fill. */
-  --para-fill:   #FFC15E;
-  --para-border: #B9641B;
+  --para-fill:   var(--shape-pink);
+  --para-border: var(--border-pink);
   --pair-a: var(--height-hl);
   --pair-b: var(--square-border);
 
-  /* Section 5 -- the rhombus starts life as a second parallelogram, in sky
-     blue so it cannot be taken for the amber one before it. The two sides
+  /* Section 5 -- the rhombus starts life as a second parallelogram, in
+     lavender blue so it cannot be taken for the pink one before it. The two sides
      the learner can move, and the points that move them, borrow the base
      highlight's orange; the angle marks at the crossing of the diagonals are
      inked in the heading colour and go green the moment they are right
      angles. */
-  --rhom-fill:   #9FD4F3;
-  --rhom-border: #1F6E9C;
+  --rhom-fill:   var(--shape-lavender);
+  --rhom-border: var(--border-lavender);
   --rhom-live:   var(--base-hl);
 
-  /* Section 6 -- the trapezium is orange, as in the reference art: warmer
-     than the parallelogram's amber, so the two special quadrilaterals that
-     share a family of hue still read as two shapes. */
-  --trap-fill:   #F6B26B;
-  --trap-border: #B5651D;
+  /* Section 6 -- the trapezium is the palette's berry: deeper than the
+     parallelogram's pink, so it sits beside the peach triangle and the
+     lavender rhombus on the kinds board and still reads as its own. */
+  --trap-fill:   var(--shape-berry);
+  --trap-border: var(--border-berry);
 
   /* The two hues the formula's words -- and the matching dotted lines under
      every triangle -- light up in. Neither is a shape colour, so a lit line
@@ -107,20 +140,22 @@
   --shape-border: #BB3B59;
 
   /* Drop Areas */
-  --drop-bg: #FCE6E8;
-  --drop-border: #F2C2CE;
+  --drop-bg: #FDE9EF;
+  --drop-border: #EFA3C5;
 
-  /* Draggable Buttons */
-  --button-bg: #FAD7EA;
-  --button-border: #E7A6C7;
-  --button-text: #85345E;
+  /* Draggable Buttons -- the undecided card: one strong pink from the board's
+     own family, so it stands off the pale pink ground without borrowing any
+     shape's colour. */
+  --button-bg: #FFCFE7;
+  --button-border: #E0479A;
+  --button-text: #7A1F55;
 
   /* ---- feedback ----
    * Added to the palette above: it is a single pink family, so on its own it
    * has no way to tell a learner right from wrong. These two are the only
    * hues in the game that are not drawn from the artwork. */
-  --correct: #3FA97C;
-  --wrong: #D8344F;
+  --correct: #2EBF7A;
+  --wrong: #E5304B;
 
   /* ---- translucent derivations ----
    * rgb() of the token named in each comment. Kept here rather than inlined
@@ -135,23 +170,23 @@
   --scrim-strong:    rgba(98, 31, 55, .88);     /* --rock-dark     */
   --sheen:           rgba(252, 241, 241, .62);  /* --board-highlight */
   --ring-focus:      rgba(133, 52, 94, .38);    /* --heading       */
-  --glow-correct:    rgba(63, 169, 124, .45);   /* --correct       */
-  --glow-correct-dim:rgba(63, 169, 124, .15);   /* --correct       */
-  --tint-correct:    rgba(63, 169, 124, .20);   /* --correct       */
-  --glow-wrong:      rgba(216, 52, 79, .5);     /* --wrong         */
-  --tint-wrong:      rgba(216, 52, 79, .28);    /* --wrong         */
+  --glow-correct:    rgba(46, 191, 122, .45);   /* --correct       */
+  --glow-correct-dim:rgba(46, 191, 122, .15);   /* --correct       */
+  --tint-correct:    rgba(46, 191, 122, .20);   /* --correct       */
+  --glow-wrong:      rgba(229, 48, 75, .5);     /* --wrong         */
+  --tint-wrong:      rgba(229, 48, 75, .28);    /* --wrong         */
   --glow-base:       rgba(240, 147, 43, .55);   /* --base-hl       */
   --glow-height:     rgba(46, 134, 222, .55);   /* --height-hl     */
-  --glow-green:      rgba(20, 121, 106, .5);    /* --tri-border    */
-  --glow-purple:     rgba(124, 51, 189, .5);    /* --square-border */
+  --glow-green:      rgba(224, 99, 42, .5);     /* --tri-border    */
+  --glow-purple:     rgba(106, 53, 217, .5);    /* --square-border */
   --glow-pair-a:     rgba(46, 134, 222, .55);  /* --pair-a        */
-  --glow-pair-b:     rgba(124, 51, 189, .55);  /* --pair-b        */
+  --glow-pair-b:     rgba(106, 53, 217, .55);  /* --pair-b        */
   --tint-pair-a:     rgba(46, 134, 222, .18);  /* --pair-a        */
-  --tint-pair-b:     rgba(124, 51, 189, .18);  /* --pair-b        */
+  --tint-pair-b:     rgba(106, 53, 217, .18);  /* --pair-b        */
   --tint-heading:    rgba(133, 52, 94, .14);    /* --heading       */
   --glow-heading:    rgba(133, 52, 94, .45);    /* --heading       */
-  --tint-rhom:       rgba(31, 110, 156, .18);   /* --rhom-border   */
-  --tint-trap:       rgba(181, 101, 29, .18);   /* --trap-border   */
+  --tint-rhom:       rgba(76, 85, 214, .18);    /* --rhom-border   */
+  --tint-trap:       rgba(162, 48, 138, .18);   /* --trap-border   */
 
   /* ---- speech bubble ----
    * The one white in the game: the small catch-light in the bubble's corner,
@@ -180,7 +215,7 @@
   margin: 0 .1em;
   font-size: .7em;
   line-height: .95;
-  font-weight: 900;
+  font-weight: 800;
   transform: translateY(-.05em);
 }
 .frac .num { padding: 0 .2em .06em; border-bottom: .17em solid currentColor; }
@@ -234,7 +269,7 @@ body {
 .board {
   position: relative;
   width: min(1500px, 96vw);
-  height: min(700px, 90vh);
+  height: min(780px, 90vh);
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
@@ -295,8 +330,8 @@ body {
   min-width: 0;
   text-align: center;
   color: var(--heading);
-  font-weight: 800;
-  font-size: clamp(17px, 3.4vh, 32px);
+  font-weight: 700;
+  font-size: clamp(18.7px, 3.7vh, 35.2px);
   line-height: 1.3;
   letter-spacing: .1px;
 }
@@ -308,7 +343,7 @@ body {
 /* Typewriter: the hidden ghost reserves the final width, the live span sits
    on top of it, so characters land in place instead of shoving the centred
    line sideways with every keystroke. */
-.type-wrap  { position: relative; display: inline-block; }
+.type-wrap  { margin-left: 10px; position: relative; display: inline-block; }
 .type-ghost { visibility: hidden; }
 .type {
   position: absolute;
@@ -371,16 +406,19 @@ body {
 }
 
 /* ---------- clearing the board for section 2 ----------
- * Opacity only, then visibility once the fade is over: the bay and the card
- * decks keep their boxes, so the heading row above and the footer below stay
- * exactly where they were. */
+ * Opacity only, then visibility once the fade is over: the bay keeps its
+ * box, so the heading row above and the footer below stay exactly where
+ * they were. The card decks give up theirs once they have faded: any chip
+ * still in a deck (a replay or a jump puts them back) would otherwise hold
+ * a row of the band for the rest of the mission. */
 .board.sec2 .bay,
 .board.sec2 .tray {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
 }
-.tray { transition: opacity .45s ease, visibility 0s linear .45s; }
+.board.sec2 .tray { height: 0; overflow: hidden; }
+.tray { transition: opacity .45s ease, visibility 0s linear .45s, height 0s linear .45s; }
 
 .cell {
   position: relative;
@@ -389,18 +427,26 @@ body {
      Without it the row floors at the artwork's aspect-ratio height and the
      console below is pushed out through the bottom. */
   grid-template-rows: minmax(0, 1fr) auto;
-  gap: clamp(10px, 4.5vh, 38px);
+  gap: clamp(8px, 3vh, 26px);
   justify-items: center;
 }
 
-/* Both rounds' slots live here from the first frame -- round 2's is simply
-   transparent until its turn -- so the bay height never changes and the
-   shapes above it never move. */
+/* Both rounds' slots live here from the first frame. Round 2's is folded
+   flat until its turn -- no height, no gap -- so the shape above has the
+   room while it is not needed; it opens as it is revealed, and the shape
+   gives up the room smoothly (its box is the row's, and the row's height
+   transitions with the slot's). */
 .dock {
   width: 100%;
   display: grid;
-  gap: clamp(6px, 1.3vh, 14px);
   justify-items: center;
+}
+.dock .slot + .slot { margin-top: clamp(6px, 1.3vh, 14px); }
+.dock .slot[data-round="2"]:not(.reveal) {
+  height: 0;
+  margin-top: 0;
+  border-width: 0;
+  overflow: hidden;
 }
 
 /* The artwork is anchored to this box rather than flowing inside it. A
@@ -423,8 +469,10 @@ body {
 /* The svg box takes the full row; the artwork inside is fitted to it by
    preserveAspectRatio="xMidYMid meet", which keeps its proportions and centres
    it. So width caps the artwork on a tall screen and height caps it on a short
-   one, and it can never outgrow the space it is given. The per-shape caps are
-   the reference art's widths as a fraction of a column. */
+   one, and it can never outgrow the space it is given. The three are drawn
+   at one scale: the rectangle, the widest, takes the whole column, and the
+   other two are capped at their viewBox widths as a fraction of its -- so
+   the set grows together until the row's height stops the tallest. */
 .shape svg {
   display: block;
   position: absolute;
@@ -434,9 +482,9 @@ body {
   height: 100%;
   overflow: visible;
 }
-.shape[data-shape="rect"] svg     { max-width: 80%; }
-.shape[data-shape="square"] svg   { max-width: 59%; }
-.shape[data-shape="triangle"] svg { max-width: 68.6%; }
+.shape[data-shape="rect"] svg     { max-width: 100%; }
+.shape[data-shape="square"] svg   { max-width: 66.7%; }    /* 160 / 240 */
+.shape[data-shape="triangle"] svg { max-width: 83.3%; }    /* 200 / 240 */
 
 /* Each shape rebinds the generic pair to its own colours. Everything that
    paints the artwork -- fill, outline, the triangle's height line -- reads the
@@ -461,6 +509,9 @@ body {
    both steps; these values are only the guard before the script runs. */
 .shape-outline {
   stroke: var(--shape-border);
+  /* the same weight as the dashed helper lines; the markup's own width is
+     overridden here, for every shape in the mission */
+  stroke-width: 2.4;
   stroke-dasharray: 4000;
   stroke-dashoffset: 4000;
   stroke-linecap: round;
@@ -481,7 +532,7 @@ body {
 
 .shape-label {
   font-family: inherit;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: .2px;
   fill: var(--heading);
   /* pale halo drawn behind the glyphs, so a label reads over the shape's own
@@ -539,7 +590,6 @@ body {
   margin: auto;
   width: 100%;
   height: 100%;
-  max-width: 92%;
   overflow: visible;
 }
 .tri[data-tri="acute"]  { --shape-fill: var(--tri-a-fill); --shape-border: var(--tri-a-border); }
@@ -554,8 +604,8 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--heading);
-  stroke-width: 3;
-  stroke-dasharray: 0 8;
+  stroke-width: 2.4;
+  stroke-dasharray: 8 7;
   stroke-linecap: round;
   transition: stroke .4s ease, stroke-width .4s ease, filter .4s ease;
 }
@@ -564,7 +614,7 @@ body {
 .dim-ext {
   stroke: var(--text-primary);
   stroke-width: 2.4;
-  stroke-dasharray: 0 7;
+  stroke-dasharray: 7 6;
 }
 .dim-mark {
   opacity: 0;
@@ -578,19 +628,19 @@ body {
 
 .tri.lit-base .dim-base {
   stroke: var(--base-hl);
-  stroke-width: 4.6;
+  stroke-width: 2.4;
   filter: drop-shadow(0 0 3px var(--glow-base));
 }
 .tri.lit-height .dim-height {
   stroke: var(--height-hl);
-  stroke-width: 4.6;
+  stroke-width: 2.4;
   filter: drop-shadow(0 0 3px var(--glow-height));
 }
 
 .dim-label {
   opacity: 0;
   font-family: inherit;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: .2px;
   stroke: var(--board-highlight);
   stroke-width: 3;
@@ -612,8 +662,8 @@ body {
      highlight, so nothing competes with them */
   padding: .2em .4em;
   color: var(--heading);
-  font-weight: 800;
-  font-size: clamp(16px, 3vh, 28px);
+  font-weight: 700;
+  font-size: clamp(17.6px, 3.3vh, 30.8px);
   line-height: 1.3;
   letter-spacing: .2px;
 
@@ -657,16 +707,13 @@ body {
  * The lesson fades and then gives up hit-testing, keeping its box, so the
  * heading above and the footer below stay put while the board is blank. The
  * transition sits on the target state only: the lesson's own reveal must not
- * inherit a delay. The empty card decks no longer need a full console band
- * under them, so the footer is drawn in and the shape gets the room. */
+ * inherit a delay. */
 .board.sec3 .lesson {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transition: opacity .45s ease, visibility 0s linear .45s;
 }
-.board.sec3 .tray-area { padding: clamp(10px, 3vh, 28px) 0 clamp(12px, 3.2vh, 30px); }
-.board.sec3 .tray[data-round="2"] { inset: clamp(10px, 3vh, 28px) 0 clamp(12px, 3.2vh, 30px) 0; }
 
 /* Same anchoring as .shape: the artwork is fitted into its box and centred. */
 .quad-stage {
@@ -740,7 +787,7 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--quad-border);
-  stroke-width: 5;
+  stroke-width: 2.4;
   stroke-linecap: round;
   stroke-dasharray: 10 8;
   pointer-events: none;
@@ -750,22 +797,22 @@ body {
 .join-line.bad  { opacity: 1; stroke: var(--wrong); }
 .join-line.done { opacity: 1; stroke-dasharray: none; }
 .quad-shape.lit-base .join-line {
-  stroke: var(--base-hl);
-  stroke-width: 5.5;
+  /* named as the base: it glows, but keeps the outline's colour and weight */
+  stroke-width: 2.4;
   filter: drop-shadow(0 0 3px var(--glow-base));
 }
 
-/* The heights reuse the lesson's dotted-line language, but each lights up
+/* The heights reuse the lesson's dashed-line language, but each lights up
    in the deep shade of its own triangle -- so "green height" and "purple
    height" are things the learner can point to. */
 .quad-shape.lit-green .h-green {
   stroke: var(--quad-green-dark);
-  stroke-width: 4.6;
+  stroke-width: 2.4;
   filter: drop-shadow(0 0 3px var(--glow-green));
 }
 .quad-shape.lit-purple .h-purple {
   stroke: var(--quad-purple-dark);
-  stroke-width: 4.6;
+  stroke-width: 2.4;
   filter: drop-shadow(0 0 3px var(--glow-purple));
 }
 .quad-shape.marked-green  .mark-green,
@@ -784,7 +831,7 @@ body {
 .dot {
   fill: var(--base-hl);
   stroke: var(--heading);
-  stroke-width: 2.5;
+  stroke-width: 2;
   opacity: 0;
   transform: scale(0);
   transform-box: fill-box;
@@ -827,8 +874,8 @@ body {
 .demo-line {
   fill: none;
   stroke: var(--text-primary);
-  stroke-width: 3.5;
-  stroke-dasharray: 0 9;
+  stroke-width: 2.4;
+  stroke-dasharray: 9 8;
   stroke-linecap: round;
   opacity: .8;
 }
@@ -879,8 +926,8 @@ body {
 .quiz-sentence {
   display: inline-flex;
   align-items: stretch;
-  font-weight: 800;
-  font-size: clamp(15px, 2.7vh, 26px);
+  font-weight: 700;
+  font-size: clamp(16.5px, 3vh, 28.6px);
   line-height: 1.15;
 }
 /* "This is a": the same card as a chip, with its right edge open to the box */
@@ -924,6 +971,13 @@ body {
   outline: none;
 }
 .dd-value { white-space: nowrap; }
+/* an empty box shows, faintly, the word it is asking for */
+.dd-value:empty::before {
+  content: attr(data-hint);
+  opacity: .42;
+  font-weight: 600;
+  font-style: italic;
+}
 .dd-chev {
   flex: none;
   width: .78em;
@@ -960,8 +1014,8 @@ body {
 .dd.open .dd-menu { opacity: 1; transform: none; pointer-events: auto; }
 .dd-opt {
   font: inherit;
-  font-weight: 700;
-  font-size: clamp(14px, 2.4vh, 22px);
+  font-weight: 600;
+  font-size: clamp(15.4px, 2.6vh, 24.2px);
   color: var(--button-text);
   text-align: left;
   padding: .38em .9em;
@@ -994,8 +1048,8 @@ body {
 .quiz-note {
   margin: 0;
   color: var(--heading);
-  font-weight: 800;
-  font-size: clamp(15px, 2.6vh, 25px);
+  font-weight: 700;
+  font-size: clamp(16.5px, 2.9vh, 27.5px);
   line-height: 1.3;
   letter-spacing: .1px;
 }
@@ -1015,8 +1069,8 @@ body {
 .say-text {
   margin: 0;
   color: var(--heading);
-  font-weight: 800;
-  font-size: clamp(16px, 3vh, 28px);
+  font-weight: 700;
+  font-size: clamp(17.6px, 3.3vh, 30.8px);
   line-height: 1.3;
   letter-spacing: .1px;
   transition: opacity .36s ease;
@@ -1037,8 +1091,8 @@ body {
 .area-line {
   white-space: nowrap;
   color: var(--heading);
-  font-weight: 800;
-  font-size: clamp(14px, 2.5vh, 23px);
+  font-weight: 700;
+  font-size: clamp(15.4px, 2.8vh, 25.3px);
   line-height: 1.3;
   letter-spacing: .1px;
   opacity: 0;
@@ -1046,7 +1100,9 @@ body {
   transition: opacity .3s ease, transform .48s cubic-bezier(.2, .9, .3, 1.4), font-size .5s ease;
 }
 .area-line.show { opacity: 1; transform: none; }
-.area-line .type-wrap { display: inline-block; vertical-align: top; }
+/* no lead-in margin here: a typed line must start flush with the formula
+   lines above it, which have no wrapper of their own */
+.area-line .type-wrap { display: inline-block; vertical-align: top; margin-left: 0; }
 .area-line .type { white-space: nowrap; }
 
 /* ---------- the working, side by side ----------
@@ -1058,7 +1114,7 @@ body {
 .quad.wide,
 .para.wide,
 .rhom.wide {
-  grid-template-columns: minmax(0, 2fr) minmax(min-content, 3fr);
+  grid-template-columns: minmax(0, var(--shape-col, 2fr)) minmax(min-content, 3fr);   /* --shape-col: the shape's own width, set by script.js */
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   gap: clamp(12px, 2.4vw, 34px);
@@ -1066,6 +1122,12 @@ body {
 .quad.wide .quad-foot,
 .para.wide .para-foot,
 .rhom.wide .rhom-foot { align-self: center; justify-items: start; min-width: 0; }
+/* the parallelogram's and the rhombus's working is short: the shape and
+   the lines share the width equally, so the shape is as big as the
+   column's height allows. The quadrilateral keeps the narrower column: its
+   questions are long sentences with a drop-down on the end. */
+.para.wide,
+.rhom.wide { grid-template-columns: minmax(0, 1fr) minmax(min-content, 1fr); }
 .quad.wide .quiz-block,
 .quad.wide .say-row,
 .para.wide .para-tray,
@@ -1081,8 +1143,6 @@ body {
 .rhom .area-lines { display: none; }
 .para.wide .area-lines,
 .rhom.wide .area-lines { display: grid; }
-.para.wide .para-shape svg,
-.rhom.wide .rhom-shape svg { max-width: 100%; }
 .quad.wide .area-lines,
 .para.wide .area-lines,
 .rhom.wide .area-lines {
@@ -1094,7 +1154,7 @@ body {
 .quad.wide .area-line,
 .para.wide .area-line,
 .rhom.wide .area-line {
-  font-size: min(clamp(17px, 3.2vh, 31px), 1.65vw);
+  font-size: min(clamp(18.7px, 3.5vh, 34.1px), 1.8vw, 3.6cqw);
   line-height: 1.35;
   max-width: 100%;
   /* the column is narrower than the longest line: it may break, and only
@@ -1105,8 +1165,11 @@ body {
 .para.wide .area-line .type-wrap,
 .rhom.wide .area-line .type-wrap { max-width: 100%; }
 .quad.wide .area-line .type,
+.quad.wide .area-line .type-ghost,
 .para.wide .area-line .type,
-.rhom.wide .area-line .type { white-space: pre-wrap; }
+.para.wide .area-line .type-ghost,
+.rhom.wide .area-line .type,
+.rhom.wide .area-line .type-ghost { white-space: pre-wrap; }
 /* the working leaves before the shape comes back to the middle */
 .area-lines { transition: opacity .4s ease; }
 .area-lines.off { opacity: 0; }
@@ -1124,7 +1187,7 @@ body {
 .area-line .w.lit.w-h-purple { background: var(--quad-purple-dark); color: var(--board-highlight); }
 .area-line .w.lit.w-quad     { background: var(--quad-fill);        color: var(--rock-dark); }
 /* the parallelogram's working: b and h in the lesson's two hues, the shape
-   itself in its own amber */
+   itself in its own pink */
 .area-line .w.lit.w-b        { background: var(--base-hl);          color: var(--rock-dark); }
 .area-line .w.lit.w-h        { background: var(--height-hl);        color: var(--board-highlight); }
 .area-line .w.lit.w-para     { background: var(--para-fill);        color: var(--rock-dark); }
@@ -1144,6 +1207,10 @@ body {
    a line that runs out of room folds at an equals sign, never mid-formula */
 .f-line .expr,
 .f-line .tail { display: inline-block; white-space: nowrap; }
+/* the formula line is a table from the start: the name left, the formula
+   and then each typed step of the working on rows under the "=" */
+.f-line.eqgrid { display: grid; }
+.f-line .tail .txt.eqgrid { display: grid; }
 .f-line .dd { display: inline-block; margin: 0 .12em; }
 .f-line .tail .caret { background: var(--heading); }
 .dd-small .dd-btn {
@@ -1159,7 +1226,7 @@ body {
   display: flex;
   align-items: stretch;
   max-width: 100%;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.2;
 }
 .q-line .quiz-label { white-space: normal; flex: 1 1 auto; min-width: 0; }
@@ -1210,7 +1277,6 @@ body {
   margin: auto;
   width: 100%;
   height: 100%;
-  max-width: 78%;
   overflow: visible;
 }
 .para-shape .art { filter: drop-shadow(0 3px 5px var(--shadow-soft)); }
@@ -1232,13 +1298,13 @@ body {
   filter: drop-shadow(0 0 4px var(--pair-glow));
   transition: opacity .4s ease;
 }
-/* the side carried on past both corners: dotted, quieter than the side */
+/* the side carried on past both corners: dashed, quieter than the side */
 .ext {
   opacity: 0;
   fill: none;
   stroke: var(--pair);
-  stroke-width: 3;
-  stroke-dasharray: 0 8;
+  stroke-width: 2.4;
+  stroke-dasharray: 8 7;
   stroke-linecap: round;
   transition: opacity .4s ease;
 }
@@ -1326,8 +1392,8 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--heading);
-  stroke-width: 3;
-  stroke-dasharray: 0 8;
+  stroke-width: 2.4;
+  stroke-dasharray: 8 7;
   stroke-linecap: round;
   transition: stroke .4s ease, stroke-width .4s ease, filter .4s ease;
 }
@@ -1343,7 +1409,7 @@ body {
 .d-label {
   opacity: 0;
   font-family: inherit;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: .2px;
   fill: var(--heading);
   stroke: var(--board-highlight);
@@ -1373,7 +1439,7 @@ body {
 .para-shape.lit-b .d-base .d-label { fill: var(--base-hl); }
 .para-shape.lit-h .d-h .d-height {
   stroke: var(--height-hl);
-  stroke-width: 4.6;
+  stroke-width: 2.4;
   filter: drop-shadow(0 0 3px var(--glow-height));
 }
 .para-shape.lit-h .d-h .d-label { fill: var(--height-hl); }
@@ -1445,8 +1511,8 @@ body {
   gap: .55em;
   margin: 0;
   color: var(--heading);
-  font-weight: 800;
-  font-size: clamp(15px, 2.7vh, 26px);
+  font-weight: 700;
+  font-size: clamp(16.5px, 3vh, 28.6px);
   line-height: 1.25;
   opacity: 0;
   transform: translateY(8px);
@@ -1545,7 +1611,6 @@ body {
   margin: auto;
   width: 100%;
   height: 100%;
-  max-width: 86%;
   overflow: visible;
 }
 .rhom-shape .art { filter: drop-shadow(0 3px 5px var(--shadow-soft)); }
@@ -1555,7 +1620,7 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--rhom-border);
-  stroke-width: 3;
+  stroke-width: 2.4;
   stroke-linecap: round;
 }
 
@@ -1589,7 +1654,7 @@ body {
 .ang-lbl {
   opacity: 0;
   font-family: inherit;
-  font-weight: 800;
+  font-weight: 700;
   fill: var(--heading);
   stroke: var(--board-highlight);
   stroke-width: 3;
@@ -1721,7 +1786,7 @@ body {
 .rd {
   opacity: 0;
   fill: none;
-  stroke-width: 4;
+  stroke-width: 2.4;
   stroke-linecap: round;
   transition: opacity .5s ease, stroke-width .4s ease, filter .4s ease;
 }
@@ -1729,13 +1794,13 @@ body {
 .rd-d2 { stroke: var(--height-hl); }
 .rd-h {
   stroke: var(--height-hl);
-  stroke-width: 3.4;
-  stroke-dasharray: 0 8;
+  stroke-width: 2.4;
+  stroke-dasharray: 8 7;
 }
 .rd-lbl {
   opacity: 0;
   font-family: inherit;
-  font-weight: 800;
+  font-weight: 700;
   font-style: italic;
   fill: var(--heading);
   stroke: var(--board-highlight);
@@ -1761,7 +1826,7 @@ body {
 .rhom-shape.lit-d1 .rd-d1,
 .rhom-shape.lit-h1 .rd-h1,
 .rhom-shape.lit-h2 .rd-h2 {
-  stroke-width: 6;
+  stroke-width: 2.4;
 }
 .rhom-shape.lit-d1 .rd-d1 { filter: drop-shadow(0 0 3px var(--glow-base)); }
 .rhom-shape.lit-h1 .rd-h1,
@@ -1777,8 +1842,8 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--heading);
-  stroke-width: 2;
-  stroke-dasharray: 0 6;
+  stroke-width: 2.4;
+  stroke-dasharray: 6 5;
   stroke-linecap: round;
 }
 .rhom-stage .d-d1 .d-arrow,
@@ -1787,21 +1852,21 @@ body {
 .rhom-stage .d-d2 .d-arrow,
 .rhom-stage .d-d2 .d-head { stroke: var(--height-hl); }
 .rhom-stage .d-d2 .d-label { fill: var(--height-hl); }
-/* a height on a practice figure: dotted, in the height hue */
+/* a height on a practice figure: dashed, in the height hue */
 .rhom-stage .d-hgt .d-height { stroke: var(--height-hl); }
 .rhom-stage .d-hgt .d-mark { stroke: var(--height-hl); }
 .rhom-stage .d-hgt .d-label { fill: var(--height-hl); }
 /* the length sits on its own arrow, so the halo is wide enough to part it */
 .rhom-stage .d-label { stroke-width: 7; }
 /* a diagonal whose length is asked for */
-.rd-d2.dashed { stroke-dasharray: 9 8; }
+.rd-d2.dashed { stroke-dasharray: 9 8; stroke-width: 2.4; }
 .rd-lbl.lbl-q { font-style: normal; }
 /* a length dropped into the formula lights the diagonal it measures */
 .rhom-shape.lit-d1 .d-d1 .d-arrow,
 .rhom-shape.lit-d1 .d-d1 .d-head { stroke-width: 4; filter: drop-shadow(0 0 3px var(--glow-base)); }
 .rhom-shape.lit-d2 .d-d2 .d-arrow,
 .rhom-shape.lit-d2 .d-d2 .d-head { stroke-width: 4; filter: drop-shadow(0 0 3px var(--glow-height)); }
-.rhom-shape.lit-d2 .rd-d2 { stroke-width: 6; filter: drop-shadow(0 0 3px var(--glow-height)); }
+.rhom-shape.lit-d2 .rd-d2 { stroke-width: 2.4; filter: drop-shadow(0 0 3px var(--glow-height)); }
 
 .rhom-quiz {
   display: grid;
@@ -1826,7 +1891,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: .3em;
-  font-size: clamp(17px, 3.2vh, 31px);
+  font-size: clamp(18.7px, 3.5vh, 34.1px);
 }
 .fslot {
   --slot-border: 2.5px;
@@ -1919,7 +1984,7 @@ body {
 }
 .rhom-say .w.lit.w-rhom,
 .practice-say .w.lit.w-rhom {
-  font-weight: 900;
+  font-weight: 800;
   background: var(--tint-rhom);
   color: var(--rhom-border);
 }
@@ -1957,32 +2022,40 @@ body {
 .fig-row.off { opacity: 0; }
 
 .fig {
-  display: grid;
-  justify-items: center;
-  align-content: center;
+  /* a column: the art on top takes whatever height the name and the
+     working under it leave, so a figure is as big as its stage allows */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
   gap: clamp(6px, 1.4vh, 14px);
-  padding-bottom: clamp(6px, 1.6vh, 16px);
-  flex: 0 1 min(46%, 440px);
+  flex: 0 1 min(46%, 640px);
   min-width: 0;
   --shape-fill: var(--rhom-fill);
   --shape-border: var(--rhom-border);
   transition: opacity .35s ease;
 }
-.fig-row.single .fig { flex-basis: min(72%, 660px); }
+.fig-row.single .fig { flex-basis: min(80%, 900px); }
 .fig-art {
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
+  display: flex;
+  justify-content: center;
   transition: transform .25s ease;
 }
 .fig-art svg {
   display: block;
   width: 100%;
-  height: auto;
-  max-height: clamp(150px, 40vh, 340px);
+  height: 100%;
+  max-height: clamp(180px, 60vh, 540px);
   overflow: visible;
 }
-/* two figures side by side carry a name and a line of working each, so
-   their art is kept shorter to leave room for both */
-.fig-row:not(.single) .fig-art svg { max-height: clamp(130px, 28vh, 250px); }
+.fig-chip,
+.fig-work { flex: none; }
+/* two figures side by side carry a name and working each: a little less */
+.fig-row:not(.single) .fig-art svg { max-height: clamp(160px, 54vh, 480px); }
 .fig .art { filter: drop-shadow(0 3px 5px var(--shadow-soft)); transition: filter .4s ease; }
 .fig .shape-fill { transition: fill .5s ease; }
 /* a figure that may be tapped, and how it answers */
@@ -2006,8 +2079,8 @@ body {
   margin: 0;
   min-height: 1.4em;
   color: var(--heading);
-  font-weight: 800;
-  font-size: clamp(14px, 2.5vh, 23px);
+  font-weight: 700;
+  font-size: clamp(15.4px, 2.8vh, 25.3px);
   line-height: 1.3;
   opacity: 0;
   transform: translateY(6px);
@@ -2024,12 +2097,17 @@ body {
   --step-gap: clamp(2px, .6vh, 6px);
   --step-pad: clamp(6px, 1.2vh, 12px);
 }
-/* the box's height is reserved from the first frame in a row laid out for
-   the working, so the figure above does not shrink when the box appears */
+/* the box is folded flat until the working comes -- the figures have its
+   room until then -- and opens to its full height with a transition, so
+   the figure above shrinks smoothly rather than jumping. Both boxes of a
+   comparison open at once (script.js marks the row), so the two figures
+   shrink together and keep the one scale they are compared at. */
 .fig-row.stepped .fig-work,
 .fig-work.steps {
   min-height: calc(var(--lines, 3) * 1.3em + (var(--lines, 3) - 1) * var(--step-gap) + 2 * var(--step-pad) + 4px);
+  transition: min-height .55s cubic-bezier(.4, 0, .2, 1), opacity .4s ease, transform .4s ease, border-color .4s ease;
 }
+.fig-row.stepped:not(.working) .fig-work { min-height: 0; }
 .fig-work.steps {
   display: grid;
   justify-items: start;
@@ -2039,7 +2117,7 @@ body {
   border: 2px solid var(--wrong);
   border-radius: 14px;
   background: var(--board-highlight);
-  transition: opacity .4s ease, transform .4s ease, border-color .4s ease;
+  transition: min-height .55s cubic-bezier(.4, 0, .2, 1), opacity .4s ease, transform .4s ease, border-color .4s ease;
 }
 .fig.correct .fig-work.steps { border-color: var(--correct); }
 /* two figures with the working step by step under each: the column is laid
@@ -2065,7 +2143,7 @@ body {
 .fig-row.stepped .fig-art svg { height: 100%; }
 .fig-row.stepped .fig-chip,
 .fig-row.stepped .fig-work { flex: none; }
-.fig-row.stepped .fig-work { font-size: clamp(13px, 2.2vh, 20px); }
+.fig-row.stepped .fig-work { font-size: clamp(14.3px, 2.4vh, 22px); }
 .fig-row.stepped .fig .d-label { font-size: 21px; }
 .fig .eq-mark.on { opacity: 1; transform: none; }
 
@@ -2096,7 +2174,7 @@ body {
   width: max-content;
   max-width: min(860px, calc(100% - 160px));
   min-width: 0;
-  font-size: clamp(14px, 2.1vh, 21px);
+  font-size: clamp(15.4px, 2.3vh, 23.1px);
   text-align: center;
   /* a line that must break breaks into even halves, never a stray word */
   text-wrap: balance;
@@ -2131,8 +2209,8 @@ body {
   gap: .4em;
   max-width: min(46vw, 320px);
   font-family: inherit;
-  font-weight: 700;
-  font-size: clamp(11px, 1.55vh, 15px);
+  font-weight: 600;
+  font-size: clamp(11px, 1.5vh, 15px);
   letter-spacing: .4px;
   color: var(--text-primary);
   padding: clamp(4px, .7vh, 7px) clamp(9px, 1.1vw, 14px);
@@ -2204,7 +2282,7 @@ body {
   gap: .55em;
   width: 100%;
   font-family: inherit;
-  font-weight: 700;
+  font-weight: 600;
   font-size: clamp(11px, 1.5vh, 14px);
   text-align: left;
   color: var(--text-primary);
@@ -2271,8 +2349,8 @@ body {
   align-items: center;
   gap: .34em;
   font-family: inherit;
-  font-weight: 700;
-  font-size: clamp(11px, 1.55vh, 15px);
+  font-weight: 600;
+  font-size: clamp(11px, 1.5vh, 15px);
   letter-spacing: .5px;
   color: var(--text-primary);
   padding: clamp(4px, .7vh, 7px) clamp(9px, 1.1vw, 14px);
@@ -2334,14 +2412,15 @@ body {
 .next-btn {
   grid-area: 3 / 1;
   place-self: center;
+  margin-top: clamp(8px, 1.8vh, 18px);
   position: relative;
   z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: .3em;
   font-family: inherit;
-  font-weight: 800;
-  font-size: clamp(15px, 2.6vh, 24px);
+  font-weight: 700;
+  font-size: clamp(16.5px, 2.9vh, 26.4px);
   letter-spacing: .6px;
   color: var(--button-text);
   padding: clamp(9px, 1.7vh, 15px) clamp(20px, 3.2vw, 36px) clamp(9px, 1.7vh, 15px) clamp(26px, 3.8vw, 44px);
@@ -2409,6 +2488,9 @@ body {
   transform: translateY(12px) scale(.95);
   transition: opacity .34s ease,
               transform .34s cubic-bezier(.2, .9, .3, 1.3),
+              height .5s cubic-bezier(.4, 0, .2, 1),
+              margin-top .5s cubic-bezier(.4, 0, .2, 1),
+              border-width .5s cubic-bezier(.4, 0, .2, 1),
               background .2s ease,
               box-shadow .2s ease,
               border-color .2s ease;
@@ -2428,11 +2510,29 @@ body {
 
 .slot.filled {
   border-style: solid;
-  border-color: var(--button-border);
-  background: var(--drop-bg);
+  border-color: var(--docked-border, var(--button-border));
+  background: var(--docked-bg, var(--drop-bg));
   padding: 0;
   overflow: hidden;
   transform: none;
+}
+/* Once a card is docked, the slot and the card in it take the pale pair of
+   the shape above, so each finished column is one colour top to bottom. The
+   green pulse below runs first and outranks these for its half-second. */
+.slot[data-accept="rect"].filled {
+  --docked-bg:     var(--rect-chip-bg);
+  --docked-border: var(--rect-chip-border);
+  --docked-text:   var(--rect-chip-text);
+}
+.slot[data-accept="square"].filled {
+  --docked-bg:     var(--square-chip-bg);
+  --docked-border: var(--square-chip-border);
+  --docked-text:   var(--square-chip-text);
+}
+.slot[data-accept="triangle"].filled {
+  --docked-bg:     var(--tri-chip-bg);
+  --docked-border: var(--tri-chip-border);
+  --docked-text:   var(--tri-chip-text);
 }
 
 /* a correct dock gives the slot one short outward pulse */
@@ -2474,14 +2574,16 @@ body {
      placed by row alone would be auto-flowed into a second column beside it */
   grid-area: 3 / 1;
   position: relative;
-  padding: clamp(16px, 7vh, 68px) 0 clamp(20px, 5.4vh, 51px);
+  /* padded only as far as the chips need to stand clear of the board's
+     foot: every pixel the band does not use is the shapes' */
+  padding: clamp(10px, 3vh, 28px) 0 clamp(12px, 3.2vh, 30px);
 }
 /* Round 2's deck is laid straight over round 1's, so the band keeps the same
    height all level long. Only the deck in play takes pointer events, so the
    dormant one cannot shadow the live chips. */
 .tray[data-round="2"] {
   position: absolute;
-  inset: clamp(16px, 7vh, 68px) 0 clamp(20px, 5.4vh, 51px) 0;
+  inset: clamp(10px, 3vh, 28px) 0 clamp(12px, 3.2vh, 30px) 0;
 }
 .tray { pointer-events: none; }
 .tray.live { pointer-events: auto; }
@@ -2508,8 +2610,8 @@ body {
   background: var(--button-bg);
   box-shadow: 0 2px 6px var(--shadow-soft);
   color: var(--button-text);
-  font-weight: 800;
-  font-size: clamp(14px, 2.4vh, 23px);
+  font-weight: 700;
+  font-size: clamp(15.4px, 2.6vh, 25.3px);
   line-height: 1.15;
   letter-spacing: .2px;
   cursor: grab;
@@ -2528,7 +2630,7 @@ body {
 
 /* Area formulas run longer than a single word, so they get a step down in
    size to stay on one line inside the same chip. */
-.chip.formula { font-size: clamp(13px, 2.1vh, 20px); }
+.chip.formula { font-size: clamp(14.3px, 2.3vh, 22px); }
 .chip.formula sup { font-size: .68em; vertical-align: super; line-height: 0; }
 .chip.formula sub { font-size: .68em; vertical-align: sub; line-height: 0; }
 
@@ -2557,16 +2659,17 @@ body {
   border: 0;
   border-radius: calc(var(--slot-radius) - var(--slot-border));
   background: transparent;
+  color: var(--docked-text, var(--button-text));
   box-shadow: none;
   /* one size for every docked card, name or formula: the slot's box is fixed,
      so only the lettering grows, and the longest formula still fits one line */
-  font-size: clamp(15px, 2.75vh, 26px);
+  font-size: clamp(16.5px, 3vh, 28.6px);
   white-space: nowrap;
   cursor: default;
   opacity: 1;
   transform: none;
 }
-.slot .chip.formula { font-size: clamp(15px, 2.75vh, 26px); }
+.slot .chip.formula { font-size: clamp(16.5px, 3vh, 28.6px); }
 
 /* the clone that follows the pointer during a real drag */
 .chip.ghost {
@@ -2722,10 +2825,10 @@ body {
     0 0 34px 10px var(--glow-board-dim),
     0 10px 26px var(--shadow-soft);
   color: var(--heading);
-  font-weight: 800;
+  font-weight: 700;
   /* keyed to the height like the rest of the type, but reined in by the width
      so a portrait phone does not get a bubble wider than the screen */
-  font-size: clamp(22px, min(6vh, 4.6vw), 58px);
+  font-size: clamp(24.2px, min(6.6vh, 5.1vw), 63.8px);
   line-height: 1.2;
   letter-spacing: .2px;
   text-align: center;
@@ -2855,8 +2958,8 @@ body {
 .tap-start[hidden] { display: none; }
 .tap-start-btn {
   font-family: inherit;
-  font-weight: 800;
-  font-size: clamp(16px, 2.6vh, 26px);
+  font-weight: 700;
+  font-size: clamp(17.6px, 2.9vh, 28.6px);
   color: var(--button-text);
   padding: clamp(12px, 2vh, 20px) clamp(26px, 4vw, 48px);
   border: 3px solid var(--button-border);
@@ -2930,8 +3033,8 @@ body {
   margin: 0;
   text-align: center;
   color: var(--board-highlight);
-  font-weight: 900;
-  font-size: clamp(24px, 5.4vh, 52px);
+  font-weight: 800;
+  font-size: clamp(26.4px, 5.9vh, 57.2px);
   letter-spacing: .6px;
   text-shadow: 0 3px 0 var(--mountain), 0 10px 26px var(--scrim-strong);
 }
@@ -2957,8 +3060,8 @@ body {
 .loader-label {
   margin: 0;
   color: var(--board-bg);
-  font-weight: 700;
-  font-size: clamp(12px, 1.9vh, 17px);
+  font-weight: 600;
+  font-size: clamp(13.2px, 2.1vh, 18.7px);
   letter-spacing: 2.4px;
   text-transform: uppercase;
   text-shadow: 0 2px 10px var(--scrim-strong);
@@ -3008,8 +3111,8 @@ body {
 .loader-pct {
   margin: 0;
   color: var(--board-highlight);
-  font-weight: 800;
-  font-size: clamp(15px, 2.4vh, 22px);
+  font-weight: 700;
+  font-size: clamp(16.5px, 2.6vh, 24.2px);
   letter-spacing: 1.5px;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 2px 10px var(--scrim-strong);
@@ -3020,8 +3123,8 @@ body {
   align-self: center;
   justify-self: center;
   font-family: inherit;
-  font-weight: 800;
-  font-size: clamp(17px, 2.9vh, 30px);
+  font-weight: 700;
+  font-size: clamp(18.7px, 3.2vh, 33px);
   letter-spacing: 1px;
   color: var(--button-text);
   padding: clamp(12px, 2.1vh, 21px) clamp(34px, 6vw, 66px);
@@ -3175,7 +3278,7 @@ body {
   padding: .35em 1em;
   border: 2px solid transparent;
   border-radius: 14px;
-  font-size: clamp(14px, 2.3vh, 22px);
+  font-size: clamp(15.4px, 2.5vh, 24.2px);
   text-align: center;
   transition: background .35s ease, border-color .35s ease;
 }
@@ -3277,7 +3380,7 @@ body {
 .card-shape {
   fill: var(--shape-fill);
   stroke: var(--shape-border);
-  stroke-width: 3;
+  stroke-width: 2.4;
   stroke-linejoin: round;
   filter: drop-shadow(0 2px 3px var(--shadow-soft));
 }
@@ -3314,7 +3417,7 @@ body {
 }
 .trap-cards.match .card-slot { display: grid; flex: none; }
 .card-slot .chip {
-  font-size: clamp(13px, 2.15vh, 19px);
+  font-size: clamp(14.3px, 2.4vh, 20.9px);
   line-height: 1.1;
   white-space: normal;
   text-align: center;
@@ -3339,7 +3442,7 @@ body {
   white-space: normal;
   text-align: center;
   line-height: 1.1;
-  font-size: clamp(13px, 2.25vh, 21px);
+  font-size: clamp(14.3px, 2.5vh, 23.1px);
 }
 .trap-tray .chip.reveal:hover,
 .trap-tray .chip.reveal:focus-visible { border-color: var(--trap-border); }
@@ -3368,8 +3471,7 @@ body {
 }
 
 /* Same anchoring as .trap-shape: the artwork is fitted into its box and
-   centred. The drawing is wide -- two shapes side by side with their names
-   round them -- so it is allowed nearly the whole width. */
+   centred. */
 .rtrap-stage {
   position: relative;
   min-height: 0;
@@ -3392,7 +3494,6 @@ body {
   margin: auto;
   width: 100%;
   height: 100%;
-  max-width: 96%;
   overflow: visible;
 }
 .rtrap-shape .art {
@@ -3425,7 +3526,7 @@ body {
 .rtrap-shape.parallel .par-mark:nth-child(2) { transition-delay: .12s; }
 
 /* ---------- the copy ----------
- * The same shape in the rhombus's sky blue, so the two read as two. It
+ * The same shape in the rhombus's lavender, so the two read as two. It
  * appears over the trapezium, is lifted (a deeper shadow) while it turns,
  * and settles under the trapezium, so the side they share keeps the
  * trapezium's own colour. Later it fades to a dashed outline -- the half of
@@ -3444,7 +3545,7 @@ body {
 .rt-cline {
   fill: none;
   stroke: var(--rhom-border);
-  stroke-width: 5;
+  stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
   transition: opacity .6s ease;
@@ -3453,7 +3554,7 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--heading);
-  stroke-width: 3.5;
+  stroke-width: 2.4;
   stroke-dasharray: 12 9;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -3582,10 +3683,10 @@ body {
   gap: clamp(3px, .9vh, 9px);
   min-width: 0;
 }
-.rtrap-text { font-size: clamp(15px, 2.6vh, 24px); transition: font-size .5s ease; }
+.rtrap-text { font-size: clamp(16.5px, 2.9vh, 26.4px); transition: font-size .5s ease; }
 .rtrap-lines {
   justify-items: start;
-  font-size: clamp(14px, 2.5vh, 23px);
+  font-size: clamp(15.4px, 2.8vh, 25.3px);
   /* two lines, the second allowed the boxed line's padding and border */
   min-height: calc(2.6em + .24em + 4px + clamp(3px, .9vh, 9px));
 }
@@ -3595,12 +3696,11 @@ body {
  * the explanation takes the right half -- the bird above its lines, which
  * are allowed to wrap in the narrower column. */
 .rtrap.wide {
-  grid-template-columns: minmax(0, 10fr) minmax(min-content, 11fr);
+  grid-template-columns: minmax(0, var(--shape-col, 10fr)) minmax(min-content, 11fr);
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   gap: clamp(12px, 2.4vw, 34px);
 }
-.rtrap.wide .rtrap-shape svg { max-width: 100%; }
 .rtrap.wide .rtrap-foot {
   align-self: center;
   justify-items: start;
@@ -3618,14 +3718,14 @@ body {
   gap: clamp(8px, 2vh, 20px);
 }
 .rtrap.wide .rtrap-text {
-  font-size: min(clamp(16px, 3vh, 28px), 1.55vw);
+  font-size: min(clamp(17.6px, 3.3vh, 30.8px), 1.7vw, 3.8cqw);
   max-width: 100%;
 }
 .rtrap.wide .rtrap-text .type-wrap { display: block; }
 .rtrap.wide .rtrap-text .type { white-space: normal; }
 .rtrap.wide .rtrap-lines {
   width: 100%;
-  font-size: min(clamp(15px, 2.75vh, 26px), 1.45vw);
+  font-size: min(clamp(16.5px, 3vh, 28.6px), 1.6vw, 3.5cqw);
   gap: clamp(8px, 2vh, 20px);
   min-height: calc(2.7em + .24em + 4px + clamp(8px, 2vh, 20px));
 }
@@ -3673,8 +3773,8 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--heading);
-  stroke-width: 2;
-  stroke-dasharray: 0 6;
+  stroke-width: 2.4;
+  stroke-dasharray: 6 5;
   stroke-linecap: round;
 }
 .rtrap-stage .fig .d-label { stroke-width: 7; }
@@ -3691,7 +3791,7 @@ body {
 }
 .rtrap-stage .fig .d-group.lit.rt-len .d-label { fill: var(--base-hl); }
 .rtrap-stage .fig .d-group.lit.d-hgt .d-height {
-  stroke-width: 4.4;
+  stroke-width: 2.4;
   filter: drop-shadow(0 0 3px var(--glow-height));
 }
 .fig .par-mark.on { opacity: 1; transform: none; }
@@ -3703,7 +3803,7 @@ body {
    where, until a value covers it */
 .fslot .hint {
   font-style: italic;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-primary);
   opacity: .55;
   pointer-events: none;
@@ -3727,13 +3827,13 @@ body {
   transition: opacity .4s ease, visibility 0s linear .4s;
 }
 .rtrap-qs.show { opacity: 1; visibility: visible; transition: opacity .4s ease; }
-.rtrap-qs .q-line { font-size: clamp(14px, 2.5vh, 23px); }
+.rtrap-qs .q-line { font-size: clamp(15.4px, 2.8vh, 25.3px); }
 
 /* the working side by side: the figure keeps the left half and the steps
    the right, packed a little closer since there are five of them */
 .rtrap.wide .rtrap-lines.steps {
   gap: clamp(4px, 1.2vh, 12px);
-  font-size: clamp(14px, 2.5vh, 23px);
+  font-size: clamp(15.4px, 2.8vh, 25.3px);
   min-height: 0;
 }
 .rtrap.wide .rtrap-quiz,
@@ -3743,7 +3843,7 @@ body {
 
 /* the banner names the winner in the trapezium's own hue */
 .practice-say .w.lit.w-trap {
-  font-weight: 900;
+  font-weight: 800;
   background: var(--tint-trap);
   color: var(--trap-border);
 }
@@ -3754,26 +3854,213 @@ body {
  * their markup is indented with; only the script-filled ghost and live
  * spans keep theirs, so a "
 " written into a text is the one place a
- * line breaks. Later than the rules it overrides. */
+ * line breaks. Later than the rules it overrides.
+ *   The one exception is the working beside a shape in the two-column
+ * layouts (.quad/.para/.rhom/.rtrap.wide): its column is narrower than the
+ * longest line, so there -- and only there -- a line may break at a word,
+ * ghost and live text alike (their own rules, above); a nowrap line would
+ * run off the board. */
 .type-wrap,
 .area-line,
 .say-text,
 .quiz-note,
 .fact,
-.rtrap-text,
-.quad.wide .area-line,
-.para.wide .area-line,
-.rhom.wide .area-line,
-.rtrap.wide .rtrap-lines .area-line { white-space: nowrap; }
+.rtrap-text { white-space: nowrap; }
 .type-wrap .type-ghost,
 .type-wrap .type,
-.quad.wide .area-line .type,
-.para.wide .area-line .type,
-.rhom.wide .area-line .type,
-.rtrap.wide .rtrap-lines .area-line .type,
-.rtrap.wide .rtrap-lines .area-line .type-ghost,
 .rtrap.wide .rtrap-text .type,
 .practice-say .say-text .type,
-.trap-note .type,
-.intro.aside .bubble .type { white-space: pre; }
+.trap-note .type { white-space: pre; }
 .practice-say .say-text { max-width: none; }
+/* the one exception: Swiftee's speech bubble on the landscape wraps its
+   line inside the bubble's width, ghost and live text alike */
+.bubble .type-wrap { white-space: normal; max-width: 100%; }
+.bubble .type-wrap .type-ghost,
+.bubble .type-wrap .type,
+.intro.aside .bubble .type { white-space: pre-wrap; }
+
+/* ---------- the "=" table ----------
+ * A line of working with more than one "=" (script.js sets it up): what
+ * comes before the first "=" in the left column, and every "= ..." step on
+ * a row of its own in the right, so the equals signs stand under each
+ * other and no row carries two of them. */
+.eqgrid {
+  display: inline-grid;
+  grid-template-columns: max-content max-content;
+  justify-items: start;
+  align-items: baseline;
+  text-align: left;
+  vertical-align: top;
+}
+.eqgrid > .lhs { grid-column: 1; grid-row: 1; }
+.eqgrid > .rhs { grid-column: 2; }
+
+/* ---------- Swiftee beside its line ----------
+ * Every row under the shape where Swiftee says something -- the aside, the
+ * rhombus and trapezium banners, the practice banner, the facts -- is
+ * centred as one group, with the bird's empty rim pulled in so it stands
+ * right at the left end of the words. Later than the rows' own rules. */
+.say-row,
+.rhom-say,
+.practice-say,
+.rtrap-say,
+.facts {
+  justify-content: center;
+  gap: clamp(2px, .4vw, 6px);
+}
+.say-row > .mascot,
+.rhom-say > .mascot,
+.practice-say > .mascot,
+.rtrap-say > .mascot,
+.facts > .mascot { margin-right: calc(var(--mascot) * -.16); }
+/* the quiz sentence has the bird at its right end instead */
+.quiz-row { gap: clamp(2px, .4vw, 6px); }
+.quiz-row > .mascot { margin-left: calc(var(--mascot) * -.16); }
+/* stacked in the two-column layout, the bird sits above its lines: no pull */
+.rtrap.wide .rtrap-say > .mascot { margin-right: calc(var(--mascot) * -.06); }
+
+/* ---------- the foot's one row is the foot ----------
+ * Every occupant of a foot shares its one cell, hidden ones included, and
+ * a hidden one taller than what is showing would otherwise size the row
+ * and push the visible occupant out of the foot. The row is the foot's own
+ * height (script.js sets it from the visible occupant), and each occupant
+ * is centred in it -- a hidden, taller one simply overflows unseen. */
+.quad-foot,
+.para-foot,
+.rhom-foot,
+.trap-foot,
+.rtrap-foot { grid-template-rows: 100%; }
+
+/* ---------- the working fits the room the shape leaves ----------
+ * In the two-column layouts the shape keeps its size, so the working's
+ * column is whatever is left; it is a size container, and the lines' font
+ * is capped in its width (cqw), so a long line shrinks to fit instead of
+ * running off the board or squeezing the shape. */
+.quad.wide .quad-foot,
+.para.wide .para-foot,
+.rhom.wide .rhom-foot,
+.rtrap.wide .rtrap-foot { container-type: inline-size; }
+
+/* ---------- a line that solves itself ----------
+ * The words that change between two steps of a working sit in a holder
+ * whose width eases from the old words' to the new: the old ones lift and
+ * fade, the new ones rise into their place (script.js). */
+.morph {
+  display: inline-block;
+  position: relative;
+  vertical-align: top;
+  white-space: pre;
+  transition: width .64s cubic-bezier(.4, 0, .2, 1);
+}
+.morph .m-old,
+.morph .m-new {
+  display: inline-block;
+  white-space: pre;
+  transition: opacity .4s ease, transform .56s cubic-bezier(.2, .7, .3, 1), filter .4s ease;
+}
+.morph .m-old { position: absolute; left: 0; top: 0; }
+.morph .m-new { opacity: 0; transform: translateY(.4em); filter: blur(3px); }
+.morph.go .m-new { opacity: 1; transform: none; filter: none; }
+.morph.go .m-old { opacity: 0; transform: translateY(-.4em); filter: blur(3px); }
+.morph .wd { animation: none; opacity: 1; }
+
+/* ---------- key words in colour, not in a pill ----------
+ * A word the working names -- a base, a height, a shape -- is set in the
+ * hue of the thing it names, as plain coloured text: no background behind
+ * it, so a sentence stays clean and reads at a glance. Later than the pill
+ * rules it replaces; the darker shade of each hue is used, so the word
+ * stays legible on the board. */
+.formula-box .w, .area-line .w, .fact .w, .rhom-say .w, .practice-say .w, .rtrap-text .w {
+  /* plain inline text: no box to pad, and no box for a line to break at */
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+}
+.formula-box .w.lit, .area-line .w.lit, .fact .w.lit, .rhom-say .w.lit, .practice-say .w.lit, .rtrap-text .w.lit {
+  background: transparent;
+  box-shadow: none;
+  /* the weight stays as typed: a bolder word would outgrow the ghost that
+     sizes its line and wrap it */
+}
+.formula-box .w.lit.w-base, .area-line .w.lit.w-base, .area-line .w.lit.w-b,
+.area-line .w.lit.w-d1, .area-line .w.lit.w-ab, .rtrap-text .w.lit.w-ab      { background: transparent; color: var(--base-hl); }
+.formula-box .w.lit.w-height, .area-line .w.lit.w-height, .area-line .w.lit.w-h,
+.area-line .w.lit.w-h1, .area-line .w.lit.w-h2, .rtrap-text .w.lit.w-h       { background: transparent; color: var(--height-hl); }
+.area-line .w.lit.w-green, .area-line .w.lit.w-h-green                       { background: transparent; color: var(--quad-green-dark); }
+.area-line .w.lit.w-purple, .area-line .w.lit.w-h-purple                     { background: transparent; color: var(--quad-purple-dark); }
+.area-line .w.lit.w-quad                                                     { background: transparent; color: var(--quad-border); }
+.area-line .w.lit.w-para                                                     { background: transparent; color: var(--para-border); }
+.area-line .w.lit.w-rhom, .rhom-say .w.lit.w-rhom, .practice-say .w.lit.w-rhom { background: transparent; color: var(--rhom-border); }
+.area-line .w.lit.w-trap, .practice-say .w.lit.w-trap, .rtrap-text .w.lit.w-trap { background: transparent; color: var(--trap-border); }
+.fact .w.lit.w-par { background: transparent; color: var(--pair-a); }
+.fact .w.lit.w-eq  { background: transparent; color: var(--pair-b); }
+
+/* ---------- Swiftee's reaction, unseen ----------
+ * The answer to a drop is never written in the heading area: the bird's
+ * expression and the sound carry it. The text goes to the live region
+ * only, off screen for the screen reader. */
+.quip {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- the corners step back once the shape is divided ----------
+ * The dots mark the corners while the diagonal is being chosen and drawn;
+ * once the shape is split into its two triangles they have done their job
+ * and shrink away, so only the triangles, the base and the heights remain. */
+.quad-shape.split .dot,
+.para-shape.split .dot {
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity .3s ease, transform .4s cubic-bezier(.4, 0, .2, 1);
+}
+.quad-shape.split .corner,
+.para-shape.split .corner { pointer-events: none; }
+/* the formula row's name and its "=": a trailing space at the end of a
+   grid cell collapses, so the gap between the columns stands in for it */
+.f-line.eqgrid { column-gap: .3em; }
+/* the boxes dissolving into their numbers: a plain, slightly longer
+   cross-fade, the numbers arriving as the boxes go */
+.morph.whole .m-old { transition: opacity .55s ease; }
+.morph.whole.go .m-old { transform: none; filter: none; }
+.morph.whole .m-new { transition-delay: .12s; }
+
+/* ---------- measured sides ----------
+ * A side's name sits on a dashed two-headed arrow just outside the side it
+ * measures -- the warm-up's length, breadth, side, base and height -- and
+ * the triangle lesson's dashed base and height lines carry the same heads.
+ * Horizontal measures take the base hue, vertical ones the height hue. */
+.wdim-line,
+.wdim-head {
+  fill: none;
+  stroke: var(--heading);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.wdim-line { stroke-dasharray: 8 7; }
+.wdim-h .wdim-line, .wdim-h .wdim-head { stroke: var(--base-hl); }
+.wdim-v .wdim-line, .wdim-v .wdim-head { stroke: var(--height-hl); }
+.wdim-h .shape-label { fill: var(--base-hl); }
+.wdim-v .shape-label { fill: var(--height-hl); }
+.dim-head {
+  opacity: 0;
+  fill: none;
+  stroke: var(--heading);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: opacity .3s ease, stroke .4s ease, filter .4s ease;
+}
+.tri.marked .dim-head { opacity: 1; }
+.tri.lit-base .head-base { stroke: var(--base-hl); filter: drop-shadow(0 0 3px var(--glow-base)); }
+.tri.lit-height .head-height { stroke: var(--height-hl); filter: drop-shadow(0 0 3px var(--glow-height)); }
+/* in the warm-up the measures take the colour of the shape they belong to */
+.shape .wdim-line,
+.shape .wdim-head { stroke: var(--shape-border); }
+.shape .wdim .shape-label { fill: var(--shape-border); }

@@ -23,7 +23,7 @@
  * second wrong drop concedes and flies the formulas into place itself.
  *
  *   Round 1  name the shape     Rectangle / Square / Triangle
- *   Round 2  area of the shape  Length x Breadth / (Side)^2 / 1/2(Base x Height)
+ *   Round 2  area of the shape  Length x Breadth / (Side)^2 / 1/2 x Base x Height
  *
  * Section 2, the triangle lesson, once a Next button in the footer is pressed:
  *   1. Swiftee jumps back behind the board and the warm-up fades off it
@@ -237,18 +237,55 @@
    * so nothing reflows as the line arrives. Pacing is per character, as the
    * typewriter's was: a long word holds the line a little longer. */
   const WORD_IN_MS = 200;      /* the tail of a line: its last word finishing */
-  function wordSpans(el, text) {
-    el.textContent = '';
-    let from = 0;
-    return wordCuts(text).map(cut => {
+  /* A line laid out whole from its segments: a span per segment (classed
+     for its highlight) holding a span per word. A line with more than one
+     "=" is set as a small table -- what comes before the first "=" in a
+     left column, and every "= ..." step on a row of its own in the right --
+     so the equals signs stand under each other and no row carries two.
+     Returns, per segment, its spans (to light) and its words (to reveal,
+     each with its cut into the segment's text for the pacing). */
+  function lineSpans(root, segs) {
+    root.textContent = '';
+    root.classList.remove('eqgrid');
+    const tokens = [];
+    segs.forEach((seg, i) => {
+      let from = 0;
+      wordCuts(seg.t).forEach(cut => { tokens.push({ i: i, text: seg.t.slice(from, cut), cut: cut }); from = cut; });
+    });
+    const isEq = tok => tok.text.trim() === '=';
+    const split = tokens.filter(isEq).length > 1;
+    const parts = segs.map(seg => ({ seg: seg, els: [], words: [] }));
+    let holder = root, segEl = null, segAt = -1;
+    const place = (tok, text) => {
+      if (tok.i !== segAt || !segEl || segEl.parentNode !== holder) {
+        segEl = document.createElement('span');
+        if (segs[tok.i].w) segEl.className = 'w w-' + segs[tok.i].w;
+        holder.appendChild(segEl);
+        parts[tok.i].els.push(segEl);
+        segAt = tok.i;
+      }
       const sp = document.createElement('span');
       sp.className = 'wd';
-      setTxt(sp, text.slice(from, cut));
-      from = cut;
-      el.appendChild(sp);
-      return { el: sp, cut: cut };
+      sp.dataset.t = text;
+      setTxt(sp, text);
+      segEl.appendChild(sp);
+      parts[tok.i].words.push({ el: sp, cut: tok.cut });
+    };
+    if (!split) {
+      tokens.forEach(tok => place(tok, tok.text));
+      return parts;
+    }
+    root.classList.add('eqgrid');
+    const cell = cls => { const el = document.createElement('span'); el.className = cls; root.appendChild(el); return el; };
+    holder = cell('lhs');
+    tokens.forEach(tok => {
+      if (isEq(tok)) { holder = cell('rhs'); place(tok, tok.text.replace(/^\s+/, '')); }
+      else place(tok, tok.text);
     });
+    return parts;
   }
+  /* a plain text is a line of one segment */
+  const wordSpans = (el, text) => lineSpans(el, [{ t: text }])[0].words;
   /* show the words from `due`, each when its first character would have
      been typed; `alive` may say the line has been taken over. Resolves to
      the time the line is complete. */
@@ -264,6 +301,89 @@
     return due + from * perChar;
   }
   const wordsSettle = () => wait(REDUCED ? 0 : WORD_IN_MS);
+
+  /* ---------- a line that solves itself ----------
+   * A numerical working is one line that simplifies in place: "½ × 10 × 6"
+   * becomes "5 × 6" becomes "30 sq. cm". Between steps only the words that
+   * change cross-fade into their replacement while the line's width eases
+   * with them, so the eye follows exactly what is being worked out. */
+  const MORPH_MS = 640;
+  function tokensOf(text) {
+    let from = 0;
+    return wordCuts(text).map(cut => { const t = text.slice(from, cut); from = cut; return t; });
+  }
+  async function morphTo(el, text, whole) {
+    let wds = whole ? [] : Array.from(el.querySelectorAll('.wd'));
+    const A = wds.map(w => (w.dataset.t || '').trim());
+    const B = tokensOf(text), Bt = B.map(t => t.trim());
+    let p = 0;
+    while (p < A.length && p < Bt.length && A[p] === Bt[p]) p++;
+    let q = 0;
+    while (q < A.length - p && q < Bt.length - p && A[A.length - 1 - q] === Bt[Bt.length - 1 - q]) q++;
+    /* `whole`: everything in the line -- drop-down boxes and all -- becomes the text */
+    let oldMid = whole ? Array.from(el.children) : wds.slice(p, A.length - q);
+    const newMid = whole ? B : B.slice(p, B.length - q);
+    if (!oldMid.length && !newMid.length) return;
+    /* the words that change must sit side by side in one parent: a
+       highlight wrapper they sit in is dissolved first, and only those */
+    const parents = new Set(oldMid.map(w => w.parentNode));
+    if (parents.size > 1 || (oldMid.length && oldMid[0].parentNode !== el)) {
+      parents.forEach(w => { if (w === el) return; while (w.firstChild) w.parentNode.insertBefore(w.firstChild, w); w.remove(); });
+      wds = Array.from(el.querySelectorAll('.wd'));
+      oldMid = wds.slice(p, A.length - q);
+    }
+    const holder = document.createElement('span');
+    holder.className = 'morph' + (whole ? ' whole' : '');
+    const at = oldMid.length ? oldMid[0] : (wds[p] || null);
+    if (at) at.parentNode.insertBefore(holder, at); else el.appendChild(holder);
+    const oldLayer = document.createElement('span');
+    oldLayer.className = 'm-old';
+    oldMid.forEach(w => oldLayer.appendChild(w));
+    const newLayer = document.createElement('span');
+    newLayer.className = 'm-new';
+    const fresh = newMid.map(t => {
+      const sp = document.createElement('span');
+      sp.className = 'wd in';
+      sp.dataset.t = t;
+      setTxt(sp, t);
+      newLayer.appendChild(sp);
+      return sp;
+    });
+    holder.append(oldLayer, newLayer);
+    const w1 = oldLayer.getBoundingClientRect().width, w2 = newLayer.getBoundingClientRect().width;
+    holder.style.width = w1 + 'px';
+    void holder.offsetWidth;
+    holder.classList.add('go');
+    holder.style.width = w2 + 'px';
+    sfx('click', .25);
+    await wait(REDUCED ? 60 : MORPH_MS);
+    fresh.forEach(sp => holder.parentNode.insertBefore(sp, holder));
+    holder.remove();
+  }
+  /* steps[0] is laid out and eased in like any line (a string, or segments
+     with highlights); every later step is a string the line becomes */
+  async function solveLine(el, steps, perChar, onWord) {
+    const first = steps[0];
+    const parts = lineSpans(el, typeof first === 'string' ? [{ t: first }] : first);
+    let due = performance.now();
+    for (const part of parts) {
+      due = await revealWords(part.words, due, perChar);
+      if (part.seg.w) {
+        const left = due - performance.now();
+        if (left > 0) await wait(left);
+        part.els.forEach(x => x.classList.add('lit'));
+        if (onWord) onWord(part.seg.w);
+        due += AREA_PAUSE;
+      }
+    }
+    const left = due - performance.now();
+    if (left > 0) await wait(left);
+    for (let i = 1; i < steps.length; i++) {
+      await wait(REDUCED ? 200 : 1000);
+      await morphTo(el, steps[i]);
+    }
+    await wordsSettle();
+  }
 
   /* ---------- pieces ---------- */
   const board       = document.getElementById('board');
@@ -515,11 +635,14 @@
   }
   function roomHeight(room) {
     if (room.classList.contains('prompt-row')) {
-      /* the heading is Swiftee's unless it is standing somewhere else on
-         the board, and it stays open while a line is showing */
+      /* open while a line is showing, while Swiftee stands in it, or while
+         the bird is mid-jump (the hopper carries it); closed once the bird
+         has gone -- down to a foot, or off behind the board */
       const txt = room.querySelector('.txt');
-      const away = board.querySelector('.mascot.in:not(#mascot)');
-      return (txt && txt.childNodes.length) || !away ? room.firstElementChild.offsetHeight : 0;
+      const hop = document.getElementById('hopper');   /* declared further down: looked up, not closed over */
+      const bird = document.getElementById('mascot');
+      const here = (bird && bird.classList.contains('in')) || (hop && hop.classList.contains('on'));
+      return (txt && txt.childNodes.length) || here ? room.firstElementChild.offsetHeight : 0;
     }
     let h = 0;
     for (const child of room.children) if (roomShown(child)) h = Math.max(h, child.offsetHeight);
@@ -538,6 +661,9 @@
   const askRooms = () => { if (!roomsDue) roomsDue = requestAnimationFrame(fitRooms); };
   if (rooms.length) {
     new MutationObserver(askRooms).observe(board, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden'] });
+    /* the hopper carries the bird on and off the board from outside it */
+    const hopEl = document.getElementById('hopper');
+    if (hopEl) new MutationObserver(askRooms).observe(hopEl, { attributes: true, attributeFilter: ['class'] });
     board.addEventListener('transitionend', askRooms);
     window.addEventListener('resize', askRooms);
     fitRooms();
@@ -616,6 +742,7 @@
    *   - Swiftee is out of the flow entirely (CSS)
    */
   function lockTrayHeight() {
+    if (board.classList.contains('sec2')) return;   /* the decks are gone: the band is the shapes' */
     const home = allChips.filter(c => c.parentElement === trays[1] || c.parentElement === trays[2]);
     if (!home.length) return;                 /* nothing left to measure from */
     const cs = getComputedStyle(trayArea);
@@ -795,8 +922,14 @@
   const skipWaiters = new Set();
 
   function waitOrSkip(register) {
-    return new Promise(function (resolve) {
-      const done = function () { skipWaiters.delete(done); resolve(); };
+    return new Promise(function (resolve, reject) {
+      const mine = runToken;
+      /* released by a teardown rather than by what it was waiting for: the
+         scene is gone, so the frame unwinds instead of running on */
+      const done = function () {
+        skipWaiters.delete(done);
+        if (mine !== runToken) reject(CANCELLED); else resolve();
+      };
       skipWaiters.add(done);
       register(done);
     });
@@ -840,12 +973,30 @@
   const sceneWaiters = new Set();
 
   function waitForScene(register) {
-    return new Promise(function (resolve) {
-      const done = function () { sceneWaiters.delete(done); resolve(); };
+    return new Promise(function (resolve, reject) {
+      const mine = runToken;
+      /* Resolving on a teardown would let the frame carry on -- past its
+         Next and into the scene after, alongside the replay. Rejecting
+         unwinds it instead, the way a retired wait() does. */
+      const done = function () {
+        sceneWaiters.delete(done);
+        if (mine !== runToken) reject(CANCELLED); else resolve();
+      };
       sceneWaiters.add(done);
       register(done);
     });
   }
+
+  /* An animation's end, for a scene: a replay cancels the animation, which
+     rejects .finished; that is caught here and the token decides what it
+     meant. A retired scene throws CANCELLED and unwinds; a live one, whose
+     animation was cancelled for its own reasons, carries on. */
+  async function finished(a) {
+    const mine = runToken;
+    try { await a.finished; } catch (e) { /* cancelled: see below */ }
+    if (mine !== runToken) throw CANCELLED;
+  }
+  const retired = function (mine) { if (mine !== runToken) throw CANCELLED; };
 
   /* A round waiting on the learner would stall a skip forever, so the answers
      go in for them -- no coaching, no confetti out of the cards, no chime. */
@@ -950,13 +1101,26 @@
     skipFills.clear();
     releaseWaiters();
     stopVoice();
+    if (nextCtl) { nextCtl.abort(); nextCtl = null; }
 
-    /* drop every animation still holding a forwards fill */
-    [document.querySelector('.stage'), intro].forEach(function (root) {
+    /* drop every animation still holding a forwards fill -- the two
+       stand-ins that carry the bird between spots included, since they sit
+       outside the stage and a hop cut short would leave one of them up */
+    [document.querySelector('.stage'), intro, hopper, flyer].forEach(function (root) {
       if (!root || !root.getAnimations) return;
       root.getAnimations({ subtree: true }).forEach(function (a) {
         try { a.cancel(); } catch (e) { /* already done with */ }
       });
+    });
+    hopper.classList.remove('on');
+    flyer.classList.remove('on');
+
+    /* an expression held open for a line that will not finish */
+    swiftee.release();
+
+    /* a card mid-drag rides on a copy pinned to the body */
+    Array.from(document.body.children).forEach(function (el) {
+      if (el.classList && el.classList.contains('chip') && el.classList.contains('ghost')) el.remove();
     });
 
     SCENE_ROOTS.forEach(function (root) {
@@ -1014,12 +1178,20 @@
 
   /* Which stage is on the board: which of the scene containers are up, and
      the board's own class, which is what decides between them. */
+  const MASCOT_SPOTS = Array.from(document.querySelectorAll('.mascot'));
+
   function stageNow() {
     return {
-      board: board.getAttribute('class') || '',
+      /* less the cheer: a round's celebration is still on the board when a
+         skip carries the mission into the next scene, and a replay of that
+         scene should not bring it back to stay */
+      board: (board.getAttribute('class') || '').split(/\s+/).filter(function (c) { return c && c !== 'cheer'; }).join(' '),
       roots: SCENE_ROOTS.map(function (r) {
         return { cls: r.getAttribute('class') || '', aria: r.getAttribute('aria-hidden') };
-      })
+      }),
+      /* which spot the bird stood on as the scene opened: a scene that finds
+         it there hops it about exactly as it did the first time */
+      birds: MASCOT_SPOTS.filter(function (m) { return m.classList.contains('in'); }).map(function (m) { return m.id; })
     };
   }
 
@@ -1031,6 +1203,9 @@
       if (was.aria === null) r.removeAttribute('aria-hidden');
       else r.setAttribute('aria-hidden', was.aria);
     });
+    if (stage.birds) {
+      MASCOT_SPOTS.forEach(function (m) { m.classList.toggle('in', stage.birds.indexOf(m.id) !== -1); });
+    }
   }
 
   /* Re-enter a scene on the stage it originally opened on. Both tools that go
@@ -1050,6 +1225,15 @@
     /* one turn of the loop, so the retired chain has rejected and unwound
        before the fresh one starts writing to the same board */
     await new Promise(function (r) { setTimeout(r, 0); });
+
+    /* Unwinding is itself code: a frame let go of runs on to its next await,
+       and whatever it started on the way -- a wait, an animation -- was
+       stamped with the token the fresh scene was about to run under. Retire
+       once more, so those belong to nobody either, and put the stage back a
+       second time for anything they wrote while they had the chance. */
+    runToken++;
+    clearStage();
+    restoreStage(stage);
 
     replaying = false;
     noteScene(entry, stage);
@@ -1229,24 +1413,20 @@
 
     /* a replay cancels whatever a scene left running, and a cancelled
        animation rejects; the scene is being torn down either way */
-    try {
-      await outline.animate(
-        [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
-        { duration: 760, easing: 'cubic-bezier(.5,0,.2,1)', fill: 'forwards' }
-      ).finished;
-    } catch (e) { return; }
+    await finished(outline.animate(
+      [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
+      { duration: 760, easing: 'cubic-bezier(.5,0,.2,1)', fill: 'forwards' }
+    ));
     outline.style.strokeDashoffset = 0;
 
     /* the clip rect slides up from below the artwork, so the colour reads as
        rising into the outline rather than simply switching on */
     const h = (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.height) || 200;
     fill.style.opacity = 1;
-    try {
-      await wipe.animate(
-        [{ transform: 'translateY(' + h + 'px)' }, { transform: 'translateY(0px)' }],
-        { duration: 560, easing: 'cubic-bezier(.35,0,.25,1)', fill: 'forwards' }
-      ).finished;
-    } catch (e) { /* cancelled by a replay */ }
+    await finished(wipe.animate(
+      [{ transform: 'translateY(' + h + 'px)' }, { transform: 'translateY(0px)' }],
+      { duration: 560, easing: 'cubic-bezier(.35,0,.25,1)', fill: 'forwards' }
+    ));
   }
 
   /* ---------- typewriter ----------
@@ -1274,10 +1454,10 @@
   const promptLine = text => wordSpans(promptGhost, text);
 
   /* ---------- feedback in the heading ----------
-   * Swiftee's reaction to a drop, typed where the instruction was: a quick
-   * "That's Correct" or "Try again", and "Well Done!" when the last block
-   * lands. A drop that comes in while an earlier line is still typing takes
-   * the heading over from it, and a new briefing does the same. */
+   * Swiftee's reaction to a drop is not written anywhere on the board: the
+   * heading keeps its instruction, and the answer is acknowledged by the
+   * bird's own expression, the sound, and the chip's landing. The texts are
+   * kept for the screen reader, which is told them through the live tag. */
   const FEEDBACK = {
     right: 'That’s Correct',
     wrong: 'Try again',
@@ -1286,12 +1466,11 @@
   const FEEDBACK_MS = 45;            /* per character: snappier than a briefing */
   let feedbackGen = 0;
 
+  const quip = document.getElementById('quip');
   async function feedback(text) {
-    const gen = ++feedbackGen;
-    promptLine(text);
+    feedbackGen++;
     caret.hidden = true;
-    const words = wordSpans(promptTxt, text);
-    await revealWords(words, performance.now(), FEEDBACK_MS, () => gen === feedbackGen);
+    quip.textContent = text;          /* announced, never shown */
   }
 
   /* ---------- the ghost chip that demonstrates the drag ---------- */
@@ -1331,11 +1510,13 @@
       signal.anim = anim;
       const glow = setTimeout(() => slot.classList.add('over'), 1450);
 
+      const mine = runToken;
       try { await anim.finished; } catch (e) { /* cancelled */ }
       clearTimeout(glow);
       if (!slot.classList.contains('filled')) slot.classList.remove('over');
       ghost.remove();
       signal.anim = null;
+      retired(mine);
     }
 
     return (async () => {
@@ -1354,6 +1535,7 @@
    * back to empty, typed out again for the new round, and then left alone. */
   async function briefing(spec) {
     const vo = spec.audio;
+    const mine = runToken;
 
     feedbackGen++;                  /* a feedback line still typing stops here */
     promptTxt.textContent = '';
@@ -1362,6 +1544,7 @@
     await wait(320);
 
     let length = await durationOf(vo);
+    retired(mine);
     let playing = false;
 
     /* A skip leaves the clip unplayed rather than starting it only to cut it
@@ -1383,6 +1566,7 @@
         if (!length) length = await durationOf(vo);
       }
     }
+    retired(mine);                  /* the clip's promises are the browser's, not this scene's */
 
     /* Swiftee talks along with the narrator and stops when it does */
     swiftee.hold('talking');
@@ -1453,9 +1637,14 @@
     skyConfetti(last ? 150 : 100, last ? 3800 : 2900);
     sfx('confetti', .85);
 
-    await wait(last ? 2200 : 1700);
+    if (!last) { await wait(1700); return startRound(round + 1); }
 
-    if (!last) return startRound(round + 1);
+    /* the last round, all formulas home: Swiftee takes its bow, then the
+       sides are named on every shape (the bird steps off, the heading
+       clears), and only then the Next button */
+    await wait(1500);
+    if (!shapes[0].classList.contains('labelled')) showLabels();
+    await wait(1600);
 
     /* the warm-up is over: hand the learner the Next button, then the lesson */
     await showNext();
@@ -1464,9 +1653,15 @@
 
   /* ---------- round 2 coaching ---------- */
 
-  /* first wrong drop: name the sides of every shape */
+  /* first wrong drop: name the sides of every shape. The heading gives way
+     to them -- its line goes and Swiftee hops back behind the board -- so
+     the row closes and the labelled shapes take the room. */
   function showLabels() {
     shapes.forEach((s, i) => setTimeout(() => s.classList.add('labelled'), i * 130));
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    if (boardMascot.classList.contains('in')) mascotJumpOut();
   }
 
   /* second wrong drop: stop asking, and fly each formula home */
@@ -1492,7 +1687,8 @@
   /* the chip lifts out of the console and settles into the slot, growing or
      shrinking into the slot's exact box on the way */
   function flyIntoSlot(chip, slot) {
-    return new Promise(resolve => {
+    const mine = runToken;
+    return new Promise((resolve, reject) => {
       const from = chip.getBoundingClientRect();
       const to   = slot.getBoundingClientRect();
       if (!from.width || !to.width || REDUCED) {
@@ -1537,7 +1733,13 @@
         resolve();
       };
       a.onfinish = land;
-      a.oncancel = land;
+      a.oncancel = () => {
+        if (mine === runToken) return land();
+        /* a replay: the copy goes, and the card is left where the teardown put it */
+        ghost.remove();
+        slot.classList.remove('over');
+        reject(CANCELLED);
+      };
     });
   }
 
@@ -1952,7 +2154,7 @@
       { transform: 'translate(0, 0) scale(1)',      opacity: 1,  offset: 1 }
     ];
     const a = introMascot.animate(kf, { duration: 820, fill: 'forwards' });
-    return a.finished.then(() => {
+    return finished(a).then(() => {
       /* bake the resting pose into the element so the next animation starts
          from a clean transform instead of stacking on this one. Written out
          rather than committed from the animation: commitStyles() folds in
@@ -1962,12 +2164,9 @@
       introMascot.style.transform = 'translate(0px, 0px)';
       introMascot.style.opacity = '1';
       a.cancel();
-    }, function () {
-      /* cancelled by a replay or a jump: the scene is being taken down, so
-         there is no resting pose left to bake in. Every other animation in the
-         file tolerates this the same way -- and without a handler here the
-         rejection has nowhere to go. */
     });
+    /* cancelled by a replay or a jump: finished() throws CANCELLED and the
+       scene unwinds through it, so there is no resting pose to bake in */
   }
 
   /* Type one line into the bubble. The bubble is sized to the whole line
@@ -2047,7 +2246,7 @@
       { transform: 'translate(0, -30%) scale(1)', offset: .52, easing: 'cubic-bezier(.45, 0, .85, .5)' },
       { transform: 'translate(0, ' + drop + 'px) scale(1)' }
     ], { duration: 980, fill: 'forwards' });
-    try { await a.finished; } catch (e) { return; /* cancelled */ }
+    await finished(a);
     /* The drop is baked into the element and the animation let go. Left
        filling forwards on the hidden intro, the browser stops reporting it,
        so the aside's tidy-up could not cancel it -- and the bird would stand
@@ -2064,7 +2263,7 @@
       { transform: 'translateY(26px) scale(.955)', opacity: 0 },
       { transform: 'none', opacity: 1 }
     ], { duration: 640, easing: 'cubic-bezier(.2, .9, .3, 1.15)' });
-    try { await a.finished; } catch (e) { /* cancelled */ }
+    await finished(a);
   }
 
   /* Swiftee arrives on the board by jumping up from behind it and dropping
@@ -2092,7 +2291,7 @@
       [{ transform: 'translateY(0)' }, { transform: 'translateY(' + (apexTop - hideTop) + 'px)' }],
       { duration: 380, easing: 'cubic-bezier(.2, .6, .35, 1)', fill: 'forwards' }
     );
-    try { await rise.finished; } catch (e) {}
+    await finished(rise);
 
     /* ...hand over, and drop onto the spot with a little squash */
     spot.classList.add('in');
@@ -2103,7 +2302,7 @@
       { transform: 'translateY(0) scale(1.06, .92)', offset: .8, easing: 'ease-out' },
       { transform: 'none' }
     ], { duration: Math.min(760, 320 + (m.top - apexTop) * .5) });   /* longer drop, longer fall */
-    try { await fall.finished; } catch (e) {}
+    await finished(fall);
   }
 
   /* The way back: the in-board sprite crouches and springs up to the apex
@@ -2112,6 +2311,7 @@
      shared clock as the jump in, so the cut is just as invisible. */
   async function mascotJumpOut(source) {
     const spot = source || boardMascot;
+    if (!spot.classList.contains('in')) return;      /* already gone */
     const m = spot.getBoundingClientRect();
     const b = board.getBoundingClientRect();
     if (!m.width || REDUCED) { spot.classList.remove('in'); return; }
@@ -2124,7 +2324,7 @@
       { transform: 'translateY(6%) scale(1.06, .92)', offset: .24, easing: 'cubic-bezier(.2, .6, .35, 1)' },
       { transform: 'translateY(' + (apexTop - m.top) + 'px)' }
     ], { duration: 560, fill: 'forwards' });
-    try { await rise.finished; } catch (e) {}
+    await finished(rise);
 
     Object.assign(hopper.style, {
       left: m.left + 'px', top: apexTop + 'px', width: m.width + 'px', height: m.height + 'px'
@@ -2136,7 +2336,7 @@
       [{ transform: 'translateY(0)' }, { transform: 'translateY(' + (hideTop - apexTop) + 'px)' }],
       { duration: 360, easing: 'cubic-bezier(.45, 0, .85, .5)', fill: 'forwards' }
     );
-    try { await fall.finished; } catch (e) {}
+    await finished(fall);
     hopper.classList.remove('on');
     fall.cancel();
   }
@@ -2151,11 +2351,16 @@
 
   /* the board's Next unless told otherwise; a scene with no board on screen
      passes the viewport-anchored one */
+  let nextCtl = null;
   function showNext(which) {
     const b = which || nextBtn;
     /* the scene is over: a skip in flight stops here, and Skip stands down
        until the next scene opens */
     sceneEnd();
+    /* the click handler belongs to this scene: a teardown takes it off, so a
+       replay's own Next is not also answered by the one it replaced */
+    if (nextCtl) nextCtl.abort();
+    const ctl = nextCtl = new AbortController();
     return waitForScene(resolve => {
       b.hidden = false;
       void b.offsetHeight;
@@ -2175,7 +2380,7 @@
           b.classList.remove('out');
         }, 320);
         resolve();
-      }, { once: true });
+      }, { once: true, signal: ctl.signal });
     });
   }
 
@@ -2192,11 +2397,10 @@
   /* The formula in pieces: the two words the lesson is about are their own
      spans, so each can light up the moment it has finished typing. */
   const FORMULA = [
-    { t: 'Area = ½(' },
+    { t: 'Area = ½ × ' },
     { t: 'Base',   w: 'base' },
     { t: ' × ' },
-    { t: 'Height', w: 'height' },
-    { t: ')' }
+    { t: 'Height', w: 'height' }
   ];
   const FORMULA_MS    = 110;      /* per character: slower than a briefing, on purpose */
   const FORMULA_PAUSE = 720;      /* a beat after each key word, for the highlight to land */
@@ -2212,7 +2416,7 @@
   }
   /* the ghost carries the whole formula from the start, so the box is sized
      before the first character lands */
-  formulaSpans(formulaGhost).forEach((el, i) => { wordSpans(el, FORMULA[i].t); });
+  lineSpans(formulaGhost, FORMULA);
 
   /* The first triangle is drawn in the middle of the empty board, so before
      it draws it is carried from its own cell to the centre of the row... */
@@ -2235,12 +2439,12 @@
       [{ transform: from }, { transform: 'none' }],
       { duration: 760, easing: 'cubic-bezier(.4, 0, .2, 1)' }
     );
-    try { await a.finished; } catch (e) {}
+    await finished(a);
   }
 
-  /* Grow a dotted line out from its first point. The dash pattern is anchored
-     at (x1, y1), so moving the far end reveals the dots one by one instead of
-     scrolling them; a dash-offset draw would not work on a dotted stroke. */
+  /* Grow a dashed line out from its first point. The dash pattern is anchored
+     at (x1, y1), so moving the far end reveals the dashes one by one instead
+     of scrolling them; a dash-offset draw would not work on a dashed stroke. */
   function growLine(line, ms) {
     if (!line) return Promise.resolve();
     const x1 = +line.getAttribute('x1'), y1 = +line.getAttribute('y1');
@@ -2255,9 +2459,11 @@
 
     line.setAttribute('x2', x1); line.setAttribute('y2', y1);
     line.style.opacity = 1;
-    return new Promise(resolve => {
+    const mine = runToken;
+    return new Promise((resolve, reject) => {
       const t0 = performance.now();
       (function step(t) {
+        if (mine !== runToken) return reject(CANCELLED);     /* a replay took the scene down */
         const p = fastForward ? 1 : Math.min(1, (t - t0) / ms);
         const e = 1 - Math.pow(1 - p, 3);                 /* ease-out cubic */
         line.setAttribute('x2', x1 + (X2 - x1) * e);
@@ -2291,22 +2497,20 @@
      word completes, it is highlighted, the lines it names light up, and the
      typing rests for a beat before going on. */
   async function showFormula() {
-    const spans = formulaSpans(formulaTxt);
+    const parts = lineSpans(formulaTxt, FORMULA);
     formulaCaret.hidden = true;
     formulaBox.classList.add('show');
     sfx('click', .35);
     await wait(REDUCED ? 200 : 560);
 
-    const words = FORMULA.map((seg, i) => wordSpans(spans[i], seg.t));
     let due = performance.now();
-    for (let i = 0; i < FORMULA.length; i++) {
-      const seg = FORMULA[i];
-      due = await revealWords(words[i], due, FORMULA_MS);
-      if (seg.w) {
+    for (const part of parts) {
+      due = await revealWords(part.words, due, FORMULA_MS);
+      if (part.seg.w) {
         const left = due - performance.now();
         if (left > 0) await wait(left);
-        spans[i].classList.add('lit');
-        lightDims(seg.w);
+        part.els.forEach(el => el.classList.add('lit'));
+        lightDims(part.seg.w);
         due += FORMULA_PAUSE;
       }
     }
@@ -2327,6 +2531,9 @@
     promptTxt.textContent = '';
     caret.hidden = true;
     board.classList.add('sec2');
+    /* the card decks are gone with the warm-up: the console band no longer
+       needs the height of a row of chips, so the triangles get the room */
+    trayArea.style.minHeight = '';
     await out;
     await wait(520);
 
@@ -2425,12 +2632,16 @@
   /* section 3: the first quadrilateral, cut left to right... */
   const SPEC_A = {
     pts: PTS_A, diag: ['L', 'R'], base: 'base',
-    tris: [{ apex: 'T', color: 'purple', label: 'height' }, { apex: 'B', color: 'green', label: 'height' }]
+    tris: [{ apex: 'T', color: 'purple', label: 'height' }, { apex: 'B', color: 'green', label: 'height' }],
+    /* the short names the labels take after their two-second look */
+    short: { base: 'b', h: ['h₁', 'h₂'] }
   };
   /* ...and then the same one, cut top to bottom */
   const SPEC_A2 = {
     pts: PTS_A, diag: ['T', 'B'], base: 'base',
-    tris: [{ apex: 'L', color: 'green', label: 'height' }, { apex: 'R', color: 'purple', label: 'height' }]
+    tris: [{ apex: 'L', color: 'green', label: 'height' }, { apex: 'R', color: 'purple', label: 'height' }],
+    /* the second cut carries the numbering on from the first */
+    short: { base: 'b', h: ['h₃', 'h₄'] }
   };
   /* section 4: a different one, with measurements */
   const SPEC_B = {
@@ -2473,18 +2684,20 @@
      names a part of the drawing is its own span, so it can light up -- and
      light the part it names -- the moment it has finished typing. */
   const LINES_A = [
-    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' = ½ × ' }, { t: 'base', w: 'base' }, { t: ' × ' }, { t: 'height', w: 'h-purple' }],
-    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 'green' },  { t: ' = ½ × ' }, { t: 'base', w: 'base' }, { t: ' × ' }, { t: 'height', w: 'h-green' }],
+    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' = ½ × ' }, { t: 'b', w: 'base' }, { t: ' × ' }, { t: 'h₁', w: 'h-purple' }],
+    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 'green' },  { t: ' = ½ × ' }, { t: 'b', w: 'base' }, { t: ' × ' }, { t: 'h₂', w: 'h-green' }],
     /* the no-break spaces keep "= Area of" and "+ Area of" whole, so the long
        line wraps before an operator rather than leaving one dangling */
     [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' + Area of ' }, { t: 'Triangle 2', w: 'green' }]
   ];
-  const SUM_A2 = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = Area of ' }, { t: 'Green Triangle', w: 'green' }, { t: ' + Area of ' }, { t: 'Purple Triangle', w: 'purple' }];
+  const SUM_A2 = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = Area of ' }, { t: 'Orange Triangle', w: 'green' }, { t: ' + Area of ' }, { t: 'Purple Triangle', w: 'purple' }];
   const SUM_B  = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ' }, { t: '30 sq. cm', w: 'green' }, { t: ' + ' }, { t: '25 sq. cm', w: 'purple' }, { t: ' = 55 sq. cm' }];
 
   /* what the drop-downs in a formula offer: the parts of the drawing by name
      in section 3, and by measurement in section 4 */
-  const NOTATION = [{ v: 'base', t: 'Base' }, { v: 'h-green', t: 'Green height' }, { v: 'h-purple', t: 'Purple height' }];
+  /* (the parts carry the short names the shape has shown by then: the
+     orange triangle is the first of that cut, so its height is h₃) */
+  const NOTATION = [{ v: 'base', t: 'b' }, { v: 'h-green', t: 'h₃' }, { v: 'h-purple', t: 'h₄' }];
   const MEASURES = [{ v: '10', t: '10 cm' }, { v: '6', t: '6 cm' }, { v: '5', t: '5 cm' }];
 
   const AREA_MS    = 64;       /* per character */
@@ -2569,7 +2782,7 @@
 
     /* the corners; the hit circle is bigger than the dot it serves */
     quadDots.innerHTML = ORDER.map(k =>
-      '<g class="corner" data-corner="' + k + '"><circle class="dot" cx="' + P[k].x + '" cy="' + P[k].y + '" r="7" />' +
+      '<g class="corner" data-corner="' + k + '"><circle class="dot" cx="' + P[k].x + '" cy="' + P[k].y + '" r="4.5" />' +
       '<circle class="dot-hit" cx="' + P[k].x + '" cy="' + P[k].y + '" r="22" /></g>').join('');
     corners = Array.from(quadDots.querySelectorAll('.corner'));
     corners.forEach(c => c.addEventListener('pointerdown', onCornerDown));
@@ -2624,18 +2837,17 @@
   /* the formula typewriter, generalised: a line in segments, with a pause
      and a callback each time a key word completes */
   async function typeSegments(txt, blink, segs, perChar, pause, onWord) {
-    const spans = segSpans(txt, segs);
     blink.hidden = true;
     /* every word of every segment is in place before the first shows */
-    const words = segs.map((seg, i) => wordSpans(spans[i], seg.t));
+    const parts = lineSpans(txt, segs);
     let due = performance.now();
-    for (let i = 0; i < segs.length; i++) {
-      due = await revealWords(words[i], due, perChar);
-      if (segs[i].w) {
+    for (const part of parts) {
+      due = await revealWords(part.words, due, perChar);
+      if (part.seg.w) {
         const left = due - performance.now();
         if (left > 0) await wait(left);
-        spans[i].classList.add('lit');
-        if (onWord) onWord(segs[i].w);
+        part.els.forEach(el => el.classList.add('lit'));
+        if (onWord) onWord(part.seg.w);
         due += pause;
       }
     }
@@ -2650,10 +2862,12 @@
   const easeInOut = p => (p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
   function tween(ms, step, ease) {
     const fn = ease || easeOut;
+    const mine = runToken;
     if (REDUCED || fastForward) { step(1); return wait(0); }
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       const t0 = performance.now();
       (function f(t) {
+        if (mine !== runToken) return reject(CANCELLED);     /* a replay took the scene down */
         const p = fastForward ? 1 : Math.min(1, (t - t0) / ms);
         step(fn(p));
         if (p < 1) requestAnimationFrame(f);
@@ -2708,7 +2922,7 @@
       [{ transform: 'none' }, { transform: 'translateY(5%) scale(1.06, .92)' }],
       { duration: 150, easing: 'ease-in', fill: 'forwards' }
     );
-    try { await crouch.finished; } catch (e) {}
+    await finished(crouch);
     crouch.cancel();
 
     Object.assign(flyer.style, {
@@ -2729,7 +2943,7 @@
     const fly = flyer.animate(kf, {
       duration: Math.min(900, 480 + Math.hypot(dx, dy) * .35), easing: 'linear', fill: 'forwards'
     });
-    try { await fly.finished; } catch (e) {}
+    await finished(fly);
 
     toEl.classList.add('in');
     flyer.classList.remove('on');
@@ -2738,19 +2952,21 @@
       [{ transform: 'scale(1.06, .92)' }, { transform: 'none' }],
       { duration: 220, easing: 'ease-out' }
     );
-    try { await land.finished; } catch (e) {}
+    await finished(land);
   }
 
   /* ---------- drop-downs ----------
    * Custom ones, so the box can be a slot, shake, go green and open with a
    * pop: a native select can do none of that. makeDD builds one; ddController
    * runs one -- the quiz's, written in the HTML, and every one built here. */
-  function makeDD(opts, small) {
+  /* `hint` is a faint word shown in the box until a value is chosen -- what
+     the box is asking for, so a numerical question guides the choice */
+  function makeDD(opts, small, hint) {
     const root = document.createElement('div');
     root.className = 'dd' + (small ? ' dd-small' : '');
     root.innerHTML =
-      '<button class="dd-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Choose an answer">' +
-        '<span class="dd-value"></span>' +
+      '<button class="dd-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="' + (hint ? 'Choose the ' + hint : 'Choose an answer') + '">' +
+        '<span class="dd-value"' + (hint ? ' data-hint="' + hint + '"' : '') + '></span>' +
         '<svg class="dd-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-8 10z" /></svg>' +
       '</button><div class="dd-menu" role="listbox"></div>';
     const menu = root.querySelector('.dd-menu');
@@ -3042,9 +3258,11 @@
       setLine(demoLine, A, A); handAt(A.x, A.y);
       demoG.classList.add('on');
       await wait(200);
-      await new Promise(resolve => {
+      const mine = runToken;
+      await new Promise((resolve, reject) => {
         const t0 = performance.now(), ms = 1300;
         (function f(t) {
+          if (mine !== runToken) return reject(CANCELLED);
           if (signal.done || fastForward) return resolve();
           const p = Math.min(1, (t - t0) / ms);
           const e = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;   /* ease-in-out */
@@ -3077,24 +3295,44 @@
      left two fifths, the working to the right three fifths. A grid cannot
      animate that change, so the shape's box is measured before and after and
      the move is played back as a transform from the old place to the new. */
+  /* The shape floats from the middle to the left at the size it already
+     has: its column is made exactly as wide as the shape was, and the
+     working takes the rest (more, if a line needs it -- then the shape
+     gives way). Coming back, the column is released. The move itself is
+     the shape sliding from where it was to where it now sits. */
+  /* where the drawing itself is on screen: the svg's box is the whole cell,
+     the drawing sits centred in it at the viewBox's aspect */
+  function drawnRect(svg) {
+    const box = svg.getBoundingClientRect();
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    if (!vb || !vb.width || !box.width || !box.height) return { left: box.left, top: box.top, width: box.width, height: box.height, box: box };
+    const k = Math.min(box.width / vb.width, box.height / vb.height);
+    const w = vb.width * k, h = vb.height * k;
+    return { left: box.left + (box.width - w) / 2, top: box.top + (box.height - h) / 2, width: w, height: h, box: box };
+  }
   async function layoutWide(sec, svg, on) {
     sec = sec || quad;
     svg = svg || quadSvg;
-    const before = svg.getBoundingClientRect();
+    const before = drawnRect(svg);
+    if (on === false) sec.style.removeProperty('--shape-col');
+    else if (before.width) sec.style.setProperty('--shape-col', Math.ceil(before.width) + 'px');
     sec.classList.toggle('wide', on !== false);
-    const after = svg.getBoundingClientRect();
+    const after = drawnRect(svg);
     if (REDUCED || !before.width || !after.width) return wait(120);
 
     const dx = before.left - after.left;
     const dy = before.top - after.top;
-    const s  = before.width / after.width;
-    svg.style.transformOrigin = '0 0';
+    const s  = before.width / after.width;          /* 1 while the size is kept */
+    /* the transform turns about the drawing's own corner, not the box's */
+    svg.style.transformOrigin = (after.left - after.box.left) + 'px ' + (after.top - after.box.top) + 'px';
     const a = svg.animate(
       [{ transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(' + s + ')' }, { transform: 'none' }],
-      { duration: 760, easing: 'cubic-bezier(.4, 0, .2, 1)' }
+      { duration: 900, easing: 'cubic-bezier(.45, 0, .15, 1)' }
     );
+    const mine = runToken;
     try { await a.finished; } catch (e) {}
     svg.style.transformOrigin = '';
+    retired(mine);
   }
 
   /* the whole-shape fill gives way to the two coloured halves */
@@ -3109,6 +3347,42 @@
     await growLine(quadSvg.querySelector('.h-' + color), 640);
     quadShape.classList.add('marked-' + color);
     await wait(260);
+  }
+
+  /* Once the shape is cut: both heights drop and the base lights, each under
+     its full name, and stay so for a two-second look. Then, if the spec gives
+     short names, the labels take them -- the base becomes b, the heights h₁
+     and h₂ (the next cut carries on with h₃ and h₄), in the order of the
+     cut's triangles -- each label fading out under one name and back in under
+     the other. This all happens with the shape still in the middle of the
+     board; only afterwards does it move aside for the working. */
+  async function relabel(el, text) {
+    if (!el) return;
+    const out = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' });
+    await finished(out);
+    el.textContent = text;
+    out.cancel();
+    await finished(el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320 }));
+  }
+
+  function nameDims(spec) {
+    const jobs = spec.tris.map((t, i) => relabel(quadDims.querySelector('.lbl-' + t.color), spec.short.h[i]));
+    jobs.push(relabel(quadDims.querySelector('.lbl-base'), spec.short.base));
+    return Promise.all(jobs);
+  }
+
+  async function revealDims(spec, rename) {
+    for (const t of spec.tris) {
+      await dropHeight(t.color);
+      quadShape.classList.add('lit-' + t.color);
+    }
+    quadShape.classList.add('lit-base');
+    rename = rename !== false && !!spec.short;
+    await wait(rename ? 2000 : 500);
+    if (rename) {
+      await nameDims(spec);
+      await wait(500);
+    }
   }
 
   /* a key word has landed in the working: light the part of the drawing it
@@ -3143,36 +3417,46 @@
       '<span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span>';
     /* the ghost carries the whole line, so the box is sized before the first
        character lands */
-    segSpans(line.querySelector('.type-ghost'), segs).forEach((el, j) => { wordSpans(el, segs[j].t); });
+    lineSpans(line.querySelector('.type-ghost'), segs);
     await showLine(line, root);
     await typeSegments(line.querySelector('.txt'), line.querySelector('.caret'), segs, AREA_MS, AREA_PAUSE, onWord || onAreaWord);
     return line;
   }
 
-  /* "Area of [Green Triangle] = ½ × [ v ] × [ v ]": a line with two
+  /* "Area of [Orange Triangle] = ½ × [ v ] × [ v ]": a line with two
      drop-downs in it, and a tail the working is typed into once both are
      right */
   function formulaLine(name, color, opts) {
     const line = document.createElement('div');
-    line.className = 'area-line f-line';
+    line.className = 'area-line f-line eqgrid';
     const seg = (cls, text) => {
       const el = document.createElement('span');
       el.className = cls;
       setTxt(el, text);
       return el;
     };
-    const dd1 = makeDD(opts, true), dd2 = makeDD(opts, true);
-    const tail = document.createElement('span');
-    tail.className = 'seg tail';
-    tail.innerHTML = '<span class="txt"></span><i class="caret" hidden aria-hidden="true"></i>';
+    const dd1 = makeDD(opts, true, 'base'), dd2 = makeDD(opts, true, 'height');
+    /* the name in the left column; the formula with its boxes, and then
+       each step of the working, on rows of their own under the "=" */
+    const lhs = seg('lhs', '');
+    lhs.append(seg('seg', 'Area of '), seg('w w-' + color + ' lit', name), seg('seg', ' '));
     const expr = document.createElement('span');
-    expr.className = 'expr';
-    expr.append(seg('seg', ' = ½ × '), dd1, seg('seg', ' × '), dd2);
-    line.append(seg('seg', 'Area of '), seg('w w-' + color + ' lit', name), expr, tail);
+    expr.className = 'expr rhs';
+    expr.append(seg('seg', '= ½ × '), dd1, seg('seg', ' × '), dd2);
+    line.append(lhs, expr);
     return {
       line: line,
       dds: [ddController(dd1), ddController(dd2)],
-      tail: typer(tail.querySelector('.txt'), tail.querySelector('.caret'), AREA_MS)
+      /* the boxes dissolve into the first step, and the row then solves
+         itself where it stands: "= ½ × 10 × 6", "= 5 × 6", "= 30 sq. cm" */
+      solve: async steps => {
+        await morphTo(expr, steps[0], true);
+        for (let i = 1; i < steps.length; i++) {
+          await wait(REDUCED ? 200 : 1000);
+          await morphTo(expr, steps[i]);
+        }
+        await wordsSettle();
+      }
     };
   }
 
@@ -3250,14 +3534,9 @@
     await wait(300);
     splitShape();
     await wait(700);
+    await revealDims(spec, false);
     await layoutWide();
     await wait(300);
-    for (const t of spec.tris) {
-      await dropHeight(t.color);
-      quadShape.classList.add('lit-' + t.color);
-    }
-    quadShape.classList.add('lit-base');
-    await wait(500);
   }
 
   async function sectionThree() {
@@ -3342,16 +3621,17 @@
     await heading(QUAD.divided);
     await wait(520);
 
-    /* 7. the shape moves to the left, making room for the working on the
-          right; then two colours, two heights, two areas, and their sum */
-    await layoutWide();
-    await wait(300);
+    /* 7. two colours; then both heights and the base, named in full for a
+          two-second look before the heights become h₁ and h₂; then the shape
+          moves to the left and the two areas and their sum are written
+          beside it */
     splitShape();
     await wait(REDUCED ? 300 : 900);
-    await dropHeight('purple');
+    await revealDims(SPEC_A, true);
+    await layoutWide();
+    await wait(400);
     await showTypedLine(LINES_A[0]);
     await wait(760);
-    await dropHeight('green');
     await showTypedLine(LINES_A[1]);
     await wait(760);
     await showTypedLine(LINES_A[2]);
@@ -3387,22 +3667,18 @@
     await awaitJoin(signal2, ['T', 'B']);
     await demo2;
 
-    /* two new colours, and the shape moves aside for the working */
+    /* two new colours; the heights and base in full, then as h₁ and h₂;
+       then the shape moves aside for the working */
     await wait(360);
     splitShape();
     await wait(700);
     await heading(QUAD.twoNew);
+    await revealDims(SPEC_A2, true);
     await layoutWide();
-    await wait(300);
-    for (const t of SPEC_A2.tris) {
-      await dropHeight(t.color);
-      quadShape.classList.add('lit-' + t.color);
-    }
-    quadShape.classList.add('lit-base');
     await wait(400);
 
     /* the learner names the base and height of each triangle in turn... */
-    const g = formulaLine('Green Triangle', 'green', NOTATION);
+    const g = formulaLine('Orange Triangle', 'green', NOTATION);
     await showLine(g.line);
     await askFormula(g, ['base', 'h-green']);
     onAreaWord('green');
@@ -3436,23 +3712,24 @@
     await wait(200);
 
     /* each triangle: pick the base and the height, and the working follows */
-    const g = formulaLine('Green Triangle', 'green', MEASURES);
+    const g = formulaLine('Orange Triangle', 'green', MEASURES);
     await showLine(g.line);
     await askFormula(g, ['10', '6']);
     await wait(300);
-    await g.tail(' = ½ × 10 × 6 = 30 sq. cm');
+    await g.solve(['= ½ × 10 × 6', '= 5 × 6', '= 30 sq. cm']);
     onAreaWord('green');
     await wait(800);
     const p = formulaLine('Purple Triangle', 'purple', MEASURES);
     await showLine(p.line);
     await askFormula(p, ['10', '5']);
     await wait(300);
-    await p.tail(' = ½ × 10 × 5 = 25 sq. cm');
+    await p.solve(['= ½ × 10 × 5', '= 5 × 5', '= 25 sq. cm']);
     onAreaWord('purple');
     await wait(800);
 
     /* and the two are added up */
-    await showTypedLine(SUM_B);
+    /* the sum, then the total in its place on the same line */
+    await showSolveLine(areaLinesEl, [SUM_B.slice(0, -1), 'Area of Quadrilateral = 55 sq. cm'], onAreaWord);
     celebrate();
     await wait(2600);
     await showNext();
@@ -3469,30 +3746,24 @@
     await wait(300);
     await showSplit(['L', 'R'], SPEC_C);
 
-    /* two questions at once: the heights added, and the diagonal */
-    const q1 = questionLine('The sum of the perpendicular heights is',
-      [{ v: '24', t: '24 cm' }, { v: '9', t: '9 cm' }, { v: '21', t: '21 cm' }]);
-    const q2 = questionLine('Diagonal length is',
-      [{ v: '6', t: '6 cm' }, { v: '3', t: '3 cm' }, { v: '18', t: '18 cm' }]);
-    await showLine(q1.line);
-    await showLine(q2.line);
+    /* three questions, one at a time -- each appears once the one before it
+       is answered: the heights added, then the diagonal, then the area */
     const right = () => feedback(FEEDBACK.right);
     const wrong = () => feedback(FEEDBACK.wrong);
-    lockInput(false);
-    await Promise.all([
-      q1.dd.ask(v => v === '9', right, wrong),
-      q2.dd.ask(v => v === '18', right, wrong)
-    ]);
-    lockInput(true);
-    await wait(700);
-
-    /* then the area itself */
-    const q3 = questionLine('The area of the quadrilateral is',
-      [{ v: '81', t: '81 sq. cm' }, { v: '162', t: '162 sq. cm' }, { v: '182', t: '182 sq. cm' }]);
-    await showLine(q3.line);
-    lockInput(false);
-    await q3.dd.ask(v => v === '81', right, wrong);
-    lockInput(true);
+    const askOne = async (label, opts, answer) => {
+      const q = questionLine(label, opts);
+      await showLine(q.line);
+      lockInput(false);
+      await q.dd.ask(v => v === answer, right, wrong);
+      lockInput(true);
+      await wait(700);
+    };
+    await askOne('The sum of the perpendicular heights is',
+      [{ v: '24', t: '24 cm' }, { v: '9', t: '9 cm' }, { v: '21', t: '21 cm' }], '9');
+    await askOne('Diagonal length is',
+      [{ v: '6', t: '6 cm' }, { v: '3', t: '3 cm' }, { v: '18', t: '18 cm' }], '18');
+    await askOne('The area of the quadrilateral is',
+      [{ v: '81', t: '81 sq. cm' }, { v: '162', t: '162 sq. cm' }, { v: '182', t: '182 sq. cm' }], '81');
     celebrate();
     await wait(2600);
     await showNext();
@@ -3504,8 +3775,8 @@
    * landscape, and Swiftee hops up a little left of centre to say two lines
    * from its speech bubble -- the intro's own stage, brought back. */
   const SPECIAL = [
-    'We now know how to find the area of a quadrilateral by splitting it into triangles.',
-    'Let us now try finding the area of some special quadrilaterals.'
+    'We know how to find the area of a general quadrilateral.',
+    'Now, let’s find the area of some special quadrilaterals!'
   ];
 
   /* Swiftee ducks behind the board, the board fades off the landscape, and
@@ -3655,7 +3926,7 @@
      is sized before a character lands */
   Object.keys(PARA.facts).forEach(k => {
     const segs = PARA.facts[k];
-    segSpans(factEls[k].querySelector('.type-ghost'), segs).forEach((el, j) => { wordSpans(el, segs[j].t); });
+    lineSpans(factEls[k].querySelector('.type-ghost'), segs);
   });
 
   /* ---------- building the parallelogram ----------
@@ -4055,6 +4326,33 @@
 
   /* the shape is put back together: the working leaves, the cut and the
      second pair fade, the colour comes back */
+  /* The parallelogram as the first scene leaves it, without the choreography
+     -- and, if asked, with the base and the height already named on it, as
+     the area scene leaves it. A replay of (or a jump into) a scene that
+     inherits the shape finds the board bare, since the teardown takes off
+     everything a scene built for itself; this puts back what it was given. */
+  function ensurePara(dims) {
+    let built = false;
+    if (!paraArt.firstChild) {
+      buildPara();
+      const outline = paraArt.querySelector('.shape-outline');
+      outline.style.strokeDasharray = 'none';
+      outline.style.strokeDashoffset = '0';
+      paraFill.style.opacity = 1;
+      paraTray.classList.add('off');            /* the names went with the first scene */
+      built = true;
+    }
+    if (dims && !dimGroup('d-bottom').classList.contains('on')) {
+      ['d-bottom', 'd-left'].forEach(cls => {
+        const g = dimGroup(cls);
+        g.querySelectorAll('.d-arrow, .d-height').forEach(l => { l.style.opacity = 1; });
+        g.classList.add('on');
+      });
+      paraShape.classList.add('syms');
+    }
+    return built;
+  }
+
   async function mendPara() {
     paraLines.classList.add('off');
     await wait(450);
@@ -4074,6 +4372,7 @@
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
+    ensurePara(false);
     paraEx.classList.add('gone');
     facts.classList.remove('show');
     await wait(560);
@@ -4131,6 +4430,8 @@
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
+    ensurePara(true);
+    paraEx.classList.add('gone');
     await mendPara();
     await wait(300);
     await dealChips(areaChips);
@@ -4169,6 +4470,8 @@
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
+    ensurePara(true);
+    paraEx.classList.add('gone');
     areaTray.classList.add('off');
     await wait(460);
     await measurePara();
@@ -4286,7 +4589,7 @@
   };
 
   /* the say line's ghost holds its whole line from the first frame */
-  segSpans(rhomText.querySelector('.type-ghost'), RHOM.final).forEach((el, j) => { wordSpans(el, RHOM.final[j].t); });
+  lineSpans(rhomText.querySelector('.type-ghost'), RHOM.final);
 
   /* the geometry, in the svg's units: the pinned corner, the slant of the
      left side as a unit vector, the two lengths the shape opens with, how
@@ -4417,7 +4720,7 @@
     rhomArea.innerHTML = '';
     /* the hit circle is bigger than the dot it serves */
     rhomHands.innerHTML = ['TR', 'BR'].map(k =>
-      '<g class="handle" data-h="' + k + '"><circle class="h-ring" r="15" /><circle class="h-dot" r="8" /><circle class="h-hit" r="26" /></g>').join('');
+      '<g class="handle" data-h="' + k + '"><circle class="h-ring" r="11" /><circle class="h-dot" r="5.5" /><circle class="h-hit" r="26" /></g>').join('');
     rhomHint.classList.remove('on');
 
     const live = rhomLiveG.querySelectorAll('.live-side');
@@ -4754,8 +5057,8 @@
    * beside it: the two triangles, and the rhombus as their sum. */
   const RHOM2 = {
     here:   'Here, is a Rhombus.',
-    askG:   'Choose the correct area of the green triangle.',
-    rightG: 'That’s Correct! Area of the green triangle = ½ × d₁ × h₁.',
+    askG:   'Choose the correct area of the orange triangle.',
+    rightG: 'That’s Correct! Area of the orange triangle = ½ × d₁ × h₁.',
     askP:   'Choose the correct area of the purple triangle.',
     rightP: 'That’s Correct! Area of the purple triangle = ½ × d₁ × h₂.',
     sum:    'Let’s find the area of the whole rhombus.'
@@ -4794,9 +5097,9 @@
   /* the working: every word that names a part of the drawing is its own
      span, so it lights up -- and lights the part it names -- as it lands */
   const RHOM_LINES = [
-    [{ t: 'Area of ' }, { t: 'Green Triangle', w: 'green' },  { t: ' = ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × ' }, { t: 'h₁', w: 'h1' }],
+    [{ t: 'Area of ' }, { t: 'Orange Triangle', w: 'green' },  { t: ' = ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × ' }, { t: 'h₁', w: 'h1' }],
     [{ t: 'Area of ' }, { t: 'Purple Triangle', w: 'purple' }, { t: ' = ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × ' }, { t: 'h₂', w: 'h2' }],
-    [{ t: 'Area of ' }, { t: 'Rhombus', w: 'rhom' }, { t: ' = Area of ' }, { t: 'Green Triangle', w: 'green' }, { t: ' + Area of ' }, { t: 'Purple Triangle', w: 'purple' }],
+    [{ t: 'Area of ' }, { t: 'Rhombus', w: 'rhom' }, { t: ' = Area of ' }, { t: 'Orange Triangle', w: 'green' }, { t: ' + Area of ' }, { t: 'Purple Triangle', w: 'purple' }],
     [{ t: 'Area of ' }, { t: 'Rhombus', w: 'rhom' }, { t: ' = ½ × d₁ × h₁ + ½ × d₁ × h₂' }]
   ];
 
@@ -5337,7 +5640,7 @@
     area:     'Choose the correct area.',
     areaOk:   'That’s Correct! ½ × 16 × 12 = 96 sq. cm',
     find:     'This rhombus has an area of 240 sq. cm. Find the other diagonal.',
-    findOk:   'That’s Correct! ½ × 30 × d₂ = 240, so d₂ = 16 cm.',
+    findOk:   'That’s Correct! ½ × 30 × d₂ = 240, so d₂ is 16 cm.',
     larger:   'Tap the rhombus with the larger area.',
     largerLine: [{ t: 'Rhombus II', w: 'rhom' }, { t: ' is larger – a longer diagonal alone does not decide it.' }],
     which:    'Which formula can you use here?',
@@ -5346,10 +5649,8 @@
   const PRACTICE_GHOST = [PRACTICE.area, PRACTICE.areaOk, PRACTICE.find, PRACTICE.findOk, PRACTICE.larger, PRACTICE.which, PRACTICE.whichOk];
 
   /* the banner's ghost holds its whole line from the first frame */
-  segSpans(practiceText.querySelector('.type-ghost'), PRACTICE.largerLine).forEach((el, j) => {
-    wordSpans(el, PRACTICE.largerLine[j].t);
-    if (PRACTICE.largerLine[j].w) el.classList.add('lit');     /* sized for the bolder, lit form */
-  });
+  lineSpans(practiceText.querySelector('.type-ghost'), PRACTICE.largerLine)
+    .forEach(part => { if (part.seg.w) part.els.forEach(el => el.classList.add('lit')); });   /* sized for the bolder, lit form */
   const practiceTxt = practiceText.querySelector('.txt');
   const practiceCaret = practiceText.querySelector('.caret');
 
@@ -5500,7 +5801,7 @@
     row.classList.add('off');
     await wait(450);
     row.innerHTML = '';
-    row.classList.remove('stepped');
+    row.classList.remove('stepped', 'working');
   }
 
   /* Tap the right figure -- or the name under it, which is part of it. The
@@ -5562,14 +5863,44 @@
     await typer(work.querySelector('.txt'), work.querySelector('.caret'), AREA_MS)(text);
   }
 
+  /* a line of working that solves itself, put up where the typed lines go:
+     the ghost holds the first step, the widest, so the box never moves */
+  async function showSolveLine(root, steps, onWord) {
+    const line = document.createElement('div');
+    line.className = 'area-line';
+    line.innerHTML = '<span class="type-wrap"><span class="type-ghost"></span>' +
+      '<span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span>';
+    const first = steps[0];
+    lineSpans(line.querySelector('.type-ghost'), typeof first === 'string' ? [{ t: first }] : first);
+    await showLine(line, root);
+    await solveLine(line.querySelector('.txt'), steps, AREA_MS, onWord);
+    return line;
+  }
+
+  /* the working under a figure: one line in a box that solves itself */
+  async function figSolve(key, steps, row, onWord) {
+    const f = figEl(key, row);
+    const work = f.querySelector('.fig-work');
+    work.textContent = '';
+    work.style.setProperty('--lines', 1);
+    (row || figRow).classList.add('working');
+    work.classList.add('steps', 'show');
+    sfx('click', .3);
+    await wait(REDUCED ? 120 : 420);
+    await showSolveLine(work, steps, onWord);
+  }
+
   /* the working under a figure step by step: its box appears first, held at
-     the height of all its lines so nothing above moves, and the lines type
-     themselves into it one at a time */
+     the height of all its lines so nothing above moves while they type, and
+     the lines type themselves into it one at a time. The row is marked as
+     working from the first box: every box in it opens then (CSS), so the
+     figures of a comparison shrink together and stay at one scale. */
   async function figSteps(key, lines, row, onWord) {
     const f = figEl(key, row);
     const work = f.querySelector('.fig-work');
     work.textContent = '';
     work.style.setProperty('--lines', lines.length);
+    (row || figRow).classList.add('working');
     work.classList.add('steps', 'show');
     sfx('click', .3);
     await wait(REDUCED ? 120 : 420);
@@ -5694,9 +6025,9 @@
     await wait(700);
 
     /* the working under each: the longer diagonal did not decide it */
-    await figWorking('I', '½ × 24 × 10 = 120 sq. cm');
+    await figSolve('I', ['A = ½ × 24 × 10', 'A = 12 × 10', 'A = 120 sq. cm']);
     await wait(400);
-    await figWorking('II', '½ × 16 × 18 = 144 sq. cm');
+    await figSolve('II', ['A = ½ × 16 × 18', 'A = 8 × 18', 'A = 144 sq. cm']);
     await wait(700);
 
     /* Swiftee hops down beside the banner and says why */
@@ -5735,7 +6066,7 @@
     await showFigures(figSlant('s'));
     await wait(300);
 
-    const chips = practiceChips([{ v: 'diag', t: '½ × (product of diagonals)', formula: true }, { v: 'bh', t: 'base × height', formula: true }]);
+    const chips = practiceChips([{ v: 'diag', t: '½ × product of diagonals', formula: true }, { v: 'bh', t: 'base × height', formula: true }]);
     await dealChips(chips);
     await wait(200);
     await heading(PRACTICE.which);
@@ -5873,9 +6204,11 @@
   async function voiced(text, vo) {
     feedbackGen++;
     let length = 0, playing = false;
+    const mine = runToken;
     if (vo && !fastForward) {
       length = await durationOf(vo);
       try { vo.currentTime = 0; await vo.play(); playing = true; } catch (e) { /* no sound, then */ }
+      retired(mine);                /* the clip's promises are the browser's, not this scene's */
     }
     swiftee.hold('talking');
     await typewrite(text, (playing && length > .5) ? length * 1000 * .82 : text.length * TYPE_MS);
@@ -6148,7 +6481,9 @@
         { duration: 860, delay: i * 90, easing: 'cubic-bezier(.4, 0, .2, 1)', fill: 'backwards' }
       ));
     });
+    const mine = runToken;
     await Promise.all(anims.map(a => a.finished.catch(() => {})));
+    retired(mine);
   }
 
   /* Drag a chip onto a slot -- or tap the chip, then the slot. `fits` says
@@ -6575,7 +6910,7 @@
     const S0 = at(a0), S1 = at(a1);
     const d = { x: -Math.sin(a1), y: Math.cos(a1) }, n = { x: -d.y, y: d.x }, HD = 11;
     rtGuide.innerHTML =
-      '<circle class="rt-pivot" cx="' + fmt(M.x) + '" cy="' + fmt(M.y) + '" r="5" />' +
+      '<circle class="rt-pivot" cx="' + fmt(M.x) + '" cy="' + fmt(M.y) + '" r="3.5" />' +
       '<path class="rt-arc" d="M' + fmt(S0.x) + ' ' + fmt(S0.y) + ' A' + R + ' ' + R + ' 0 0 1 ' + fmt(S1.x) + ' ' + fmt(S1.y) + '" />' +
       '<path class="rt-arc-head" d="M' + fmt(S1.x - d.x * HD + n.x * HD * .7) + ' ' + fmt(S1.y - d.y * HD + n.y * HD * .7) +
         ' L' + fmt(S1.x) + ' ' + fmt(S1.y) +
@@ -6968,11 +7303,9 @@
   /* the two workings of the last question, a line at a time under each */
   const TP_WORK = {
     I:  [[{ t: 'A = ½ × ' }, { t: '(40 + 25)', w: 'ab' }, { t: ' × ' }, { t: '20', w: 'h' }],
-         [{ t: 'A = 65 × 10' }],
-         [{ t: 'A = ' }, { t: '650 sq. cm', w: 'trap' }]],
+         'A = ½ × 65 × 20', 'A = 65 × 10', 'A = 650 sq. cm'],
     II: [[{ t: 'A = ½ × ' }, { t: '(30 + 40)', w: 'ab' }, { t: ' × ' }, { t: '15', w: 'h' }],
-         [{ t: 'A = 35 × 15' }],
-         [{ t: 'A = ' }, { t: '525 sq. cm', w: 'trap' }]]
+         'A = ½ × 70 × 15', 'A = 35 × 15', 'A = 525 sq. cm']
   };
   const TP_STEPS = [
     [{ t: 'A = ½ × ' }, { t: '(sum of parallel sides)', w: 'ab' }, { t: ' × ' }, { t: 'perpendicular height', w: 'h' }],
@@ -6983,12 +7316,10 @@
   ];
 
   /* the banner's ghost holds its whole line from the first frame */
-  segSpans(rtrapPText.querySelector('.type-ghost'), TP.largerLine).forEach((el, j) => {
-    wordSpans(el, TP.largerLine[j].t);
-    /* the key word lands bolder than it is typed: the ghost is sized for
-       the bolder form, or the line would overflow its box and wrap */
-    if (TP.largerLine[j].w) el.classList.add('lit');
-  });
+  /* the key word lands bolder than it is typed: the ghost is sized for
+     the bolder form, or the line would overflow its box */
+  lineSpans(rtrapPText.querySelector('.type-ghost'), TP.largerLine)
+    .forEach(part => { if (part.seg.w) part.els.forEach(el => el.classList.add('lit')); });
 
   /* ---- the figures ----
    * A trapezium in the practice's 360 x 260 box, from its four corners:
@@ -7039,7 +7370,7 @@
   function tpEnsureFig(key) {
     if (tpFigEl(key)) return false;
     rtFigRow.innerHTML = tpFig(key);
-    rtFigRow.classList.remove('off', 'stepped');
+    rtFigRow.classList.remove('off', 'stepped', 'working');
     rtFigRow.classList.add('single');
     rtrapPractice.classList.add('on');
     const f = tpFigEl(key);
@@ -7197,12 +7528,14 @@
     await wait(300);
 
     /* the working, a line at a time, lighting the figure as it goes */
-    for (let i = 0; i < TP_STEPS.length; i++) {
-      swiftee.hold('talking');
-      await showTypedLine(TP_STEPS[i], rtrapLines, onTpWord);
-      swiftee.release();
-      await wait(i < TP_STEPS.length - 1 ? 520 : 300);
-    }
+    swiftee.hold('talking');
+    await showTypedLine(TP_STEPS[0], rtrapLines, onTpWord);
+    swiftee.release();
+    await wait(520);
+    swiftee.hold('talking');
+    await showSolveLine(rtrapLines, [TP_STEPS[1], 'A = ½ × 22 × 6', 'A = 11 × 6', 'A = 66 sq. cm'], onTpWord);
+    swiftee.release();
+    await wait(300);
     swiftee.play('proud', 1);
     skyConfetti(120, 3200);
     sfx('confetti', .8);
@@ -7308,7 +7641,7 @@
     await wait(500);
     for (const key of ['I', 'II']) {
       swiftee.hold('talking');
-      await figSteps(key, TP_WORK[key], rtFigRow, tpWordLighter(key));
+      await figSolve(key, TP_WORK[key], rtFigRow, tpWordLighter(key));
       swiftee.release();
       await wait(500);
     }
