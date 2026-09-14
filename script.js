@@ -500,6 +500,49 @@
     };
   })();
 
+  /* ---------- rows that give up their room ----------
+   * The heading row and each section's foot are only as tall as what they
+   * show: an empty row closes and the stage above takes the room, so the
+   * shape grows; the row opens again when a line, a quiz or Swiftee arrives
+   * in it. The height is set in pixels and transitioned, so the change is
+   * smooth. Sized from the visible occupants after every class change in
+   * the board, every finished transition, and a resize. */
+  const rooms = Array.from(document.querySelectorAll('.prompt-row, .quad-foot, .para-foot, .rhom-foot, .trap-foot, .rtrap-foot'));
+  function roomShown(el) {
+    if (el.hidden || el.classList.contains('off')) return false;
+    const cs = getComputedStyle(el);
+    return cs.display !== 'none' && cs.visibility !== 'hidden';
+  }
+  function roomHeight(room) {
+    if (room.classList.contains('prompt-row')) {
+      /* the heading is Swiftee's unless it is standing somewhere else on
+         the board, and it stays open while a line is showing */
+      const txt = room.querySelector('.txt');
+      const away = board.querySelector('.mascot.in:not(#mascot)');
+      return (txt && txt.childNodes.length) || !away ? room.firstElementChild.offsetHeight : 0;
+    }
+    let h = 0;
+    for (const child of room.children) if (roomShown(child)) h = Math.max(h, child.offsetHeight);
+    return h;
+  }
+  let roomsDue = 0;
+  function fitRooms() {
+    roomsDue = 0;
+    rooms.forEach(room => {
+      const h = roomHeight(room);
+      const v = Math.round(h) + 'px';
+      if (room.style.height !== v) room.style.height = v;
+      room.classList.toggle('closed', !h);
+    });
+  }
+  const askRooms = () => { if (!roomsDue) roomsDue = requestAnimationFrame(fitRooms); };
+  if (rooms.length) {
+    new MutationObserver(askRooms).observe(board, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden'] });
+    board.addEventListener('transitionend', askRooms);
+    window.addEventListener('resize', askRooms);
+    fitRooms();
+  }
+
   /* ---------- audio ---------- */
   const SRC = {
     correct:  'assets/audio/correct-answer.ogg',
@@ -1219,16 +1262,11 @@
   }
   const typewrite = (text, totalMs) => { promptLine(text); return typeInto(promptTxt, caret, text, totalMs); };
 
-  /* The heading's box is the line it shows, so Swiftee stands right beside
-     the words wherever they centre. The row is held at the height of the
-     longest line a scene will show, so a line that wraps deeper than the
-     last moves nothing below it. */
+  /* The heading's box is the line it shows, so Swiftee -- inside the same
+     box -- stands right at the left end of the words wherever they centre. */
   function promptReserve(text) {
-    wordSpans(promptGhost, text);
-    prompt.style.minHeight = '';
-    const h = prompt.getBoundingClientRect().height;
-    const lh = parseFloat(getComputedStyle(prompt).fontSize) * 1.3;
-    prompt.style.minHeight = Math.max(1, Math.round(h / lh)) * 1.3 + 'em';
+    /* lines never wrap and the row is as tall as Swiftee: there is nothing
+       to reserve any more, the ghost simply starts the scene empty */
     promptGhost.textContent = '';
   }
   /* a ghost is built the way its live line is -- a span per word -- so the

@@ -233,12 +233,12 @@ body {
    halves take over and it shrinks with the screen. */
 .board {
   position: relative;
-  width: min(1200px, 94vw);
+  width: min(1500px, 96vw);
   height: min(700px, 90vh);
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  padding: clamp(10px, 4vh, 40px) clamp(18px, 9.4%, 113px) 0;
+  padding: clamp(10px, 4vh, 40px) clamp(18px, 4.5%, 64px) 0;
   border-radius: clamp(18px, 3.4vh, 34px);
   border: 3px solid var(--board-border);
   /* same pairing as the body: artwork over a token gradient that carries the
@@ -278,14 +278,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(2px, .5vw, 8px);
   margin: 0 0 clamp(6px, 1.6vh, 16px);
   min-width: 0;
+  /* script.js sets the height to what the row shows -- Swiftee, a line --
+     and to nothing when it shows nothing, so the stage takes the room */
+  transition: height .55s cubic-bezier(.4, 0, .2, 1), margin-bottom .55s cubic-bezier(.4, 0, .2, 1);
 }
-/* Swiftee and the line it shows are centred together, the bird right at the
-   left end of the words: the heading's box is only as wide as its line
-   (script.js sets the ghost per line and reserves the row's height) */
+.prompt-row.closed { margin-bottom: 0; }
+/* Swiftee stands inside the heading, at the left end of the line it shows,
+   and the two centre together: the box is only as wide as its line */
 .prompt {
+  display: inline-flex;
+  align-items: center;
   flex: 0 1 auto;
   margin: 0;
   min-width: 0;
@@ -295,11 +299,11 @@ body {
   font-size: clamp(17px, 3.4vh, 32px);
   line-height: 1.3;
   letter-spacing: .1px;
-
-  opacity: 0;
-  transition: opacity .38s ease;
 }
-.prompt.show { opacity: 1; }
+/* the bird's cell has an empty rim: pulled in so it stands right by the words */
+.prompt > .mascot { margin-right: calc(var(--mascot) * -.18); }
+.prompt .type-wrap { opacity: 0; transition: opacity .38s ease; }
+.prompt.show .type-wrap { opacity: 1; }
 
 /* Typewriter: the hidden ghost reserves the final width, the live span sits
    on top of it, so characters land in place instead of shoving the centred
@@ -844,6 +848,7 @@ body {
   display: grid;
   justify-items: center;
   align-items: center;
+  transition: height .55s cubic-bezier(.4, 0, .2, 1);
 }
 .quad-foot > * { grid-area: 1 / 1; }
 .say-row,
@@ -1038,7 +1043,7 @@ body {
   letter-spacing: .1px;
   opacity: 0;
   transform: translateY(10px) scale(.86);
-  transition: opacity .3s ease, transform .48s cubic-bezier(.2, .9, .3, 1.4);
+  transition: opacity .3s ease, transform .48s cubic-bezier(.2, .9, .3, 1.4), font-size .5s ease;
 }
 .area-line.show { opacity: 1; transform: none; }
 .area-line .type-wrap { display: inline-block; vertical-align: top; }
@@ -1053,7 +1058,7 @@ body {
 .quad.wide,
 .para.wide,
 .rhom.wide {
-  grid-template-columns: 2fr 3fr;
+  grid-template-columns: minmax(0, 2fr) minmax(min-content, 3fr);
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   gap: clamp(12px, 2.4vw, 34px);
@@ -1089,7 +1094,7 @@ body {
 .quad.wide .area-line,
 .para.wide .area-line,
 .rhom.wide .area-line {
-  font-size: clamp(17px, 3.2vh, 31px);
+  font-size: min(clamp(17px, 3.2vh, 31px), 1.65vw);
   line-height: 1.35;
   max-width: 100%;
   /* the column is narrower than the longest line: it may break, and only
@@ -1381,6 +1386,7 @@ body {
   display: grid;
   justify-items: center;
   align-items: center;
+  transition: height .55s cubic-bezier(.4, 0, .2, 1);
 }
 .para-foot > * { grid-area: 1 / 1; }
 
@@ -1888,6 +1894,7 @@ body {
   display: grid;
   justify-items: center;
   align-items: center;
+  transition: height .55s cubic-bezier(.4, 0, .2, 1);
 }
 /* every occupant shares the one cell, so the row is only as tall as the
    tallest of them and the shape above keeps its room */
@@ -3154,6 +3161,7 @@ body {
   display: grid;
   justify-items: center;
   align-items: center;
+  transition: height .55s cubic-bezier(.4, 0, .2, 1);
 }
 .trap-foot > * { grid-area: 1 / 1; }
 .trap.lvl2 .quiz-block { display: none; }
@@ -3548,10 +3556,11 @@ body {
  * or going moves nothing either. */
 .rtrap-foot {
   display: grid;
-  /* stretched, not centred: an occupant that wraps its text needs the
-     whole width to measure against, and each centres its own content */
+  /* stretched, not centred: each occupant centres its own content across
+     the whole width */
   justify-items: stretch;
   align-items: center;
+  transition: height .55s cubic-bezier(.4, 0, .2, 1);
 }
 /* every occupant shares the one cell, so the row is only as tall as the
    tallest of them and the drawing above keeps its room */
@@ -3573,7 +3582,7 @@ body {
   gap: clamp(3px, .9vh, 9px);
   min-width: 0;
 }
-.rtrap-text { font-size: clamp(15px, 2.6vh, 24px); }
+.rtrap-text { font-size: clamp(15px, 2.6vh, 24px); transition: font-size .5s ease; }
 .rtrap-lines {
   justify-items: start;
   font-size: clamp(14px, 2.5vh, 23px);
@@ -3586,7 +3595,7 @@ body {
  * the explanation takes the right half -- the bird above its lines, which
  * are allowed to wrap in the narrower column. */
 .rtrap.wide {
-  grid-template-columns: 10fr 11fr;
+  grid-template-columns: minmax(0, 10fr) minmax(min-content, 11fr);
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   gap: clamp(12px, 2.4vw, 34px);
@@ -3609,14 +3618,14 @@ body {
   gap: clamp(8px, 2vh, 20px);
 }
 .rtrap.wide .rtrap-text {
-  font-size: clamp(16px, 3vh, 28px);
+  font-size: min(clamp(16px, 3vh, 28px), 1.55vw);
   max-width: 100%;
 }
 .rtrap.wide .rtrap-text .type-wrap { display: block; }
 .rtrap.wide .rtrap-text .type { white-space: normal; }
 .rtrap.wide .rtrap-lines {
   width: 100%;
-  font-size: clamp(15px, 2.75vh, 26px);
+  font-size: min(clamp(15px, 2.75vh, 26px), 1.45vw);
   gap: clamp(8px, 2vh, 20px);
   min-height: calc(2.7em + .24em + 4px + clamp(8px, 2vh, 20px));
 }
@@ -3738,3 +3747,33 @@ body {
   background: var(--tint-trap);
   color: var(--trap-border);
 }
+
+/* ---------- no line wraps ----------
+ * Every line the mission shows keeps to one row, and the board is wide
+ * enough for the longest of them. The containers collapse the whitespace
+ * their markup is indented with; only the script-filled ghost and live
+ * spans keep theirs, so a "
+" written into a text is the one place a
+ * line breaks. Later than the rules it overrides. */
+.type-wrap,
+.area-line,
+.say-text,
+.quiz-note,
+.fact,
+.rtrap-text,
+.quad.wide .area-line,
+.para.wide .area-line,
+.rhom.wide .area-line,
+.rtrap.wide .rtrap-lines .area-line { white-space: nowrap; }
+.type-wrap .type-ghost,
+.type-wrap .type,
+.quad.wide .area-line .type,
+.para.wide .area-line .type,
+.rhom.wide .area-line .type,
+.rtrap.wide .rtrap-lines .area-line .type,
+.rtrap.wide .rtrap-lines .area-line .type-ghost,
+.rtrap.wide .rtrap-text .type,
+.practice-say .say-text .type,
+.trap-note .type,
+.intro.aside .bubble .type { white-space: pre; }
+.practice-say .say-text { max-width: none; }
