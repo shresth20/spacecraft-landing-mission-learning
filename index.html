@@ -710,6 +710,21 @@
     </button>
 
   </main>
+
+  <!-- ---------- a card, taken to the middle of the board ----------
+       A tapped card of section 6 lifts off its grid and comes here, blown up
+       over a darkened board, where the shape on it shows what was asked of
+       it: the two sides of a pair light up, a glowing copy of the first
+       slides across onto the second, and either it lies flush -- the two run
+       the same way, so they are parallel -- or it lands across it and has to
+       turn, and the turn is the proof that they do not. Then the card glides
+       back to its place. Built, and emptied again, by script.js; nothing is
+       said in words, the picture is the whole explanation. -->
+  <div class="card-zoom" id="cardZoom" aria-hidden="true">
+    <div class="card-zoom-scrim"></div>
+    <svg class="card-zoom-box" id="cardZoomBox" viewBox="0 0 320 200"
+         preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+  </div>
   </div>
 
   <!-- Swiftee's stand-in for a hop from one spot on the board to another: it

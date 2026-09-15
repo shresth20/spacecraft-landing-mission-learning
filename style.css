@@ -284,7 +284,7 @@ body {
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  padding: clamp(10px, 4vh, 40px) clamp(18px, 4.5%, 64px) 0;
+  padding: clamp(10px, 4vh, 40px) clamp(18px, 4.5%, 64px);
   border-radius: clamp(18px, 3.4vh, 34px);
   border: 3px solid var(--board-border);
   /* same pairing as the body: artwork over a token gradient that carries the
@@ -1162,7 +1162,7 @@ body {
 .quad.wide,
 .para.wide,
 .rhom.wide {
-  grid-template-columns: minmax(0, var(--shape-col, 2fr)) minmax(min-content, 3fr);   /* --shape-col: the shape's own width, set by script.js */
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);   /* always 40% for the shape, 60% for the working */
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   gap: clamp(12px, 2.4vw, 34px);
@@ -1998,6 +1998,7 @@ body {
 .len-tray .chip:active { cursor: grabbing; }
 .len-tray .chip.reveal:hover,
 .len-tray .chip.reveal:focus-visible { border-color: var(--rhom-border); }
+
 
 /* ---------- under the shape ----------
  * Swiftee hops down to the left of the line it says about the rhombus. The
@@ -3077,7 +3078,11 @@ body {
 }
 
 /* Swiftee waves the learner in from the same corner it will stand in during
-   play, so the character is already placed when the board arrives. */
+   play, so the character is already placed when the board arrives.
+   Held back until script.js has a decoded sheet to paint into it -- a sprite
+   box that is on screen while its sheet is still coming down is an empty box
+   that pops full, and that pop is the first thing the learner would see. No
+   fade: it is revealed on a frame that is already the finished drawing. */
 .welcome-mascot {
   position: absolute;
   left: 8%;
@@ -3090,7 +3095,9 @@ body {
   background-position: var(--sw-pos);
   filter: drop-shadow(0 10px 18px var(--scrim));
   pointer-events: none;
+  opacity: 0;
 }
+.welcome-mascot.show { opacity: 1; }
 
 .welcome-body {
   position: relative;
@@ -3406,6 +3413,72 @@ body {
   transition: opacity .36s ease, transform .4s cubic-bezier(.2, .9, .3, 1.35);
 }
 .card.reveal { opacity: 1; transform: none; }
+/* ---------- the band the cards are dealt into ----------
+ * While the six cards are up, the console band at the foot of the board has
+ * nothing in it: its deep top padding is the clear water between slots and
+ * chips, and there are neither. It gives that up, so the row of cards is
+ * centred in the board rather than pushed above a dead strip -- and the grid
+ * takes an inset of its own instead, so what is left over is seen at the
+ * sides of the cards rather than under them.
+ *
+ * The band comes back the moment the Next disc arrives, which is what it is
+ * really reserving room for; the padding is eased so the board settles into
+ * that rather than snapping.
+ */
+.tray-area { transition: padding .5s cubic-bezier(.4, 0, .2, 1); }
+.board:has(#trap.lvl2) .tray-area { padding-top: 0; padding-bottom: 0; }
+
+/* The Next disc shares that row, and it is the taller of the two -- so with
+   the padding gone the band would simply come back the moment Next arrived,
+   and the cards would give up their room again at the very end. Here it
+   leaves the row instead and sits over the board's bottom corner, painting
+   above the section below it. The row therefore stays shut for the whole
+   stage and nothing on the board moves when Next appears. It clears the
+   cards on its own: the block of them is centred, so the corner it lands in
+   is margin. */
+.board:has(#trap.lvl2) .next-btn {
+  position: absolute;
+  inset: auto clamp(18px, 4.5%, 64px) clamp(10px, 2.6vh, 26px) auto;
+  z-index: 3;
+  margin: 0;
+}
+
+/* And the heading's row does the same while the board is the learner's. It
+   holds a box the whole mission long so a line that types itself out moves
+   nothing -- but between Swiftee taking the instruction away and the first
+   name being asked for there is no line to hold a box for, and the cards may
+   as well have it. The cap is only ever set for this stretch, so no other
+   scene's heading is at risk of being cut off by it. */
+.board:has(#trap.lvl2) .prompt-row {
+  max-height: 420px;   /* only ever a definite value to ease from */
+  transition: max-height .55s cubic-bezier(.4, 0, .2, 1),
+              margin-bottom .55s cubic-bezier(.4, 0, .2, 1);
+}
+.board:has(#trap.bare) .prompt-row {
+  max-height: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+/* What is left over once the band is gone is shared out around the cards
+   rather than piling up under them. The block takes the proportions of the
+   six cards it holds -- three and two gaps across, two and one gap down --
+   so its height follows from its width and every card fills its cell exactly
+   instead of floating in the middle of a tall one; then it is centred in
+   whatever room is left, which is what puts the spare space at the sides and
+   evenly above and below. On a board too short for that the cap takes over
+   and the cards simply share out the height as before.
+   The three-across row of the naming stage is laid out differently and keeps
+   its own rule. */
+.board:has(#trap.lvl2) .card-grid:not(.row) {
+  padding: 0 clamp(8px, 2.2vw, 40px);
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1024 / 418;
+  max-height: 100%;
+  margin-block: auto;
+}
+
 /* a card that is not a trapezium leaves before the three line up */
 .card.gone { opacity: 0; transform: scale(.88); transition: opacity .4s ease, transform .4s ease; }
 /* once the names are asked for, each card has a slot under it: the two
@@ -3439,21 +3512,31 @@ body {
 .card-bg {
   fill: var(--drop-bg);
   stroke: var(--drop-border);
-  stroke-width: 2.5;
+  stroke-width: 1.8;
   transition: fill .25s ease, stroke .25s ease, stroke-width .25s ease;
 }
 /* each card's shape in a colour of its own -- the six pairs the mission has
    already used, so no card hints at the answer by matching the trapezium's */
-.card[data-kind="iso"]     { --shape-fill: var(--trap-fill);   --shape-border: var(--trap-border); }
-.card[data-kind="q1"]      { --shape-fill: var(--square-fill); --shape-border: var(--square-border); }
-.card[data-kind="scalene"] { --shape-fill: var(--tri-fill);    --shape-border: var(--tri-border); }
-.card[data-kind="q2"]      { --shape-fill: var(--rect-fill);   --shape-border: var(--rect-border); }
-.card[data-kind="right"]   { --shape-fill: var(--rhom-fill);   --shape-border: var(--rhom-border); }
-.card[data-kind="q3"]      { --shape-fill: var(--para-fill);   --shape-border: var(--para-border); }
+.card[data-kind="iso"],
+.card-zoom[data-kind="iso"]     { --shape-fill: var(--trap-fill);   --shape-border: var(--trap-border); }
+.card[data-kind="q1"],
+.card-zoom[data-kind="q1"]      { --shape-fill: var(--square-fill); --shape-border: var(--square-border); }
+.card[data-kind="scalene"],
+.card-zoom[data-kind="scalene"] { --shape-fill: var(--tri-fill);    --shape-border: var(--tri-border); }
+.card[data-kind="q2"],
+.card-zoom[data-kind="q2"]      { --shape-fill: var(--rect-fill);   --shape-border: var(--rect-border); }
+.card[data-kind="right"],
+.card-zoom[data-kind="right"]   { --shape-fill: var(--rhom-fill);   --shape-border: var(--rhom-border); }
+.card[data-kind="q3"],
+.card-zoom[data-kind="q3"]      { --shape-fill: var(--para-fill);   --shape-border: var(--para-border); }
 .card-shape {
   fill: var(--shape-fill);
   stroke: var(--shape-border);
-  stroke-width: 2.4;
+  /* script.js scales the polygon up bodily to fill the card it is drawn on,
+     and the stroke goes up with it: this is the width before that, set so
+     the drawn outline still lands at the weight the rest of the mission's
+     shapes are outlined at */
+  stroke-width: 1.35;
   stroke-linejoin: round;
   filter: drop-shadow(0 2px 3px var(--shadow-soft));
 }
@@ -3466,7 +3549,7 @@ body {
 .card.named .card-bg {
   fill: var(--board-highlight);
   stroke: var(--correct);
-  stroke-width: 5;
+  stroke-width: 3;
 }
 .card.correct .card-box,
 .card.named .card-box { animation: dock-pop .5s cubic-bezier(.2, .9, .3, 1.4); }
@@ -3475,11 +3558,145 @@ body {
 .card.reject .card-bg {
   fill: var(--tint-wrong);
   stroke: var(--wrong);
-  stroke-width: 4;
+  stroke-width: 2.6;
 }
 /* a wrong pick, once turned down, steps back and takes no more taps */
 .card.spent { opacity: .5; cursor: default; pointer-events: none; }
 .card.spent .card-box { transform: none; }
+
+/* ---------- a card, taken to the middle of the board ----------
+ * A tapped card lifts out of the grid and comes to the middle of a darkened
+ * board, where the shape on it is taken apart -- and then glides back to its
+ * place. The layer sits over the board and under the tools, so Skip, Back
+ * and Replay stay lit and reachable throughout, and it never takes a click
+ * of its own: the card is watched, not handled.
+ *
+ * The blown-up card is drawn from exactly the same parts as the one on the
+ * grid -- the same rounded rectangle, the same polygon, the shape's own
+ * colours off the same data-kind -- so the flight between the two is a plain
+ * change of size and nothing on the card appears or disappears on the way.
+ */
+.card-zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 930;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  visibility: hidden;
+}
+.card-zoom.on { visibility: visible; }
+/* the board goes quiet behind it, and comes back as the card flies home */
+.card-zoom-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  /* the grid behind goes soft as well as dark, so the one card that is being
+     talked about is the only thing on the board with an edge */
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity .62s ease;
+}
+.card-zoom.shade .card-zoom-scrim { opacity: 1; }
+
+.card-zoom-box {
+  position: relative;
+  width: min(66vw, 132vh, 900px);
+  aspect-ratio: 320 / 200;
+  overflow: visible;
+  filter: drop-shadow(0 14px 34px var(--shadow-deep));
+}
+.card-zoom-box .card-bg {
+  fill: var(--drop-bg);
+  stroke: var(--drop-border);
+  stroke-width: 2.5;
+  transition: fill .4s ease, stroke .4s ease, stroke-width .4s ease;
+}
+/* The verdict the card was given on the grid travels with it -- in the rim
+   only. On the grid a turned-down card is washed in red over the board; here
+   it is over a darkened board instead, so the face stays the board's own
+   pale tint and there is something solid for the shape to be drawn on. The
+   rim is set finer than the grid card's for the same reason it is not simply
+   scaled: three times the card is not three times the line. */
+.card-zoom .card-bg { fill: var(--board-highlight); }
+.card-zoom.right .card-bg { stroke: var(--correct); stroke-width: 2; }
+.card-zoom.wrong .card-bg { stroke: var(--wrong);   stroke-width: 1.8; }
+
+/* ---------- the explanation, drawn over the blown-up shape ----------
+ * Each pair of opposite sides carries its own hue, the two the parallelogram
+ * taught the pairs in: pair a in blue, pair b in purple. Every width here is
+ * in the shape's own units, which the card scales up with it, so the marks
+ * keep their weight against the shape at any size of screen.
+ */
+/* The shape's own outline steps back for as long as the marks are up. Two
+   of the six cards are drawn in a colour close enough to a pair's hue that a
+   lit side would otherwise be lost against the outline it is lying on -- and
+   quieting the outline is the right answer anyway: while a pair is being
+   talked about, those two sides are what the shape is. */
+.card-zoom.ex .card-shape { stroke-opacity: .45; }
+.card-zoom .card-shape { transition: stroke-opacity .5s ease; }
+
+.zx-a { --zx: var(--pair-a); --zx-glow: var(--glow-pair-a); }
+.zx-b { --zx: var(--pair-b); --zx-glow: var(--glow-pair-b); }
+
+/* the side itself, lit where it lies -- grown along it by script.js */
+.zx-side {
+  opacity: 0;
+  fill: none;
+  stroke: var(--zx);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 2px var(--zx-glow));
+  transition: opacity .42s ease;
+}
+/* the side carried on from its corner to the edge of the card: what the two
+   lines do on the way out -- hold their distance, or lean in -- is the whole
+   question */
+.zx-ext {
+  opacity: 0;
+  fill: none;
+  stroke: var(--zx);
+  stroke-width: .95;
+  stroke-dasharray: 4.5 4;
+  stroke-linecap: round;
+  transition: opacity .42s ease;
+}
+/* the sides stay lit once grown (growLine lights them inline, and the class
+   carries it once that is lifted) */
+.zx-pair.lit .zx-side { opacity: 1; }
+/* and so do the carry-ons, for the same reason */
+.zx-pair.on-ext .zx-ext { opacity: 1; }
+
+/* the mark: an arrowhead on each side of the pair that turned out to be
+   parallel, inked in the pair's hue over a pale halo so it reads on the lit
+   side, on the fill and on the board alike, and popped in from its own
+   centre. */
+.zx-par {
+  opacity: 0;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(.4);
+  transition: opacity .34s ease, transform .46s cubic-bezier(.2, .9, .3, 1.4);
+}
+.zx-halo { stroke: var(--board-highlight); stroke-width: 3.1; }
+.zx-ink  { stroke: var(--zx); stroke-width: 1.5; }
+.zx-pair.show-par .zx-par { opacity: 1; transform: none; }
+
+/* A pair that has had its say steps back rather than leaving: its two sides
+   stay as a trace under the pair shown next, and everything else goes. These
+   come last of the pair rules on purpose -- they tie with the rules they have
+   to beat, so it is their place in the file that settles it. */
+.zx-pair.hush .zx-ext,
+.zx-pair.hush .zx-par { opacity: 0; }
+.zx-pair.lit.hush .zx-side { opacity: .28; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card-zoom-scrim,
+  .zx-side, .zx-ext, .zx-par { transition-duration: .12s; }
+}
 
 /* the slot under a trapezium: the warm-up's slot, kept out of the way until
    the names are asked for. A name runs to two lines in it. */
@@ -3769,7 +3986,7 @@ body {
  * the explanation takes the right half -- the bird above its lines, which
  * are allowed to wrap in the narrower column. */
 .rtrap.wide {
-  grid-template-columns: minmax(0, var(--shape-col, 10fr)) minmax(min-content, 11fr);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);   /* the same 40 / 60 split as every other two-column layout */
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   gap: clamp(12px, 2.4vw, 34px);
@@ -3913,6 +4130,20 @@ body {
 .rtrap.wide .rtrap-qs,
 .rtrap.wide .practice-tray,
 .rtrap.wide .practice-say { display: none; }
+
+/* The figure has the left column to itself here: its working is typed in
+   the right-hand column, so the box that would hold it under the drawing is
+   dead space -- it goes, and the drawing takes the whole column, width and
+   height, and sits in the middle of it. Without this the figure is held to
+   four fifths of the width and to a 540px ceiling that pins it to the top
+   of the column while the working beside it reads from the middle. */
+.rtrap.wide .fig-row.single .fig { flex-basis: 100%; }
+.rtrap.wide .fig-work { display: none; }
+.rtrap.wide .fig-art {
+  align-items: center;
+  height: 100%;
+}
+.rtrap.wide .fig-art svg { max-height: 100%; }
 
 /* the banner names the winner in the trapezium's own hue */
 .practice-say .w.lit.w-trap {
@@ -4137,3 +4368,170 @@ body {
 .shape .wdim-line,
 .shape .wdim-head { stroke: var(--shape-border); }
 .shape .wdim .shape-label { fill: var(--shape-border); }
+
+/* ---------- the working sits in the middle of its column ----------
+ * In the two-column layouts the block of lines is only as wide as its
+ * longest line and is centred in the right-hand column; the lines inside
+ * it still start at a common left edge. The column keeps its 60%. */
+.quad.wide .area-lines,
+.para.wide .area-lines,
+.rhom.wide .area-lines {
+  width: max-content;
+  max-width: 100%;
+  justify-self: center;
+  justify-items: start;
+}
+.rtrap.wide .rtrap-say {
+  width: max-content;
+  max-width: 100%;
+  justify-self: center;
+}
+.rtrap.wide .rtrap-col { width: max-content; max-width: 100%; }
+
+/* ---------- Next, in the board's corner ----------
+ * The disc sits the same distance in from the board's right edge and its
+ * bottom edge, out of the grid's flow so the stage keeps the whole height. */
+.board > .next-btn {
+  position: absolute;
+  right: clamp(14px, 2.6vh, 26px);
+  bottom: clamp(14px, 2.6vh, 26px);
+  margin: 0;
+  place-self: auto;
+}
+/* the trapezium-kinds level places it the same way */
+.board:has(#trap.lvl2) > .next-btn { inset: auto clamp(14px, 2.6vh, 26px) clamp(14px, 2.6vh, 26px) auto; }
+
+/* ---------- a long line breaks before its "=" ----------
+ * script.js (fitEq) marks a line that would not fit its column: the part
+ * from the "=" on drops to a second row, indented, the way working is
+ * continued on paper. Otherwise the two parts run on inline. */
+.area-line .lhs,
+.area-line .rhs { display: inline; }
+.area-line.eqbreak .rhs {
+  display: block;
+  padding-left: 1.6em;
+}
+
+/* ---------- the copy in the learner's hand ----------
+ * While it waits to be turned the copy is grabbable; the lesson's own
+ * peel and landing are not. */
+.rt-copy { pointer-events: none; }
+.rt-copy.grab { pointer-events: all; cursor: grab; }
+.rt-copy.grab .rt-cfill,
+.rt-copy.grab .rt-cline { pointer-events: all; }
+.rt-copy.held { cursor: grabbing; }
+.rt-copy.held { filter: drop-shadow(0 16px 18px var(--shadow-deep)); }
+
+/* ---------- the working beside the trapezium ----------
+ * Bird, line and working all start at one left edge; the formulas run on
+ * one line each, and the rule needs no box round it. */
+.rtrap.wide .rtrap-say,
+.rtrap.wide .rtrap-col { align-items: flex-start; justify-items: start; }
+.rtrap.wide .rtrap-text,
+.rtrap.wide .rtrap-text .type { text-align: left; }
+.rtrap.wide .rtrap-lines { justify-items: start; }
+.rtrap-lines.rule .area-line:nth-child(2) {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+/* the names, the glow lines and the guide lie over the copy but are never
+   the thing being touched: the pointer goes through them to the copy */
+.rt-dims, .rt-hl, .rt-guide { pointer-events: none; }
+.rtrap.wide .rtrap-text { padding: 0; margin: 0; }
+.rtrap.wide .rtrap-text .type-wrap { margin: 0; }
+
+/* ---------- highlights stay thin ----------
+ * A side or a length being pointed at changes hue and glows; it does not
+ * swell. Every highlighted stroke is held near the drawing's line weight.
+ * Later than the rules it overrides. */
+.side-hl,
+.live-side,
+.rhom-sweep,
+.rt-hl line { stroke-width: 2.4; }
+.rt-dims .d-group.eq .d-arrow,
+.rt-dims .d-group.eq .d-head,
+.rt-dims .d-group.lit.rt-len .d-arrow,
+.rt-dims .d-group.lit.rt-len .d-head,
+.rt-dims .d-group.lit.rt-hgt .d-head,
+.para-shape.lit-b .d-base .d-arrow,
+.para-shape.lit-b .d-base .d-head,
+.rhom-shape.lit-d1 .d-d1 .d-arrow,
+.rhom-shape.lit-d1 .d-d1 .d-head,
+.rhom-shape.lit-d2 .d-d2 .d-arrow,
+.rhom-shape.lit-d2 .d-d2 .d-head,
+.rtrap-stage .fig .d-group.lit.rt-len .d-arrow,
+.rtrap-stage .fig .d-group.lit.rt-len .d-head { stroke-width: 2.4; }
+.rt-dims .d-group.lit.rt-hgt .d-height { stroke-width: 2.4; }
+.quad-shape.live .corner.armed .dot { stroke-width: 2.4; }
+.ghost-side { stroke-width: 4; }
+@keyframes ghost-land {
+  0%   { stroke-width: 4; }
+  45%  { stroke-width: 6; }
+  100% { stroke-width: 4; }
+}
+
+/* ---------- one type scale ----------
+ * Every piece of text in the mission is one of four sizes: the heading,
+ * the lesson's body (what Swiftee says, the working, the quiz sentences,
+ * the notes), the chips (every answer chip, drop-down and slot), and the
+ * small print of the corner controls. The letters drawn inside the shapes
+ * share one size too, in the drawings' own units. Later than every rule it
+ * replaces, so a section can no longer drift to a size of its own. */
+:root {
+  --fs-heading: clamp(16.5px, 2.9vh, 27.5px);   /* the heading reads at the size of a measurement label */
+  --fs-body:    clamp(16.5px, 3vh, 28.6px);
+  --fs-chip:    clamp(15.4px, 2.6vh, 25.3px);
+  --fs-small:   clamp(11px, 1.5vh, 15px);
+  --fs-label:   18px;
+}
+.prompt { font-size: var(--fs-heading); }
+.formula-box,
+.quiz-sentence,
+.quiz-note,
+.trap-note,
+.say-text,
+.practice-say .say-text,
+.fact,
+.area-line,
+.len-formula,
+.fig-work,
+.fig-row.stepped .fig-work,
+.rtrap-text,
+.rtrap-lines,
+.rtrap.wide .rtrap-lines.steps,
+.rtrap-qs .q-line { font-size: var(--fs-body); }
+/* beside a shape the body size is kept within the column's width */
+.quad.wide .area-line,
+.para.wide .area-line,
+.rhom.wide .area-line { font-size: min(var(--fs-body), 3.6cqw); }
+.rtrap.wide .rtrap-text  { font-size: min(var(--fs-body), 3.8cqw); }
+.rtrap.wide .rtrap-lines { font-size: min(var(--fs-body), 3.5cqw); }
+.chip,
+.chip.formula,
+.slot .chip,
+.slot .chip.formula,
+.card-slot .chip,
+.trap-tray .chip,
+.fslot .chip,
+.dd-btn,
+.dd-opt,
+.dd-small .dd-btn,
+.dd-small .dd-opt { font-size: var(--fs-chip); }
+.jump-btn, .jump-opt, .tool-btn { font-size: var(--fs-small); }
+/* the letters in the drawings */
+.shape[data-shape] .shape-label,
+.dim-label,
+.quad-shape .d-label,
+.para-shape .d-label,
+.rhom-shape .d-label,
+.fig .d-label,
+.fig-row.stepped .fig .d-label,
+.rd-lbl,
+.ang-lbl { font-size: var(--fs-label); }
+
+/* ---------- the console band goes with the warm-up ----------
+ * Once the decks are gone the band's padding is all that is left of it, an
+ * empty strip along the foot of the board; it closes too (transitioned), so
+ * the stage above runs to the bottom and the shapes take the room. */
+.board.sec2 .tray-area { padding-top: 0; padding-bottom: 0; }

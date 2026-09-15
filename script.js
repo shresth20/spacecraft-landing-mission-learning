@@ -253,7 +253,8 @@
       wordCuts(seg.t).forEach(cut => { tokens.push({ i: i, text: seg.t.slice(from, cut), cut: cut }); from = cut; });
     });
     const isEq = tok => tok.text.trim() === '=';
-    const split = tokens.filter(isEq).length > 1;
+    const eqCount = tokens.filter(isEq).length;
+    const split = eqCount > 1;
     const parts = segs.map(seg => ({ seg: seg, els: [], words: [] }));
     let holder = root, segEl = null, segAt = -1;
     const place = (tok, text) => {
@@ -271,12 +272,19 @@
       segEl.appendChild(sp);
       parts[tok.i].words.push({ el: sp, cut: tok.cut });
     };
+    const cell = cls => { const el = document.createElement('span'); el.className = cls; root.appendChild(el); return el; };
     if (!split) {
-      tokens.forEach(tok => place(tok, tok.text));
+      /* one "=": what comes before it and the "= ..." after it are wrapped
+         apart, inline, so a line too long for its column can break before
+         the "=" (fitEq) instead of at a word */
+      if (eqCount === 1) holder = cell('lhs');
+      tokens.forEach(tok => {
+        if (eqCount === 1 && isEq(tok)) holder = cell('rhs');
+        place(tok, tok.text);
+      });
       return parts;
     }
     root.classList.add('eqgrid');
-    const cell = cls => { const el = document.createElement('span'); el.className = cls; root.appendChild(el); return el; };
     holder = cell('lhs');
     tokens.forEach(tok => {
       if (isEq(tok)) { holder = cell('rhs'); place(tok, tok.text.replace(/^\s+/, '')); }
@@ -327,7 +335,7 @@
     /* the words that change must sit side by side in one parent: a
        highlight wrapper they sit in is dissolved first, and only those */
     const parents = new Set(oldMid.map(w => w.parentNode));
-    if (parents.size > 1 || (oldMid.length && oldMid[0].parentNode !== el)) {
+    if (parents.size > 1) {
       parents.forEach(w => { if (w === el) return; while (w.firstChild) w.parentNode.insertBefore(w.firstChild, w); w.remove(); });
       wds = Array.from(el.querySelectorAll('.wd'));
       oldMid = wds.slice(p, A.length - q);
@@ -404,11 +412,11 @@
 
   const ROUNDS = {
     1: {
-      text: 'Drag each block to the matching shape.',
+      text: 'Drag each name to the matching shape.',
       src:  'assets/audio/Drag each block to the matching shape.mp3'
     },
     2: {
-      text: 'Drag each area to the matching shape.',
+      text: 'Great! Now let’s recall their area formulas.',
       src:  'assets/audio/Drag each area to the matching shape.mp3'
     }
   };
@@ -419,7 +427,7 @@
 
   /* section 2: Swiftee's two lines in the triangle lesson */
   const LESSON = {
-    types: 'A triangle can be of different types.',
+    types: 'Triangles can look different, but their area depends on the base and height.',
     dims:  'Let’s observe their base and height.'
   };
 
@@ -487,46 +495,88 @@
 
     if (!S || !nodes.length) {
       /* no assets, no mascot -- never a blocked mission */
-      return { play() {}, hold() {}, release() {}, show() {}, ms: () => 0, sheets: [] };
+      return { play() {}, hold() {}, release() {}, show() {}, ms: () => 0, preload: () => [] };
     }
 
     const FRAME_MS = 1000 / S.fps;
     const clipOf = name => S.clips[name];
 
     /* A sprite drawn bigger than its 256px cell -- Swiftee alone on the
-       landscape in the intro -- is painted from the 2x sheets, or it comes
-       out soft. Each node is re-measured a few times a second, so one that
-       has just been shown picks its sheet within a few frames. */
+       landscape in the intro, and the welcome cut-out -- is painted from the
+       2x sheets, or it comes out soft. */
     const HI_MIN = S.cell * 1.1;
     const HI_DROP = S.cell * 0.94;      /* hysteresis, see below */
     /* the excited loop has no single 2x sheet, so it stays at 1x */
     const hiImg = img => (/swiftee_excited@1x/.test(img) ? img : img.replace('/1x/', '/2x/').replace('@1x', '@2x'));
 
-    /* A sheet is only swapped in once it has actually decoded. Swapping to one
-       the browser has not finished reading paints nothing at all for a frame
-       or two -- on a loop that is a bird that blinks out and back. */
-    const loading = Object.create(null);
-    function decoded(url) {
-      let im = loading[url];
-      if (!im) { im = loading[url] = new Image(); im.src = url; }
-      return im.complete && im.naturalWidth > 0;
+    /* ---------- sheets: fetched, decoded, and only then painted ----------
+       Handing the compositor a url it has not finished reading paints nothing
+       at all for a frame or two -- on a bird already on screen that is a blink
+       out and back. decode() is the only thing that promises a paintable
+       bitmap: an Image that merely reports `complete` has been downloaded, not
+       decoded, and a 3584x3072 sheet is a long way from paintable at that
+       point. The Image is kept alive so the decode is not thrown away again.
+         `settled` means the fetch is over either way and the engine may move
+       on; `ok` means there is actually a picture in it. A sheet that will not
+       load is still settled, so one missing file can never freeze the bird. */
+    const sheets = Object.create(null);         /* url -> { img, settled, ok } */
+    function warm(url) {
+      let s = sheets[url];
+      if (s) return s.p;
+      const img = new Image();
+      s = sheets[url] = { img: img, settled: false, ok: false, p: null };
+      const mark = () => { s.settled = true; s.ok = img.naturalWidth > 0; };
+      const loaded = () => new Promise(res => {
+        if (img.complete) return res();
+        img.onload = img.onerror = res;
+      });
+      img.src = url;
+      s.p = (img.decode ? img.decode().then(mark, () => loaded().then(mark))
+                        : loaded().then(mark));
+      return s.p;
     }
+    const usable  = url => { const s = sheets[url]; return !!(s && s.settled && s.ok); };
+    const settled = url => { const s = sheets[url]; return !!(s && s.settled); };
 
-    function imgFor(n, d) {
-      const now = performance.now();
-      if (n._hiT === undefined || now - n._hiT > 400) {
-        n._hiT = now;
-        /* offsetHeight, not getBoundingClientRect(): the latter reports the
-           TRANSFORMED height, so a squash or a spring mid-jump would flip the
-           sprite to the other sheet and back. And the threshold has a dead
-           band -- once big it stays big until well under -- so a node sitting
-           right on the line cannot oscillate between the two sheets. */
-        const h = n.offsetHeight;
-        if (h) n._hi = n._hi ? h > HI_DROP : h > HI_MIN;
+    /* Which sheet a sprite is drawn from is decided from the height the
+       stylesheet gives it, which is readable while the sprite is still hidden
+       -- offsetHeight is 0 then, and deciding off that meant every sprite was
+       revealed at 1x and swapped up to 2x a beat later, in full view of the
+       learner. getBoundingClientRect() is not used either: it reports the
+       TRANSFORMED height, so a squash or a spring mid-jump would flip the
+       sheet and back. The threshold has a dead band -- once big it stays big
+       until well under -- so a sprite sitting right on the line cannot
+       oscillate between the two sheets. */
+    function measure(n) {
+      const h = parseFloat(getComputedStyle(n).height) || n.offsetHeight || 0;
+      if (!h) return;
+      const hi = h > (n._hi ? HI_DROP : HI_MIN);
+      if (hi !== n._hi) { n._hi = hi; n._clip = null; }   /* re-pick the sheet */
+      /* A sprite that settled for the 1x sheet because the 2x one was still
+         coming down keeps it until its clip changes -- and the idle blink can
+         hold for minutes. So while it is off screen, and only while it is off
+         screen, let it take the better sheet as soon as there is one: nobody
+         can see that swap, and it is one the learner would otherwise see the
+         moment the sprite is revealed. */
+      if (n._hi && n._url && n._url.indexOf('@2x') < 0 && !n.offsetHeight &&
+          usable(hiImg(n._url))) n._clip = null;
+    }
+    function measureAll() { nodes.forEach(measure); }
+
+    /* The sheet for one sprite and one clip, or null if nothing is paintable
+       yet -- in which case the caller holds the frame already on screen rather
+       than blanking the box. The big sheet is only fetched for a sprite that
+       is really rendered: the landscape bird is always sized for 2x, but it
+       spends most of the mission behind a display:none and has no business
+       pulling down a 2x sheet of every expression the board plays. */
+    function pick(n, d) {
+      if (n._hi) {
+        const big = hiImg(d.img);
+        if (usable(big)) return big;
+        if (n.offsetHeight) warm(big);
       }
-      if (!n._hi) return d.img;
-      const big = hiImg(d.img);
-      return decoded(big) ? big : d.img;
+      warm(d.img);
+      return settled(d.img) ? d.img : null;
     }
 
     let program = [];    /* steps still to run: { clip, repeat } */
@@ -540,7 +590,12 @@
        on every animation frame, and re-assigning the sheet's url() three times
        per frame per sprite makes the engine resolve the image again 60 times a
        second: the loop stutters and drops frames instead of playing evenly.
-       The position is the only property that normally moves at all. */
+       The position is the only property that normally moves at all.
+         The sheet is chosen once per clip per sprite, never mid-clip: a url
+       that changes under a bird already on screen is the whole flicker. Until
+       the chosen sheet is decoded the sprite is left showing the last frame it
+       painted -- a bird holding a pose for two frames is invisible next to a
+       bird that vanishes for them. */
     function paint() {
       const d = clipOf(step.clip);
       const col = frame % d.cols;
@@ -550,10 +605,21 @@
       const size = (d.cols * 100) + '% ' + (d.rows * 100) + '%';
       const pos  = px + '% ' + py + '%';
       nodes.forEach(n => {
-        const url = imgFor(n, d);
-        if (n._url !== url) {
-          n._url = url;
-          n.style.setProperty('--sw-img', 'url("' + url + '")');
+        if (n._clip !== step.clip) {
+          const url = pick(n, d);
+          if (!url) return;                 /* nothing paintable yet: hold */
+          n._clip = step.clip;
+          if (n._url !== url) {
+            n._url = url;
+            n.style.setProperty('--sw-img', 'url("' + url + '")');
+          }
+          /* A sprite that is held back until there is something in it (the
+             welcome cut-out) is let through here and only here: the frame it
+             becomes visible on is the frame a decoded sheet lands in it, so
+             it is never an empty box that fills in. Asked of the element
+             rather than remembered, so a teardown that puts a sprite's
+             classes back the way it found them cannot leave it hidden. */
+          if (!n.classList.contains('show')) n.classList.add('show');
         }
         if (n._size !== size) { n._size = size; n.style.setProperty('--sw-size', size); }
         if (n._pos !== pos)   { n._pos = pos;   n.style.setProperty('--sw-pos', pos); }
@@ -564,12 +630,19 @@
       step = program.shift() || null;
       frame = 0;
       pass = 0;
-      if (step) paint();
+      /* a clip boundary is the one moment a sprite may change sheet without
+         it showing, so it is also the moment its size is worth re-reading */
+      if (step) { measureAll(); paint(); }
     }
 
+    let measuredT = 0;
     function tick(t) {
       requestAnimationFrame(tick);
       if (!step) return;
+      /* Sizes are re-read at every clip boundary, but an idle loop can hold
+         for minutes; a slow sweep catches a sprite resized or made ready in
+         between. Off the hot path: a couple of layout reads a second. */
+      if (t - measuredT > 500) { measuredT = t; measureAll(); }
       if (!lastT) lastT = t;
       let dt = t - lastT;
       lastT = t;
@@ -617,6 +690,7 @@
     }
 
     requestAnimationFrame(tick);
+    window.addEventListener('resize', measureAll);
     program = build(null, 1);
     advance();
 
@@ -639,15 +713,26 @@
           step.repeat = pass + 1;
         }
       },
+      /* Sprites reveal themselves on their first decoded frame (see paint);
+         this is the manual override, and painting first keeps the guarantee
+         that nothing is shown before there is something in it. */
       show(on) {
+        if (on && step) paint();
         nodes.forEach(n => n.classList.toggle('show', !!on));
       },
       ms: ms,
-      /* every 1x sheet, and the 2x sheets of the clips the intro plays big */
-      sheets: Object.keys(S.clips).map(k => S.clips[k].img).concat(
-        [S.idle].concat(['waving', 'talking'].map(k => S.states[k]).filter(Boolean)
-          .map(st => [st.start, st.loop, st.stop]).reduce((a, b) => a.concat(b), []))
-          .filter(Boolean).map(k => hiImg(clipOf(k).img)))
+      /* Fetch and decode every 1x sheet, and the 2x sheets of the clips a
+         sprite is ever drawn big enough to need them for -- the welcome
+         cut-out and the landscape bird only ever blink, wave and talk. The
+         loader waits on these, which is what makes every later sheet change a
+         swap between two bitmaps the browser already holds. */
+      preload() {
+        const big = [S.idle].concat(
+          ['waving', 'talking'].map(k => S.states[k]).filter(Boolean)
+            .map(st => [st.start, st.loop, st.stop]).reduce((a, b) => a.concat(b), []))
+          .filter(Boolean).map(k => hiImg(clipOf(k).img));
+        return Object.keys(S.clips).map(k => S.clips[k].img).concat(big).map(warm);
+      }
     };
   })();
 
@@ -1183,6 +1268,10 @@
     /* an expression held open for a line that will not finish */
     swiftee.release();
 
+    /* a card taken to the middle of the board for its explanation: the layer
+       it sits on is outside the scene containers, so it is put away by hand */
+    closeZoom();
+
     /* a card mid-drag rides on a copy pinned to the body */
     Array.from(document.body.children).forEach(function (el) {
       if (el.classList && el.classList.contains('chip') && el.classList.contains('ghost')) el.remove();
@@ -1253,10 +1342,7 @@
       board: (board.getAttribute('class') || '').split(/\s+/).filter(function (c) { return c && c !== 'cheer'; }).join(' '),
       roots: SCENE_ROOTS.map(function (r) {
         return { cls: r.getAttribute('class') || '', aria: r.getAttribute('aria-hidden') };
-      }),
-      /* which spot the bird stood on as the scene opened: a scene that finds
-         it there hops it about exactly as it did the first time */
-      birds: MASCOT_SPOTS.filter(function (m) { return m.classList.contains('in'); }).map(function (m) { return m.id; })
+      })
     };
   }
 
@@ -1268,9 +1354,12 @@
       if (was.aria === null) r.removeAttribute('aria-hidden');
       else r.setAttribute('aria-hidden', was.aria);
     });
-    if (stage.birds) {
-      MASCOT_SPOTS.forEach(function (m) { m.classList.toggle('in', stage.birds.indexOf(m.id) !== -1); });
-    }
+    /* Swiftee is never handed to a scene already standing on the board: a
+       re-entry empties every typewriter, the heading included, and a bird put
+       back on its spot here would stand beside an empty heading until the
+       scene's first line. It waits behind the board instead and comes up with
+       that line, exactly as it does the first time through. */
+    MASCOT_SPOTS.forEach(function (m) { m.classList.remove('in'); });
   }
 
   /* Re-enter a scene on the stage it originally opened on. Both tools that go
@@ -2136,7 +2225,7 @@
          flashing 100% for a single frame
      Only the tally can carry it the last stretch to 100. */
   function runLoader() {
-    const jobs = ART.concat(swiftee.sheets).map(preloadImage)
+    const jobs = ART.map(preloadImage).concat(swiftee.preload())
       .concat(Object.keys(bank).map(k => preloadAudio(bank[k])))
       .concat(Object.keys(ROUNDS).map(n => preloadAudio(ROUNDS[n].audio)));
     if (document.fonts && document.fonts.ready) {
@@ -2208,7 +2297,7 @@
   const boardMascot = document.getElementById('mascot');
   const hopper      = document.getElementById('hopper');
 
-  const GREETING = ['Hey there', 'Let’s do a quick warm-up!'];
+  const GREETING = ['Hey there!', 'Let’s start with a quick warm-up!'];
   const TYPE_MS  = 72;              /* per character, no voice-over to pace against */
 
   /* one jump straight up into the middle of the screen: Swiftee springs up
@@ -2364,16 +2453,35 @@
     );
     await finished(rise);
 
-    /* ...hand over, and drop onto the spot with a little squash */
+    /* ...hand over, and drop onto the spot with a little squash.
+
+       The spot is measured AGAIN here rather than taken from the box read
+       before the jump. The heading's row opens for the arriving bird and
+       takes half a second to do it, so by the time the sprite reaches the
+       apex its landing spot has slid down the board underneath it -- 55px,
+       measured. Starting the fall from the stale box puts the in-board
+       sprite somewhere other than where the hopper was left standing, and
+       the swap paints the character in two places on consecutive frames:
+       the flicker the hand-over is supposed to hide. Measured live, the two
+       sprites share the same pixel and the cut is invisible again.
+
+       The start of the fall is also written to the element before it is
+       shown, so a frame painted before the animation's first sample cannot
+       catch the bird sitting at its destination. */
+    const at = spot.getBoundingClientRect();
+    const drop = apexTop - at.top;
+    spot.style.transform = 'translateY(' + drop + 'px)';
     spot.classList.add('in');
     hopper.classList.remove('on');
     rise.cancel();
     const fall = spot.animate([
-      { transform: 'translateY(' + (apexTop - m.top) + 'px)', easing: 'cubic-bezier(.45, 0, .85, .5)' },
+      { transform: 'translateY(' + drop + 'px)', easing: 'cubic-bezier(.45, 0, .85, .5)' },
       { transform: 'translateY(0) scale(1.06, .92)', offset: .8, easing: 'ease-out' },
       { transform: 'none' }
-    ], { duration: Math.min(760, 320 + (m.top - apexTop) * .5) });   /* longer drop, longer fall */
-    await finished(fall);
+    ], { duration: Math.min(760, 320 - drop * .5), fill: 'forwards' });   /* longer drop, longer fall */
+    /* the fill holds the last keyframe -- which is `none` -- so clearing the
+       inline transform and dropping the animation changes nothing on screen */
+    try { await finished(fall); } finally { spot.style.removeProperty('transform'); fall.cancel(); }
   }
 
   /* The way back: the in-board sprite crouches and springs up to the apex
@@ -2397,14 +2505,19 @@
     ], { duration: 560, fill: 'forwards' });
     await finished(rise);
 
+    /* where the sprite actually ended up, not where it was aimed: the fill
+       holds the rise, so this box is the bird's own last painted position,
+       and the hopper takes over from exactly there even if the row closed
+       under it on the way up */
+    const at = spot.getBoundingClientRect();
     Object.assign(hopper.style, {
-      left: m.left + 'px', top: apexTop + 'px', width: m.width + 'px', height: m.height + 'px'
+      left: at.left + 'px', top: at.top + 'px', width: at.width + 'px', height: at.height + 'px'
     });
     hopper.classList.add('on');
     spot.classList.remove('in');
     rise.cancel();
     const fall = hopper.animate(
-      [{ transform: 'translateY(0)' }, { transform: 'translateY(' + (hideTop - apexTop) + 'px)' }],
+      [{ transform: 'translateY(0)' }, { transform: 'translateY(' + (hideTop - at.top) + 'px)' }],
       { duration: 360, easing: 'cubic-bezier(.45, 0, .85, .5)', fill: 'forwards' }
     );
     await finished(fall);
@@ -2931,6 +3044,10 @@
     return mascotArriving;
   }
 
+  /* Between scenes the bird STAYS where it is: a rebuild that sent it behind
+     the board every time reads as blinking, whatever the heading is doing.
+     Only the section transitions that always took it down still do. */
+
   /* Swiftee says a line from its place by the heading */
   async function heading(text) {
     feedbackGen++;
@@ -3029,16 +3146,23 @@
       { duration: 150, easing: 'ease-in', fill: 'forwards' }
     );
     await finished(crouch);
-    crouch.cancel();
 
+    /* the crouch is held by its fill, so this is the sprite's own last
+       painted box: the flyer takes over from there. Measured -- and handed
+       over -- before the crouch is let go, or the box read here is the
+       sprite standing up straight while the pixels on screen are still
+       crouched, and the character pops 8% taller on the hand-over frame.
+       The same order as the hopper's hand-over further up. */
+    const at0 = fromEl.getBoundingClientRect();
     Object.assign(flyer.style, {
-      left: a.left + 'px', top: a.top + 'px', width: a.width + 'px', height: a.height + 'px'
+      left: at0.left + 'px', top: at0.top + 'px', width: at0.width + 'px', height: at0.height + 'px'
     });
     flyer.classList.add('on');
     fromEl.classList.remove('in');
+    crouch.cancel();
 
-    const dx = b.left - a.left;
-    const dy = b.top - a.top;
+    const dx = b.left - at0.left;
+    const dy = b.top - at0.top;
     const arc = Math.min(170, Math.max(70, Math.abs(dx) * .3 + Math.max(0, -dy) * .2));
     const N = 18;
     const kf = [];
@@ -3051,14 +3175,23 @@
     });
     await finished(fly);
 
+    /* and the same hand-over rule on the way down: the destination is
+       measured again, so if a row opened or closed while the bird was in the
+       air it appears where the flyer left it and eases across to the spot,
+       instead of being cut there in a single frame */
+    const at1 = toEl.getBoundingClientRect();
+    const ox = (at0.left + dx) - at1.left;
+    const oy = (at0.top + dy) - at1.top;
+    const from = 'translate(' + ox + 'px, ' + oy + 'px) scale(1.06, .92)';
+    toEl.style.transform = from;
     toEl.classList.add('in');
     flyer.classList.remove('on');
     fly.cancel();
     const land = toEl.animate(
-      [{ transform: 'scale(1.06, .92)' }, { transform: 'none' }],
-      { duration: 220, easing: 'ease-out' }
+      [{ transform: from }, { transform: 'none' }],
+      { duration: 220, easing: 'ease-out', fill: 'forwards' }
     );
-    await finished(land);
+    try { await finished(land); } finally { toEl.style.removeProperty('transform'); land.cancel(); }
   }
 
   /* ---------- drop-downs ----------
@@ -3401,11 +3534,10 @@
      left two fifths, the working to the right three fifths. A grid cannot
      animate that change, so the shape's box is measured before and after and
      the move is played back as a transform from the old place to the new. */
-  /* The shape floats from the middle to the left at the size it already
-     has: its column is made exactly as wide as the shape was, and the
-     working takes the rest (more, if a line needs it -- then the shape
-     gives way). Coming back, the column is released. The move itself is
-     the shape sliding from where it was to where it now sits. */
+  /* The shape floats from the middle into the left column -- always 40% of
+     the board, the working taking the other 60% (CSS) -- sliding from where
+     it was to where it now sits; if it has to fit the column it eases to
+     that size on the way, in the same move. */
   /* where the drawing itself is on screen: the svg's box is the whole cell,
      the drawing sits centred in it at the viewBox's aspect */
   function drawnRect(svg) {
@@ -3420,8 +3552,6 @@
     sec = sec || quad;
     svg = svg || quadSvg;
     const before = drawnRect(svg);
-    if (on === false) sec.style.removeProperty('--shape-col');
-    else if (before.width) sec.style.setProperty('--shape-col', Math.ceil(before.width) + 'px');
     sec.classList.toggle('wide', on !== false);
     const after = drawnRect(svg);
     if (REDUCED || !before.width || !after.width) return wait(120);
@@ -3506,6 +3636,22 @@
     quadShape.classList.add('lit-' + w.replace(/^h-/, ''));
   }
 
+  /* A line too long for its column breaks before its "=": the "= ..." part
+     drops to a second row, indented, rather than the sentence wrapping at a
+     word. Judged from the ghost's words before the line is shown. */
+  function fitEq(line) {
+    const ghost = line.querySelector('.type-ghost');
+    /* the room is the column the lines sit in, not the block of lines */
+    const box = line.closest('.quad-foot, .para-foot, .rhom-foot, .rtrap-foot, .fig-work') || line.parentNode;
+    line.classList.remove('eqbreak');
+    if (!ghost || !box || !ghost.querySelector('.rhs')) return;
+    /* offsetWidth: the line is still scaled down before it shows, and a
+       transformed rect would under-measure it */
+    const need = Array.from(ghost.querySelectorAll('.wd')).reduce((a, w) => a + w.offsetWidth, 0);
+    const pad = parseFloat(getComputedStyle(box).paddingLeft) + parseFloat(getComputedStyle(box).paddingRight) || 0;
+    if (need > box.clientWidth - pad + 1) line.classList.add('eqbreak');
+  }
+
   /* into the quadrilateral's working unless told otherwise */
   function showLine(line, root) {
     (root || areaLinesEl).appendChild(line);
@@ -3524,6 +3670,8 @@
     /* the ghost carries the whole line, so the box is sized before the first
        character lands */
     lineSpans(line.querySelector('.type-ghost'), segs);
+    (root || areaLinesEl).appendChild(line);
+    fitEq(line);
     await showLine(line, root);
     await typeSegments(line.querySelector('.txt'), line.querySelector('.caret'), segs, AREA_MS, AREA_PAUSE, onWord || onAreaWord);
     return line;
@@ -3604,8 +3752,8 @@
   }
 
   /* Between quadrilaterals the board goes blank: Swiftee ducks behind it,
-     the old shape fades, the new one is built and drawn, and Swiftee jumps
-     back up to the heading. */
+     the old shape fades, and the new one is built and drawn. Swiftee stays
+     behind the board -- the scene's first line brings it back up. */
   async function nextQuad(spec) {
     const out = mascotJumpOut();
     await wait(260);
@@ -3616,8 +3764,6 @@
     await out;
     await wait(520);
     await freshQuad(spec);
-    await mascotJumpIn();
-    await wait(240);
   }
 
   /* the shape is rebuilt while the section is faded out, then drawn again */
@@ -5315,8 +5461,6 @@
     areaEl('mark-up').classList.add('on');
     sfx('click', .4);
     await wait(REDUCED ? 200 : 700);
-    await mascotJumpIn();
-    await wait(240);
     await heading(RHOM2.here);
     await wait(1400);
 
@@ -5970,6 +6114,8 @@
       '<span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span>';
     const first = steps[0];
     lineSpans(line.querySelector('.type-ghost'), typeof first === 'string' ? [{ t: first }] : first);
+    (root || areaLinesEl).appendChild(line);
+    fitEq(line);
     await showLine(line, root);
     await solveLine(line.querySelector('.txt'), steps, AREA_MS, onWord);
     return line;
@@ -6296,6 +6442,7 @@
      does, and falls back to the usual pace when the clip will not play. */
   async function voiced(text, vo) {
     feedbackGen++;
+    await mascotWithLine(text);          /* up with the line, never before it */
     let length = 0, playing = false;
     const mine = runToken;
     if (vo && !fastForward) {
@@ -6395,14 +6542,301 @@
   const cardsNow   = () => Array.from(cardGrid.querySelectorAll('.card'));
   const isTrapCard = c => c.dataset.trap === '1';
 
+  /* ---------- a card, taken to the middle of the board ----------
+   * A tapped card lifts off the grid and comes to the middle of the screen,
+   * blown up over a darkened board, where the shape on it shows what was
+   * asked of it -- and then glides back to its place. Nothing is said in
+   * words, and nothing travels across the shape: the two sides being talked
+   * about are lit up where they are, and then carried on from their own
+   * corners to the edges of the card. What the two lines do on the way out
+   * is the whole answer -- hold their distance, and they are parallel; lean
+   * in on one another, and they are not.
+   *
+   * A trapezium is shown the one pair of its four sides that is parallel,
+   * and the arrow marks land on them. Anything else is shown both of its
+   * pairs in turn, and both lean -- the second a shade quicker than the
+   * first, since by then the test is familiar.
+   */
+  const cardZoom    = document.getElementById('cardZoom');
+  const cardZoomBox = document.getElementById('cardZoomBox');
+
+  /* The six shapes are drawn in a 200 x 130 space, and all of them sit
+     between (20, 20) and (180, 105); this sets that block in the middle of
+     the 320 x 200 card and blows it up to fill the room the card has. The
+     grid card and the blown-up copy are both drawn through it, so the flight
+     between the two is a plain change of size and nothing on the card moves
+     against anything else on the way. */
+  const CARD_W = 320, CARD_H = 200;          /* the card's own drawing box */
+  const SHAPE_MID   = { x: 100, y: 62.5 };
+  const SHAPE_SCALE = 1.42;
+  const SHAPE_FIT   = 'translate(' + (CARD_W / 2) + ' ' + (CARD_H / 2) + ') ' +
+                      'scale(' + SHAPE_SCALE + ') ' +
+                      'translate(' + -SHAPE_MID.x + ' ' + -SHAPE_MID.y + ')';
+  /* the rounded rectangle every card is drawn on, on the grid and blown up
+     in the middle of the board alike -- one shape, so the flight between the
+     two is a plain change of size */
+  const CARD_RECT = '<rect class="card-bg" x="2" y="2" width="' + (CARD_W - 4) +
+                    '" height="' + (CARD_H - 4) + '" rx="30" />';
+
+  /* A carry-on runs from its corner to the edge of the card and stops there:
+     the card is what the learner is looking at, and a line that ran on past
+     it would be drawn over the board and over the other cards behind. This
+     is the card's own inner box put back into the shape's units -- inset far
+     enough to clear the rim and the rounded corners -- and a ray is cut at
+     whichever of its sides the ray reaches first. */
+  const CARD_INSET = 16;
+  const toShape = (X, Y) => ({ x: SHAPE_MID.x + (X - CARD_W / 2) / SHAPE_SCALE,
+                               y: SHAPE_MID.y + (Y - CARD_H / 2) / SHAPE_SCALE });
+  const CARD_ROOM = (function () {
+    const a = toShape(CARD_INSET, CARD_INSET);
+    const b = toShape(CARD_W - CARD_INSET, CARD_H - CARD_INSET);
+    return { x1: a.x, y1: a.y, x2: b.x, y2: b.y };
+  })();
+
+  function safeRun(o, u) {
+    let s = 1e4;
+    const cut = (at, d, lo, hi) => {
+      if (Math.abs(d) < 1e-6) return;                /* runs parallel to this pair of sides */
+      s = Math.min(s, ((d > 0 ? hi : lo) - at) / d);
+    };
+    cut(o.x, u.x, CARD_ROOM.x1, CARD_ROOM.x2);
+    cut(o.y, u.y, CARD_ROOM.y1, CARD_ROOM.y2);
+    return Math.max(0, s);
+  }
+
+  /* ---- the two pairs of opposite sides ----
+   * The sides run round the outline, so the second of a pair runs against
+   * the first: `w` is that side turned about, which is the direction the
+   * first has to be compared with. Two sides are parallel when there is no
+   * angle at all between those two directions. */
+  function cardPairs(pts) {
+    const v = pts.trim().split(/\s+/).map(function (p) {
+      const n = p.split(',');
+      return { x: +n[0], y: +n[1] };
+    });
+    const unit = (a, b) => {
+      const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
+      return { x: dx / len, y: dy / len, len: len };
+    };
+    const pair = (i, j) => {
+      const A = v[i], B = v[(i + 1) % 4], C = v[j], D = v[(j + 1) % 4];
+      const u = unit(A, B), w = unit(D, C);
+      const cross = u.x * w.y - u.y * w.x;      /* the sine of the angle between them */
+      return { a: A, b: B, c: C, d: D, u: u, w: w, parallel: Math.abs(cross) < 1e-6 };
+    };
+    return [pair(0, 2), pair(1, 3)];
+  }
+
+  /* Everything the explanation will need, drawn over the shape and invisible
+     until it is called for: for each pair, both sides carried on past their
+     four corners, a glowing copy of each side, the arrow marks that say
+     "parallel", the arc that marks the angle a pair sits at when it is not,
+     and the measuring copy that slides from the one side to the other. */
+  function buildZoomEx(pairs) {
+    const CHEV = 5;                        /* the arm of the arrowhead */
+    const ln = (cls, a, b) => '<line class="' + cls + '" x1="' + fmt(a.x) + '" y1="' + fmt(a.y) +
+                              '" x2="' + fmt(b.x) + '" y2="' + fmt(b.y) + '" />';
+    const off = (o, u, s) => ({ x: o.x + u.x * s, y: o.y + u.y * s });
+    const back = u => ({ x: -u.x, y: -u.y });
+    /* a corner's carry-on: out along the side's own direction, as far as the
+       card allows */
+    const carry = (o, u) => ln('zx-ext', o, off(o, u, safeRun(o, u)));
+    /* an arrowhead a little past the middle of a side, pointing the way it
+       runs -- inked over a pale halo so it reads on the fill and off it */
+    const chev = (o, u) => {
+      const n = { x: -u.y, y: u.x };
+      return 'M' + fmt(o.x - u.x * CHEV + n.x * CHEV) + ' ' + fmt(o.y - u.y * CHEV + n.y * CHEV) +
+            ' L' + fmt(o.x) + ' ' + fmt(o.y) +
+            ' L' + fmt(o.x - u.x * CHEV - n.x * CHEV) + ' ' + fmt(o.y - u.y * CHEV - n.y * CHEV);
+    };
+    const marked = (cls, d) => '<g class="' + cls + '"><path class="zx-halo" d="' + d + '" />' +
+                               '<path class="zx-ink" d="' + d + '" /></g>';
+
+    return pairs.map(function (p, i) {
+      let g = '<g class="zx-pair ' + (i ? 'zx-b' : 'zx-a') + '">';
+      /* both sides carried on past both of their corners, every ray drawn
+         outward from its own corner so it grows away from the shape */
+      g += carry(p.a, back(p.u)) + carry(p.b, p.u);
+      g += carry(p.d, back(p.w)) + carry(p.c, p.w);
+      /* the sides themselves, each grown from its first corner */
+      g += ln('zx-side', p.a, p.b);
+      g += ln('zx-side', p.d, p.c);
+      /* "parallel": one arrowhead on each side */
+      g += marked('zx-par', chev(off(p.a, p.u, p.u.len * .62), p.u));
+      g += marked('zx-par', chev(off(p.d, p.w, p.w.len * .62), p.w));
+      return g + '</g>';
+    }).join('');
+  }
+
+  /* One pair, shown for what it is. `k` paces the whole thing: the second
+     pair a wrong card is shown runs at a little under full speed, since by
+     then the learner has watched the test once already. */
+  async function zoomPair(g, p, k) {
+    const T     = ms => Math.round(ms * k);
+    const sides = g.querySelectorAll('.zx-side');
+    const exts  = Array.from(g.querySelectorAll('.zx-ext'));
+    /* growLine lights a line inline; that is lifted as soon as it has grown,
+       so the classes have the say over what is showing */
+    const settle = l => l.style.removeProperty('opacity');
+
+    /* 1. the two sides light up where they are, one after the other */
+    g.classList.add('lit');
+    await growLine(sides[0], T(600));
+    settle(sides[0]);
+    await wait(T(240));
+    await growLine(sides[1], T(600));
+    settle(sides[1]);
+    await wait(T(440));
+
+    /* 2. and both run on out of their corners to the edges of the card */
+    await Promise.all(exts.map(l => growLine(l, T(860))));
+    exts.forEach(settle);
+    g.classList.add('on-ext');
+    await wait(T(560));
+
+    /* 3a. they held their distance the whole way out: parallel, and the
+           arrow marks land on both sides to say so */
+    if (p.parallel) {
+      sfx('correct', .5);
+      g.classList.add('show-par');
+      await wait(T(1400));
+      return;
+    }
+
+    /* 3b. they leaned in on one another instead: not parallel, and there is
+           nothing to mark -- the two lines closing is the whole of it */
+    sfx('wrong', .4);
+    await wait(T(1100));
+  }
+
+  /* a pair that has had its say steps back rather than leaving: its sides
+     stay as a trace, so the shape the next pair is drawn on is quiet */
+  function hushZoomPair(g) { g.classList.add('hush'); }
+
+  /* and everything goes before the card flies home */
+  function clearZoomEx() {
+    Array.from(cardZoomBox.querySelectorAll('.zx-pair')).forEach(function (g) {
+      g.querySelectorAll('.zx-side, .zx-ext').forEach(l => l.style.removeProperty('opacity'));
+      g.classList.remove('lit', 'on-ext', 'show-par', 'hush');
+    });
+  }
+
+  /* Which card is out in the middle of the board, and which visit put it
+     there. A visit takes the sequence it started with and gives the layer up
+     the moment it is no longer the one showing. */
+  let zoomFrom = null, zoomSeq = 0;
+
+  /* the layer is no longer this visit's to drive: a skip or a replay has
+     already put it away, so the frame stops where it is rather than driving
+     nodes that are no longer on the page. A replay unwinds a visit through
+     CANCELLED as well; a skip does not -- it leaves the scene running and
+     races it to its end -- so this is the check that catches a skip. */
+  const zoomGone = mine => mine !== zoomSeq;
+
+  /* The middle of the board is given up again: whatever was showing there
+     goes, and the card it was lifted from is put back on the grid. Safe to
+     call at any moment -- the end of the visit, a skip and a replay all come
+     through here -- and the bumped sequence tells a visit that is still
+     unwinding that the layer is no longer its to clear. */
+  function closeZoom() {
+    zoomSeq++;
+    if (zoomFrom) { zoomFrom.style.removeProperty('visibility'); zoomFrom = null; }
+    cardZoom.classList.remove('on', 'shade', 'ex', 'right', 'wrong');
+    cardZoom.removeAttribute('data-kind');
+    cardZoomBox.getAnimations().forEach(function (a) {
+      try { a.cancel(); } catch (e) { /* already done with */ }
+    });
+    cardZoomBox.textContent = '';
+  }
+
+  /* The flight between the grid and the middle. The blown-up card is always
+     laid where it is going and then carried there from where the grid card
+     stands -- both measured off the drawn rounded rectangle, which each svg
+     centres, so the two never differ by a pixel at the moment one is swapped
+     for the other. The card keeps its proportions, so a uniform scale is
+     exact. */
+  function zoomFlight(box, out) {
+    const ga = box.querySelector('.card-bg'), gb = cardZoomBox.querySelector('.card-bg');
+    if (!ga || !gb) return null;                /* the layer has been put away */
+    const a = ga.getBoundingClientRect();
+    const b = gb.getBoundingClientRect();
+    const away = 'translate(' + fmt((a.left + a.width / 2) - (b.left + b.width / 2)) + 'px, ' +
+                                fmt((a.top + a.height / 2) - (b.top + b.height / 2)) + 'px) ' +
+                 'scale(' + (a.width / b.width) + ')';
+    const kf = out ? [{ transform: away }, { transform: 'none' }]
+                   : [{ transform: 'none' }, { transform: away }];
+    return cardZoomBox.animate(kf, {
+      duration: REDUCED ? 220 : (out ? 780 : 720),
+      easing: out ? 'cubic-bezier(.34, .9, .32, 1)' : 'cubic-bezier(.4, 0, .2, 1)',
+      fill: 'both'
+    });
+  }
+
+  /* the whole visit: out of the grid, the shape taken apart, and home again */
+  async function zoomCard(card) {
+    const kind  = card.dataset.kind;
+    const pts   = CARDS[kind].pts;
+    const pairs = cardPairs(pts);
+    const box   = card.querySelector('.card-box');
+    const good  = isTrapCard(card);
+
+    closeZoom();                        /* nothing of any previous visit left */
+    const mine = zoomSeq;
+    cardZoomBox.setAttribute('viewBox', '0 0 ' + CARD_W + ' ' + CARD_H);
+    cardZoomBox.innerHTML =
+      CARD_RECT +
+      '<g transform="' + SHAPE_FIT + '">' +
+        '<polygon class="card-shape" points="' + pts + '" />' +
+        buildZoomEx(pairs) +
+      '</g>';
+    cardZoom.dataset.kind = kind;       /* the shape's own colours, as on the grid */
+    cardZoom.classList.add('on', good ? 'right' : 'wrong');
+
+    /* out it comes, and the board goes quiet behind it */
+    zoomFrom = box;
+    box.style.visibility = 'hidden';
+    cardZoom.classList.add('shade');
+    const out = zoomFlight(box, true);
+    if (out) await finished(out);
+    if (zoomGone(mine)) return;
+    cardZoomBox.getAnimations().forEach(a => a.cancel());
+    cardZoom.classList.add('ex');       /* the outline steps back for the marks */
+    await wait(REDUCED ? 160 : 440);
+
+    /* a trapezium is shown its one parallel pair; anything else both of
+       them, since what it is missing is a pair that holds */
+    const groups = Array.from(cardZoomBox.querySelectorAll('.zx-pair'));
+    const show = [0, 1].filter(i => !good || pairs[i].parallel);
+    for (let n = 0; n < show.length; n++) {
+      if (zoomGone(mine)) return;
+      if (n) { hushZoomPair(groups[show[n - 1]]); await wait(REDUCED ? 140 : 420); }
+      await zoomPair(groups[show[n]], pairs[show[n]], n ? .72 : 1);
+    }
+    if (zoomGone(mine)) return;
+    await wait(REDUCED ? 200 : 620);
+
+    /* the marks go first, so the card is itself again before it travels */
+    clearZoomEx();
+    cardZoom.classList.remove('ex');
+    await wait(REDUCED ? 140 : 460);
+
+    /* and home: the grid is measured afresh, since the board may have moved
+       under the card while it was away */
+    if (zoomGone(mine)) return;
+    cardZoom.classList.remove('shade');
+    const home = zoomFlight(box, false);
+    if (home) await finished(home);
+    if (!zoomGone(mine)) closeZoom();
+  }
+
   function buildCards(keys) {
     cardGrid.innerHTML = keys.map((k, i) => {
       const c = CARDS[k];
       return '<div class="card" data-kind="' + k + '" data-trap="' + (c.trap ? 1 : 0) + '" role="button" tabindex="-1" ' +
                   'aria-pressed="false" aria-label="Shape ' + (i + 1) + '">' +
-        '<svg class="card-box" viewBox="0 0 320 200" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
-          '<rect class="card-bg" x="2" y="2" width="316" height="196" rx="30" />' +
-          '<polygon class="card-shape" points="' + c.pts + '" transform="translate(60 35)" />' +
+        '<svg class="card-box" viewBox="0 0 ' + CARD_W + ' ' + CARD_H + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
+          CARD_RECT +
+          '<polygon class="card-shape" points="' + c.pts + '" transform="' + SHAPE_FIT + '" />' +
         '</svg>' +
         (c.trap ? '<div class="slot card-slot" data-accept="' + k + '" aria-label="Name of this trapezium"></div>' : '') +
       '</div>';
@@ -6417,35 +6851,63 @@
   function selectCards() {
     return waitForScene(resolve => {
       const cards = cardsNow();
-      let over = false;
+      let over = false, busy = false;
 
-      const onTap = e => {
-        if (!interactive || over) return;
+      /* A tap is answered on the card itself -- green and a burst, or a red
+         shake -- and then the card goes to the middle of the board to show
+         why. The board takes no taps for as long as it is away: the answer
+         is being explained, and the next one is asked for when it is back. */
+      const onTap = async e => {
+        if (!interactive || over || busy) return;
         const c = e.currentTarget;
         if (c.classList.contains('correct') || c.classList.contains('spent')) return;
+        const mine = runToken;
+        const good = isTrapCard(c);
+        busy = true;
+        lockInput(true);
 
-        /* ---- not a trapezium: red shake, then it steps back for good ---- */
-        if (!isTrapCard(c)) {
+        if (good) {
+          /* ---- a trapezium: it locks green, confetti out of the card ---- */
+          c.classList.add('correct');
+          c.setAttribute('aria-pressed', 'true');
+          sfx('correct', .85);
+          sfx('confetti', .5);
+          swiftee.play('happy', 1);
+          requestAnimationFrame(() => burst(c.querySelector('.card-box')));
+        } else {
+          /* ---- not a trapezium: red shake, and it will step back for good ---- */
           sfx('wrong');
           swiftee.play('confused', 1);
           c.classList.add('reject');
           c.setAttribute('aria-disabled', 'true');
-          setTimeout(() => { c.classList.remove('reject'); c.classList.add('spent'); }, 440);
-          return;
         }
 
-        /* ---- a trapezium: it locks green, confetti out of the card ---- */
-        c.classList.add('correct');
-        c.setAttribute('aria-pressed', 'true');
-        sfx('correct', .85);
-        sfx('confetti', .5);
-        swiftee.play('happy', 1);
-        requestAnimationFrame(() => burst(c.querySelector('.card-box')));
+        /* the visit to the middle, and everything after it, belongs to this
+           run of the scene: a replay throws CANCELLED through the whole of
+           it, and the frame unwinds here rather than answering over the top
+           of the fresh board */
+        try {
+          await wait(good ? 620 : 560);
+          if (!good) c.classList.remove('reject');
+          await zoomCard(c);
+        } catch (err) {
+          if (err !== CANCELLED) throw err;
+          return;
+        }
+        if (mine !== runToken || over) return;
+
+        /* a wrong card dims as it settles back into the grid */
+        if (!good) c.classList.add('spent');
+        busy = false;
         if (cards.filter(isTrapCard).every(k => k.classList.contains('correct'))) finish(false);
+        else lockInput(false);
       };
 
       const cleanup = () => {
         cards.forEach(c => { c.removeEventListener('click', onTap); c.classList.remove('pick'); });
+        /* a skip can land here with a card still out in the middle of the
+           board: it comes home at once rather than over the scene after */
+        closeZoom();
         skipFills.delete(fill);
         sceneWaiters.delete(teardown);
       };
@@ -6525,14 +6987,19 @@
     promptTxt.textContent = '';
     caret.hidden = true;
     await down;
-    await wait(200);
+    /* the line is gone and nothing is coming to replace it: the heading's
+       row gives up its box, and the cards take the room */
+    trap.classList.add('bare');
+    await wait(620);
 
     /* 4. the learner picks the trapeziums out, each tap answered at once */
     await selectCards();
     if (mine !== runToken) throw CANCELLED;
-    await wait(2000);
+    await wait(1400);
 
-    /* 5. Next */
+    /* 5. the heading's row opens again for the names that are coming, and Next */
+    trap.classList.remove('bare');
+    await wait(620);
     await showNext();
     await trapMatch();
   }
@@ -6777,8 +7244,6 @@
 
     /* 4. Swiftee jumps up from behind the board and says what to do, with
           the warm-up's voice-over for the same line */
-    await mascotJumpIn();
-    await wait(260);
     await voiced(TRAP.match, ROUNDS[1].audio);
 
     /* 5. the names go onto the shapes */
@@ -6864,16 +7329,23 @@
     const W = RT_A + RT_B;                            /* the whole's base */
     const right = Math.max(P.TR.x, P.BR.x);          /* the trapezium's own right edge */
     const shortName = name === 'Right-angled' ? name : name.toLowerCase();
+    const home = RT_MID - right / 2;
     return {
       key: key, name: name, x0: x0, P: P, M: M, rot: rot, W: W, whole: whole,
       /* where the drawing sits: alone, the trapezium is centred; with the
          copy, the pair is */
-      home: RT_MID - right / 2,
+      home: home,
       pair: RT_MID - (x0 + W) / 2,
+      /* the drawing's window once the trapezium stands alone: close round
+         it and its names, so it fills its column */
+      alone: fmt(home - 92) + ' -60 ' + fmt(right + 184) + ' 280',
+      /* and the window round the pair once it shares the board with the
+         working: no more margin than its names need */
+      pairBox: fmt(RT_MID - (x0 + W) / 2 - 78) + ' -56 ' + fmt(W + 150) + ' 270',
       say: {
         here:  'Let us try to find the area of this ' + name + ' trapezium.',
         sides: 'Its parallel sides are a and b, and its height is h.',
-        copy:  'Let us take a copy of it and rotate it.',
+        copy:  'Let us take a copy of it. Drag the copy to turn it round!',
         made:  'The two trapeziums fit together to make a ' + whole + '!',
         eqB:   'Look! Side b of the copy is equal to side b.',
         eqA:   'And side a of the copy is equal to side a.',
@@ -6890,10 +7362,8 @@
         total2: [{ t: '= ' }, { t: '(a + b)', w: 'ab' }, { t: ' × ' }, { t: 'h', w: 'h' }],
         half:   [{ t: 'Area of ' }, { t: 'Trapezium', w: 'trap' }, { t: ' = Half of total area' }],
         half2:  [{ t: '= ½ × ' }, { t: '(a + b)', w: 'ab' }, { t: ' × ' }, { t: 'h', w: 'h' }],
-        /* the last two run to two lines by design -- the name, then the
-           formula under it -- so they never break mid-formula in the column */
-        final:  [{ t: 'Area of ' }, { t: name + ' Trapezium', w: 'trap' }, { t: String.fromCharCode(10) + '= ½ × (a + b) × h' }],
-        rule:   [{ t: 'Area of Trapezium' + String.fromCharCode(10) + '= ½ × ' }, { t: '(sum of parallel sides)', w: 'ab' }, { t: ' × ' }, { t: 'height', w: 'h' }]
+        final:  [{ t: 'Area of ' }, { t: name + ' Trapezium', w: 'trap' }, { t: ' = ½ × (a + b) × h' }],
+        rule:   [{ t: 'Area of Trapezium = ½ × ' }, { t: '(sum of parallel sides)', w: 'ab' }, { t: ' × ' }, { t: 'height', w: 'h' }]
       },
       shortName: shortName
     };
@@ -6942,8 +7412,19 @@
   }
 
   /* the whole drawing for one kind, put back to its first frame */
+  const RT_VB = '-80 -60 680 280';
+  /* the drawing's window eases from the box it shows to another */
+  function rtZoom(box, ms) {
+    const from = (rtrapSvg.getAttribute('viewBox') || RT_VB).split(/\s+/).map(Number);
+    const to = box.split(/\s+/).map(Number);
+    return tween(ms || 900, p => {
+      rtrapSvg.setAttribute('viewBox', from.map((v, i) => fmt(v + (to[i] - v) * p)).join(' '));
+    }, easeInOut);
+  }
+
   function buildRtrap(kind) {
     rk = kind || rk;
+    rtrapSvg.setAttribute('viewBox', RT_VB);
     const P = rk.P, M = rk.M, rot = rk.rot, W = rk.W;
     const pts = [P.TL, P.TR, P.BR, P.BL];
     const path = 'M' + pts.map(p => fmt(p.x) + ' ' + fmt(p.y)).join(' L') + ' Z';
@@ -7053,42 +7534,131 @@
     hand.setAttribute('transform', 'translate(' + fmt(q.x - 20.7) + ' ' + fmt(q.y - 5.4) + ') scale(1.8)');
   }
 
-  /* The copy lifts off the trapezium and turns half a circle about M,
-     pushed round by a finger riding a curved arrow that draws itself as the
-     copy turns. It lands on the right, settles under the trapezium (so the
-     side they share keeps the trapezium's colour), and the whole's outline
-     glows once. */
+  /* The copy peels up off the trapezium -- a second sheet lifting, turned
+     a touch -- and waits for the learner. Dragged round M it turns with the
+     finger, the arc drawing itself as it goes; past the last stretch it
+     eases home on its own, lands under the trapezium (so the side they
+     share keeps the trapezium's colour), and the whole's outline glows.
+     Let go early it eases back and waits again, rocking now and then to
+     invite the drag; a skip turns it for the learner. */
   async function rtTurnCopy() {
-    const M = fmt(rk.M.x) + ' ' + fmt(rk.M.y);
-    /* the copy peels up a little as it appears, so it reads as a second
-       sheet lying over the trapezium rather than as the trapezium changing
-       colour; the offset is taken back as it turns */
-    const PEEL = { x: 10, y: -12 };
-    rtScene.insertBefore(rtCopy, rtDims);          /* over the trapezium while in the air */
-    rtCopy.setAttribute('transform', 'translate(' + PEEL.x + ' ' + PEEL.y + ') rotate(0 ' + M + ')');
-    rtCopy.classList.add('show');
+    const M = rk.M, Ms = fmt(M.x) + ' ' + fmt(M.y);
+    const PEEL = { x: 12, y: -14 };                 /* lifted off the trapezium */
+    const REST = 12;                                /* and turned a touch, in degrees */
+    const DONE = 168;                               /* from here it goes home by itself */
     const arc  = rtGuide.querySelector('.rt-arc');
     const hand = rtGuide.querySelector('.rt-hand');
     let L = 200;
     try { L = arc.getTotalLength() || L; } catch (e) { /* keep guard */ }
     arc.style.strokeDasharray = L;
     arc.style.strokeDashoffset = L;
+    rtGuide.classList.remove('show', 'tip');
+
+    /* the copy at a turn of q degrees: the lift is taken back as it turns,
+       and the arc and the finger keep pace with it */
+    const paint = q => {
+      const k = Math.max(0, (q - REST) / (180 - REST));
+      const lift = 34 * Math.sin(Math.PI * k);
+      rtCopy.setAttribute('transform', 'translate(' + fmt(PEEL.x * (1 - k)) + ' ' + fmt(PEEL.y * (1 - k) - lift) + ') rotate(' + fmt(q) + ' ' + Ms + ')');
+      arc.style.strokeDashoffset = L * (1 - k);
+      rtHandAt(hand, arc.getPointAtLength(L * k));
+    };
+
+    /* 1. the peel: flat on the trapezium, then up and a little round */
+    rtScene.insertBefore(rtCopy, rtDims);          /* over the trapezium while in the air */
+    rtCopy.setAttribute('transform', 'rotate(0 ' + Ms + ')');
+    rtCopy.classList.add('show');
+    await wait(REDUCED ? 60 : 260);
+    rtCopy.classList.add('flying');
+    sfx('click', .3);
+    await tween(REDUCED ? 200 : 1000, p => {
+      rtCopy.setAttribute('transform', 'translate(' + fmt(PEEL.x * p) + ' ' + fmt(PEEL.y * p) + ') rotate(' + fmt(REST * p) + ' ' + Ms + ')');
+    }, easeInOut);
     rtHandAt(hand, arc.getPointAtLength(0));
     rtGuide.classList.add('show');
-    await wait(REDUCED ? 100 : 560);
+    await wait(REDUCED ? 60 : 300);
 
-    rtCopy.classList.add('flying');
-    sfx('click', .35);
-    await tween(1600, p => {
-      const lift = 34 * Math.sin(Math.PI * p);
-      const ox = PEEL.x * (1 - p), oy = PEEL.y * (1 - p) - lift;
-      rtCopy.setAttribute('transform', 'translate(' + fmt(ox) + ' ' + fmt(oy) + ') rotate(' + fmt(180 * p) + ' ' + M + ')');
-      arc.style.strokeDashoffset = L * (1 - p);
-      rtHandAt(hand, arc.getPointAtLength(L * p));
-    }, easeInOut);
+    /* 2. the learner turns it */
+    let r = REST;
+    const toLocal = e => {
+      const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(rtrapSvg.getScreenCTM().inverse());
+      return { x: pt.x - rtX, y: pt.y };
+    };
+    const angleOf = p => Math.atan2(p.y - M.y, p.x - M.x) * 180 / Math.PI;
+    await new Promise(resolve => {
+      let over = false, held = false, th0 = 0, r0 = REST, idle = 0;
+      const cleanup = () => {
+        skipFills.delete(fill);
+        sceneWaiters.delete(teardown);
+        clearTimeout(idle);
+        rtCopy.removeEventListener('pointerdown', onDown);
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
+        rtCopy.classList.remove('grab', 'held');
+      };
+      /* the last stretch, and the landing, are the lesson's */
+      const settle = async auto => {
+        if (over) return;
+        over = true;
+        cleanup();
+        lockInput(true);
+        const from = r;
+        await tween(auto ? 1200 : 520, p => paint(from + (180 - from) * p), easeInOut);
+        resolve();
+      };
+      /* left alone, the copy rocks a little */
+      const nudgeLater = () => {
+        clearTimeout(idle);
+        idle = setTimeout(async () => {
+          if (over || held) return;
+          const from = r;
+          await tween(760, p => { if (!held && !over) paint(from + 14 * Math.sin(Math.PI * p)); }, easeInOut);
+          nudgeLater();
+        }, 2600);
+      };
+      const onDown = e => {
+        if (!interactive || over) return;
+        e.preventDefault();
+        held = true;
+        th0 = angleOf(toLocal(e));
+        r0 = r;
+        clearTimeout(idle);
+        rtCopy.classList.add('held');
+      };
+      const onMove = e => {
+        if (!held || over) return;
+        let d = angleOf(toLocal(e)) - th0;
+        d = ((d % 360) + 540) % 360 - 180;         /* the short way round */
+        r = Math.max(REST, Math.min(180, r0 + d));
+        paint(r);
+        if (r >= DONE) settle(false);
+      };
+      const onUp = () => {
+        if (!held || over) return;
+        held = false;
+        rtCopy.classList.remove('held');
+        const from = r;
+        tween(460, p => { if (!held && !over) { r = from + (REST - from) * p; paint(r); } }, easeOut);
+        nudgeLater();
+      };
+      const fill = () => settle(true);
+      const teardown = () => { over = true; cleanup(); };
+      rtCopy.classList.add('grab');
+      rtCopy.addEventListener('pointerdown', onDown);
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
+      skipFills.add(fill);
+      sceneWaiters.add(teardown);
+      lockInput(false);
+      nudgeLater();
+    });
+
+    /* 3. landed */
     rtGuide.classList.add('tip');
     rtCopy.classList.remove('flying');
-    rtCopy.setAttribute('transform', 'rotate(180 ' + M + ')');
+    rtCopy.setAttribute('transform', 'rotate(180 ' + Ms + ')');
     rtScene.insertBefore(rtCopy, rtArt);           /* landed: under the trapezium */
     rtGlow();
     sfx('correct', .45);
@@ -7282,7 +7852,8 @@
           down to the right half, beside the working: the whole's area,
           from the two lengths it has just named */
     rtrapSay.classList.add('show');
-    await layoutWide(rtrap, rtrapSvg);
+    /* the window closes round the pair as the drawing moves over */
+    await Promise.all([layoutWide(rtrap, rtrapSvg), rtZoom(rk.pairBox, 900)]);
     await wait(REDUCED ? 100 : 260);
     if (boardMascot.classList.contains('in')) await hopBetween(boardMascot, rtrapMascot);
     else await mascotJumpIn(rtrapMascot);
@@ -7315,7 +7886,9 @@
     rtDims.querySelectorAll('.d-group').forEach(g => g.classList.remove('lit'));
     await wait(REDUCED ? 100 : 500);
     ['top-a', 'bot-b'].forEach(c => rtDim(c).classList.remove('gone'));
-    await rtSlide(rk.home);
+    /* back to the middle of its column, and the window closes round it so
+       it fills the column instead of sitting small in the pair's box */
+    await Promise.all([rtSlide(rk.home), rtZoom(rk.alone, 820)]);
     rtrapShape.classList.add('parallel');
     sfx('click', .3);
     await wait(400);
