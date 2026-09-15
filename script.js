@@ -4482,31 +4482,29 @@
     await layoutWide(para, paraSvg);
     await wait(300);
 
-    /* two questions at once: the base and the height, read off the shape;
-       the part named lights up as it is got right */
+    /* the questions, one at a time: each appears once the one before it has
+       been got right. The base and the height are read off the shape, and
+       the part named lights up as it is answered; then the area itself. */
     const right = () => feedback(FEEDBACK.right);
     const wrong = () => feedback(FEEDBACK.wrong);
-    const q1 = questionLine('The base of the parallelogram is',
-      [{ v: '8', t: '8 cm' }, { v: '5', t: '5 cm' }, { v: '13', t: '13 cm' }]);
-    const q2 = questionLine('The height is',
-      [{ v: '5', t: '5 cm' }, { v: '8', t: '8 cm' }, { v: '3', t: '3 cm' }]);
-    await showLine(q1.line, paraLines);
-    await showLine(q2.line, paraLines);
-    lockInput(false);
-    await Promise.all([
-      q1.dd.ask(v => v === '8', () => { right(); paraShape.classList.add('lit-b'); }, wrong),
-      q2.dd.ask(v => v === '5', () => { right(); paraShape.classList.add('lit-h'); }, wrong)
-    ]);
-    lockInput(true);
+    const ask = async (label, opts, answer, onRight) => {
+      const q = questionLine(label, opts);
+      await showLine(q.line, paraLines);
+      lockInput(false);
+      await q.dd.ask(v => v === answer, onRight, wrong);
+      lockInput(true);
+    };
+    await ask('The base of the parallelogram is',
+      [{ v: '8', t: '8 cm' }, { v: '5', t: '5 cm' }, { v: '13', t: '13 cm' }],
+      '8', () => { right(); paraShape.classList.add('lit-b'); });
     await wait(700);
-
-    /* then the area itself */
-    const q3 = questionLine('The area of the parallelogram is',
-      [{ v: '40', t: '40 sq. cm' }, { v: '13', t: '13 sq. cm' }, { v: '20', t: '20 sq. cm' }]);
-    await showLine(q3.line, paraLines);
-    lockInput(false);
-    await q3.dd.ask(v => v === '40', right, wrong);
-    lockInput(true);
+    await ask('The height is',
+      [{ v: '5', t: '5 cm' }, { v: '8', t: '8 cm' }, { v: '3', t: '3 cm' }],
+      '5', () => { right(); paraShape.classList.add('lit-h'); });
+    await wait(700);
+    await ask('The area of the parallelogram is',
+      [{ v: '40', t: '40 sq. cm' }, { v: '13', t: '13 sq. cm' }, { v: '20', t: '20 sq. cm' }],
+      '40', right);
     feedback(FEEDBACK.done);
     onParaWord('para');
     swiftee.play('proud', 1);
