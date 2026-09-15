@@ -7,6 +7,32 @@
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- ---------- icons ----------
+       Drawn once here and stamped wherever they are needed with <use>, so
+       every copy is the same artwork at any size. -->
+  <svg class="ico-sprite" width="0" height="0" aria-hidden="true" focusable="false">
+    <symbol id="ico-next" viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="icoNextFace" x1="50" y1="8" x2="50" y2="92" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="var(--next-face-1)" />
+          <stop offset=".55" stop-color="var(--next-face-2)" />
+          <stop offset="1" stop-color="var(--next-face-3)" />
+        </linearGradient>
+      </defs>
+      <!-- the rim, set a little low so it reads as the thickness of a disc -->
+      <circle cx="50" cy="51.5" r="45" fill="var(--next-rim)" />
+      <circle cx="50" cy="50" r="41.5" fill="url(#icoNextFace)" />
+      <!-- the gloss: a soft streak up the top left, and the small catch-light
+           opposite it -->
+      <ellipse cx="38" cy="26.5" rx="17.5" ry="7.5" transform="rotate(-27 38 26.5)" fill="var(--next-gloss)" opacity=".4" />
+      <circle cx="70.5" cy="32" r="5.2" fill="var(--next-gloss)" opacity=".28" />
+      <!-- the arrow: drawn small and grown back by a round stroke, which is
+           what rounds every corner of it evenly -->
+      <path d="M35 44.5 H52 V35 L72 50 L52 65 V55.5 H35 Z"
+            fill="var(--next-arrow)" stroke="var(--next-arrow)" stroke-width="7"
+            stroke-linejoin="round" stroke-linecap="round" />
+    </symbol>
+  </svg>
   <!-- Swiftee's stand-in for the half of its jump that happens behind the
        board: it sits before the stage in the document, so it paints under the
        board, and script.js hands over to the in-board sprite at the top of the
@@ -676,11 +702,11 @@
       </div>
     </div>
 
-    <!-- Next: sits in the middle of the footer band once a section is over,
-         over the (by then empty) card decks. -->
+    <!-- Next: sits in the board's bottom right corner once a section is
+         over, clear of the (by then empty) card decks. -->
     <button class="next-btn" id="nextBtn" type="button" hidden>
-      <span>Next</span>
-      <svg class="next-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+      <span class="sr-only">Next</span>
+      <svg class="next-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#ico-next" /></svg>
     </button>
 
   </main>
@@ -695,8 +721,8 @@
        sections): fixed to the viewport, centred low, over the intro layer -->
   <div class="free-next" id="freeNext">
     <button class="next-btn" id="nextBtnFree" type="button" hidden>
-      <span>Next</span>
-      <svg class="next-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+      <span class="sr-only">Next</span>
+      <svg class="next-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#ico-next" /></svg>
     </button>
   </div>
 

@@ -150,6 +150,17 @@
   --button-border: #E0479A;
   --button-text: #7A1F55;
 
+  /* The round Next disc (#ico-next). Read by the symbol itself, so the button
+     is re-skinned from here like everything else: the rim is the buttons'
+     own pink, the face is the same pink lit from the top, and the arrow is
+     the board's palest tint rather than a flat white. */
+  --next-rim:    #C13882;
+  --next-face-1: #FF9CD0;
+  --next-face-2: #F573B5;
+  --next-face-3: #E0479A;
+  --next-gloss:  #FFFFFF;
+  --next-arrow:  #FFF3F8;
+
   /* ---- feedback ----
    * Added to the palette above: it is a single pink family, so on its own it
    * has no way to tell a learner right from wrong. These two are the only
@@ -420,15 +431,20 @@ body {
 .board.sec2 .tray { height: 0; overflow: hidden; }
 .tray { transition: opacity .45s ease, visibility 0s linear .45s, height 0s linear .45s; }
 
+/* The shape and its slots are a column that shares out whatever height the
+   bay has: the stage only ever asks for as much as the artwork can use (see
+   .shape-stage), so the slack is handed out evenly above the shape, between
+   the shape and its slots, and below them -- rather than piling up in one
+   dead band over the artwork. The gap is the floor the spacing can never
+   fall below when the board is short and there is no slack to share. */
 .cell {
   position: relative;
-  display: grid;
-  /* minmax(0, ...) lets the shape row give up height when the board is short.
-     Without it the row floors at the artwork's aspect-ratio height and the
-     console below is pushed out through the bottom. */
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: clamp(8px, 3vh, 26px);
-  justify-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: clamp(8px, 2.2vh, 20px);
+  min-height: 0;
 }
 
 /* Both rounds' slots live here from the first frame. Round 2's is folded
@@ -452,12 +468,37 @@ body {
 /* The artwork is anchored to this box rather than flowing inside it. A
    stretched grid item's height is definite in use but not in the cascade, so
    percentages inside it silently compute to none. inset: 0 on the child gives
-   the svg a height it can actually resolve against. */
+   the svg a height it can actually resolve against.
+
+   The box asks for exactly the height the artwork can use and no more. The
+   three shapes share one scale -- the column's width over the rectangle's
+   320-unit viewBox -- and the tallest viewBox of the set is the triangle's
+   210 units, so 320 x 210 is the whole set's height at that scale. Asking for
+   more would only pad the box: every shape is capped at the column's width,
+   so extra height never makes one bigger, it just pushes the artwork down to
+   the foot of an empty band. Anything left over goes to the spacing instead.
+   `flex: 0 1 auto` still lets the box shrink under its aspect when the board
+   is short -- the shapes simply scale down with it. */
 .shape-stage {
   position: relative;
   width: 100%;
+  flex: 0 1 auto;
+  aspect-ratio: 320 / 210;
   min-height: 0;
+  /* The names of the sides live in the foot of every viewBox, under the
+     artwork. Until they are shown that band is empty, so the stage hands it
+     back: a negative bottom margin brings the slots up under the shapes
+     without touching the stage's own box, so the artwork keeps its size and
+     its place on the shared baseline -- only the room below it goes. One
+     value for all three, or the docks would no longer line up across the
+     row: 12.5% of the column is the rectangle's band (40 units of its
+     320-unit viewBox), the deepest of the set. showLabels() gives the room
+     back and the slots ease down into it, which is the point -- the space
+     appears when there is something to put in it. */
+  margin-bottom: -12.5%;
+  transition: margin-bottom .55s cubic-bezier(.4, 0, .2, 1);
 }
+.bay.labelled .shape-stage { margin-bottom: 0; }
 
 /* ---------- shapes ---------- */
 .shape {
@@ -538,9 +579,16 @@ body {
   /* pale halo drawn behind the glyphs, so a label reads over the shape's own
      peach as easily as over the board */
   stroke: var(--board-highlight);
-  stroke-width: 3;
+  stroke-width: 3.5;
   paint-order: stroke;
 }
+/* The names are set in svg user units, and the three shapes are not drawn at
+   quite the same units-per-pixel (each svg is capped at its own share of the
+   column), so a single size would come out visibly smaller on the square than
+   on the rectangle. Each is sized to land at the same ~23px on the board. */
+.shape[data-shape="rect"] .shape-label     { font-size: 17px; }
+.shape[data-shape="square"] .shape-label   { font-size: 19px; }
+.shape[data-shape="triangle"] .shape-label { font-size: 18.5px; }
 .height-line {
   stroke: var(--shape-border);
   stroke-width: 2.4;
@@ -2408,34 +2456,60 @@ body {
 }
 
 /* ---------- next button ----------
- * Lives in the footer band's grid cell, centred, over the card decks. */
+ * The round green arrow, in the board's bottom right corner. It shares the
+ * footer band's grid cell with the card decks and is placed at its far end,
+ * so it never sits over a chip. The artwork is the #ico-next symbol, so the
+ * board's button and the viewport-anchored one for the asides are the same
+ * drawing at whatever size each is given. */
 .next-btn {
   grid-area: 3 / 1;
-  place-self: center;
-  margin-top: clamp(8px, 1.8vh, 18px);
+  place-self: end end;
+  margin: 0 0 clamp(10px, 2.6vh, 26px);
   position: relative;
   z-index: 2;
   display: inline-flex;
   align-items: center;
-  gap: .3em;
-  font-family: inherit;
-  font-weight: 700;
-  font-size: clamp(16.5px, 2.9vh, 26.4px);
-  letter-spacing: .6px;
-  color: var(--button-text);
-  padding: clamp(9px, 1.7vh, 15px) clamp(20px, 3.2vw, 36px) clamp(9px, 1.7vh, 15px) clamp(26px, 3.8vw, 44px);
-  border: 3px solid var(--button-border);
-  border-radius: 999px;
-  background: linear-gradient(180deg, var(--board-highlight) 0%, var(--button-bg) 60%, var(--board-decoration) 100%);
-  box-shadow: 0 0 14px 2px var(--glow-board-soft), 0 6px 16px var(--shadow-soft);
+  justify-content: center;
+  width: clamp(54px, 9.6vh, 92px);
+  height: clamp(54px, 9.6vh, 92px);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  /* the disc is drawn with its own rim and gloss, so the only thing the page
+     adds is the shadow it casts -- on the shape, not on a square box */
+  filter: drop-shadow(0 5px 9px var(--shadow-soft));
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 
   opacity: 0;
   transform: translateY(14px) scale(.88);
   transition: opacity .38s ease,
               transform .42s cubic-bezier(.2, .9, .3, 1.4),
-              box-shadow .18s ease,
               filter .18s ease;
+}
+.next-ico { display: block; width: 100%; height: 100%; }
+/* The icon sprite is a definition, not a picture: taken out of the flow
+   entirely, or its line box pushes the whole stage down the page. Not
+   display:none -- a <use> can still reach a symbol inside a box of no size,
+   and some engines drop the gradients when the host svg is not rendered. */
+.ico-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* the word is kept for the screen reader; the arrow is the button */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .next-btn[hidden] { display: none; }
 .next-btn.in {
@@ -2446,28 +2520,21 @@ body {
 .next-btn.in:hover,
 .next-btn.in:focus-visible {
   animation-play-state: paused;
-  filter: brightness(1.04);
-  transform: translateY(-3px) scale(1.03);
+  filter: drop-shadow(0 8px 13px var(--shadow-soft)) brightness(1.05);
+  transform: translateY(-3px) scale(1.06);
   outline: none;
 }
-.next-btn.in:active { transform: translateY(1px) scale(.99); }
+.next-btn.in:focus-visible { outline: 3px solid var(--ring-focus); outline-offset: 3px; }
+.next-btn.in:active { transform: translateY(1px) scale(.98); }
 .next-btn.out {
   opacity: 0;
   transform: scale(.9);
   transition: opacity .28s ease, transform .28s ease;
 }
-.next-arrow {
-  width: .9em;
-  height: .9em;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
+/* the disc breathes instead of glowing: there is no box behind it to light */
 @keyframes next-pulse {
-  0%, 100% { box-shadow: 0 0 14px 2px var(--glow-board-soft), 0 6px 16px var(--shadow-soft); }
-  50%      { box-shadow: 0 0 24px 8px var(--glow-board), 0 6px 16px var(--shadow-soft); }
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.07); }
 }
 
 /* ---------- drop slots ---------- */
@@ -2574,16 +2641,19 @@ body {
      placed by row alone would be auto-flowed into a second column beside it */
   grid-area: 3 / 1;
   position: relative;
-  /* padded only as far as the chips need to stand clear of the board's
-     foot: every pixel the band does not use is the shapes' */
-  padding: clamp(10px, 3vh, 28px) 0 clamp(12px, 3.2vh, 30px);
+  /* The top padding is the clear water between the slots the chips are
+     dragged into and the chips themselves -- deep enough that the two rows
+     never read as one block. The foot padding is only as much as the chips
+     need to stand clear of the board's edge: every pixel the band does not
+     use is the shapes'. */
+  padding: clamp(18px, 5.2vh, 52px) 0 clamp(12px, 3.2vh, 30px);
 }
 /* Round 2's deck is laid straight over round 1's, so the band keeps the same
    height all level long. Only the deck in play takes pointer events, so the
    dormant one cannot shadow the live chips. */
 .tray[data-round="2"] {
   position: absolute;
-  inset: clamp(10px, 3vh, 28px) 0 clamp(12px, 3.2vh, 30px) 0;
+  inset: clamp(18px, 5.2vh, 52px) 0 clamp(12px, 3.2vh, 30px) 0;
 }
 .tray { pointer-events: none; }
 .tray.live { pointer-events: auto; }
@@ -2794,17 +2864,20 @@ body {
 }
 .intro.aside .bubble .type { text-align: center; white-space: pre-wrap; }
 
-/* the viewport-anchored Next: over the intro layer (950), under the confetti */
+/* the viewport-anchored Next: over the intro layer (950), under the confetti.
+   Bottom right, the same corner it takes on the board. */
 .free-next {
   position: fixed;
   left: 0;
   right: 0;
   bottom: clamp(14px, 4.5vh, 48px);
+  padding-right: clamp(18px, 4.5vw, 64px);
   z-index: 955;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   pointer-events: none;
 }
+.free-next .next-btn { place-self: auto; margin: 0; }
 .free-next .next-btn { pointer-events: auto; }
 
 /* ---------- speech bubble ---------- */

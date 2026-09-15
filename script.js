@@ -498,15 +498,35 @@
        out soft. Each node is re-measured a few times a second, so one that
        has just been shown picks its sheet within a few frames. */
     const HI_MIN = S.cell * 1.1;
+    const HI_DROP = S.cell * 0.94;      /* hysteresis, see below */
     /* the excited loop has no single 2x sheet, so it stays at 1x */
     const hiImg = img => (/swiftee_excited@1x/.test(img) ? img : img.replace('/1x/', '/2x/').replace('@1x', '@2x'));
+
+    /* A sheet is only swapped in once it has actually decoded. Swapping to one
+       the browser has not finished reading paints nothing at all for a frame
+       or two -- on a loop that is a bird that blinks out and back. */
+    const loading = Object.create(null);
+    function decoded(url) {
+      let im = loading[url];
+      if (!im) { im = loading[url] = new Image(); im.src = url; }
+      return im.complete && im.naturalWidth > 0;
+    }
+
     function imgFor(n, d) {
       const now = performance.now();
-      if (frame === 0 || !(now - (n._hiT || 0) < 200)) {
-        n._hi = n.getBoundingClientRect().height > HI_MIN;
+      if (n._hiT === undefined || now - n._hiT > 400) {
         n._hiT = now;
+        /* offsetHeight, not getBoundingClientRect(): the latter reports the
+           TRANSFORMED height, so a squash or a spring mid-jump would flip the
+           sprite to the other sheet and back. And the threshold has a dead
+           band -- once big it stays big until well under -- so a node sitting
+           right on the line cannot oscillate between the two sheets. */
+        const h = n.offsetHeight;
+        if (h) n._hi = n._hi ? h > HI_DROP : h > HI_MIN;
       }
-      return n._hi ? hiImg(d.img) : d.img;
+      if (!n._hi) return d.img;
+      const big = hiImg(d.img);
+      return decoded(big) ? big : d.img;
     }
 
     let program = [];    /* steps still to run: { clip, repeat } */
@@ -516,16 +536,27 @@
     let accum = 0;
     let lastT = 0;
 
+    /* Write only what actually changed. The frame moves at 20fps but this runs
+       on every animation frame, and re-assigning the sheet's url() three times
+       per frame per sprite makes the engine resolve the image again 60 times a
+       second: the loop stutters and drops frames instead of playing evenly.
+       The position is the only property that normally moves at all. */
     function paint() {
       const d = clipOf(step.clip);
       const col = frame % d.cols;
       const row = (frame / d.cols) | 0;
       const px = d.cols > 1 ? (col / (d.cols - 1)) * 100 : 0;
       const py = d.rows > 1 ? (row / (d.rows - 1)) * 100 : 0;
+      const size = (d.cols * 100) + '% ' + (d.rows * 100) + '%';
+      const pos  = px + '% ' + py + '%';
       nodes.forEach(n => {
-        n.style.setProperty('--sw-img', 'url("' + imgFor(n, d) + '")');
-        n.style.setProperty('--sw-size', (d.cols * 100) + '% ' + (d.rows * 100) + '%');
-        n.style.setProperty('--sw-pos', px + '% ' + py + '%');
+        const url = imgFor(n, d);
+        if (n._url !== url) {
+          n._url = url;
+          n.style.setProperty('--sw-img', 'url("' + url + '")');
+        }
+        if (n._size !== size) { n._size = size; n.style.setProperty('--sw-size', size); }
+        if (n._pos !== pos)   { n._pos = pos;   n.style.setProperty('--sw-pos', pos); }
       });
     }
 
@@ -635,35 +666,69 @@
   }
   function roomHeight(room) {
     if (room.classList.contains('prompt-row')) {
-      /* open while a line is showing, while Swiftee stands in it, or while
-         the bird is mid-jump (the hopper carries it); closed once the bird
-         has gone -- down to a foot, or off behind the board */
+      /* Open while a line is showing, while Swiftee stands in it, or while the
+         bird is in transit -- the hopper carries it behind the board, the
+         flyer carries it across the board, and for those few hundred
+         milliseconds neither spot holds it. Counting only the spots made the
+         row snap shut and straight back open on every hop, which pumped the
+         whole board; a bird in the air is a bird on its way to or from this
+         row, so the room is held for it. Closed once it has settled
+         elsewhere -- down at a foot, or off behind the board. */
       const txt = room.querySelector('.txt');
       const hop = document.getElementById('hopper');   /* declared further down: looked up, not closed over */
+      const fly = document.getElementById('flyer');
       const bird = document.getElementById('mascot');
-      const here = (bird && bird.classList.contains('in')) || (hop && hop.classList.contains('on'));
+      const here = (bird && bird.classList.contains('in')) ||
+                   (hop && hop.classList.contains('on')) ||
+                   (fly && fly.classList.contains('on'));
       return (txt && txt.childNodes.length) || here ? room.firstElementChild.offsetHeight : 0;
     }
     let h = 0;
     for (const child of room.children) if (roomShown(child)) h = Math.max(h, child.offsetHeight);
     return h;
   }
+  /* A room opens the moment it has something to show and closes on a short
+     delay. Every close is a half-second transition of the board's whole
+     layout, so one taken and given back inside a few frames -- the gap
+     between one animation handing over to the next -- reads as a flicker.
+     Waiting a beat before closing means only a room that is really finished
+     with ever moves; a room that fills again in the meantime never moved at
+     all. Opening is never delayed: arrivals are what the room is for. */
+  const ROOM_CLOSE_DELAY = 360;
   let roomsDue = 0;
+  const roomClose = new Map();
+  function setRoom(room, h) {
+    const v = Math.round(h) + 'px';
+    if (room.style.height !== v) room.style.height = v;
+    room.classList.toggle('closed', !h);
+  }
   function fitRooms() {
     roomsDue = 0;
     rooms.forEach(room => {
       const h = roomHeight(room);
-      const v = Math.round(h) + 'px';
-      if (room.style.height !== v) room.style.height = v;
-      room.classList.toggle('closed', !h);
+      const pending = roomClose.get(room);
+      if (h) {                                   /* occupied: open it now */
+        if (pending) { clearTimeout(pending); roomClose.delete(room); }
+        setRoom(room, h);
+        return;
+      }
+      if (room.style.height === '0px' || pending) return;   /* already shut, or on its way */
+      roomClose.set(room, setTimeout(() => {
+        roomClose.delete(room);
+        if (!roomHeight(room)) setRoom(room, 0);   /* still empty a beat later */
+      }, ROOM_CLOSE_DELAY));
     });
   }
   const askRooms = () => { if (!roomsDue) roomsDue = requestAnimationFrame(fitRooms); };
   if (rooms.length) {
     new MutationObserver(askRooms).observe(board, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden'] });
-    /* the hopper carries the bird on and off the board from outside it */
-    const hopEl = document.getElementById('hopper');
-    if (hopEl) new MutationObserver(askRooms).observe(hopEl, { attributes: true, attributeFilter: ['class'] });
+    /* the hopper carries the bird on and off the board from outside it, and
+       the flyer carries it from spot to spot over it: both live outside the
+       board, so neither is covered by the observer above */
+    ['hopper', 'flyer'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) new MutationObserver(askRooms).observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
     board.addEventListener('transitionend', askRooms);
     window.addEventListener('resize', askRooms);
     fitRooms();
@@ -1568,7 +1633,9 @@
     }
     retired(mine);                  /* the clip's promises are the browser's, not this scene's */
 
-    /* Swiftee talks along with the narrator and stops when it does */
+    /* Swiftee talks along with the narrator and stops when it does -- and
+       comes up from behind the board first if it is not standing there yet */
+    await mascotWithLine(spec.text);
     swiftee.hold('talking');
 
     /* Type across ~82% of the clip so the last character lands a moment
@@ -1657,6 +1724,9 @@
      to them -- its line goes and Swiftee hops back behind the board -- so
      the row closes and the labelled shapes take the room. */
   function showLabels() {
+    /* the stage has been holding the names' band back from the slots; giving
+       it up here is what opens the room they need (see .shape-stage) */
+    bay.classList.add('labelled');
     shapes.forEach((s, i) => setTimeout(() => s.classList.add('labelled'), i * 130));
     feedbackGen++;
     promptTxt.textContent = '';
@@ -2134,6 +2204,7 @@
   const bubbleType  = document.getElementById('bubbleType');
   const bubbleTxt   = bubbleType.querySelector('.txt');
   const bubbleCaret = bubbleType.querySelector('.caret');
+  const bay         = document.getElementById('bay');
   const boardMascot = document.getElementById('mascot');
   const hopper      = document.getElementById('hopper');
 
@@ -2547,8 +2618,7 @@
     await wait(320);
 
     /* 3. Swiftee jumps back up to its spot and names what this is */
-    await mascotJumpIn();
-    await wait(240);
+    await mascotWithLine(LESSON.types);
     swiftee.hold('talking');
     await typewrite(LESSON.types, LESSON.types.length * TYPE_MS);
     swiftee.release();
@@ -2826,9 +2896,45 @@
   const note  = typer(noteTxt, noteCaret, 55);        /* Swiftee's remark on an answer */
   const aside = typer(sayTxt, sayCaret, TYPE_MS);     /* Swiftee's line beside itself */
 
+  /* ---------- the bird arrives with its line ----------
+   * Swiftee is never left standing beside an empty heading: it waits behind
+   * the board until there is something to say, comes up as the line is about
+   * to start, and the words follow one beat later. Every line typed into the
+   * heading goes through here, so the rule holds wherever a scene puts its
+   * text -- and a scene that used to bring the bird up early simply leaves it
+   * to this.
+   *
+   * The line's width is reserved before the jump is measured. The heading is
+   * a centred row and the bird stands at the left end of it, so its spot
+   * moves as soon as the ghost takes the line's width: reserving first means
+   * the bird lands where the line will actually put it, instead of landing in
+   * the middle of an empty row and being shoved sideways a beat later. */
+  const MASCOT_LEAD = 200;
+  let mascotArriving = null;
+  function mascotWithLine(text) {
+    /* one arrival at a time: some scenes start a line without waiting on it
+       and then start the next, and two jumps running together would show as
+       the bird flickering in twice */
+    if (mascotArriving) return mascotArriving;
+    /* somebody is already on the board -- at the heading, or down at a banner
+       the scene has deliberately sent the bird to -- or the bird is already in
+       the air between two spots; either way it does not jump again for this
+       line */
+    if (board.querySelector('.mascot.in') ||
+        hopper.classList.contains('on') ||
+        flyer.classList.contains('on')) return Promise.resolve();
+    if (typeof text === 'string') promptLine(text);
+    mascotArriving = (async () => {
+      try { await mascotJumpIn(); await wait(MASCOT_LEAD); }
+      finally { mascotArriving = null; }
+    })();
+    return mascotArriving;
+  }
+
   /* Swiftee says a line from its place by the heading */
   async function heading(text) {
     feedbackGen++;
+    await mascotWithLine(text);
     swiftee.hold('talking');
     await typewrite(text, text.length * TYPE_MS);
     swiftee.release();
@@ -4205,11 +4311,9 @@
 
     /* 3. Swiftee jumps up from behind the board to the heading; the two
           names appear, and the question is asked */
-    await mascotJumpIn();
-    await wait(260);
     await dealChips(paraChips);
     await wait(200);
-    await heading(PARA.ask);
+    await heading(PARA.ask);           /* the bird comes up with this line */
     await askChips(paraChips, PARA_ANSWER);
     await heading(PARA.right);
     await wait(1500);
@@ -4975,11 +5079,9 @@
     /* 4. Swiftee jumps up from behind the board to the heading; the two
           sides light up with their points, and the learner is asked to
           make the angles right angles. A finger shows the first nudge. */
-    await mascotJumpIn();
-    await wait(260);
     rhomShape.classList.add('live');
     await wait(300);
-    await heading(RHOM.drag);
+    await heading(RHOM.drag);          /* the bird comes up with this line */
     /* the finger shows the first nudge once the learner is free to move,
        and stands down the moment they take hold themselves */
     hintSignal = { done: false };
@@ -5283,7 +5385,6 @@
       areaEl('rd-h2').style.opacity = 1;
       ['lbl-h2', 'mark-up'].forEach(c => areaEl(c).classList.add('on'));
       rhomShape.classList.add('fill-green', 'quiet-green', 'fill-purple');
-      if (!boardMascot.classList.contains('in')) boardMascot.classList.add('in');
     }
     rhomTray2.classList.add('off');
     rhom.classList.remove('wide', 'numbers');
@@ -5569,7 +5670,6 @@
     const rebuilt = ensureTilted();
     rhomChips3.forEach(c => { rhomTray3.appendChild(c); c.disabled = false; });
     rhomArea.querySelectorAll('.d-group').forEach(g => g.remove());
-    if (!boardMascot.classList.contains('in')) boardMascot.classList.add('in');
 
     /* 1. the working leaves; the shape keeps the left two fifths and the
           right three fifths are cleared for the formula */
@@ -5948,7 +6048,6 @@
     rhomPractice.classList.remove('on');
     rhomShape.classList.remove('away', 'lit-d1', 'lit-d2', 'lit-quad');
     ensureMeasured();
-    if (!boardMascot.classList.contains('in')) boardMascot.classList.add('in');
     await wait(460);
 
     /* the shape comes back to the middle, the formula gone */
@@ -5972,7 +6071,6 @@
   async function rhombusPractice2() {
     const mine = practiceOpen(rhombusPractice2);
     practiceTray.classList.add('off');
-    if (!boardMascot.classList.contains('in')) boardMascot.classList.add('in');
 
     /* the measured rhombus gives way to the question's own */
     rhomShape.classList.add('away');
@@ -6003,10 +6101,9 @@
     practiceTray.classList.add('off');
     practiceSay.classList.remove('show');
     rhomShape.classList.add('away');
-    /* Swiftee is at the heading for the question (a replay may find it
-       still down by the banner) */
+    /* Swiftee leaves the banner (a replay may find it still down there); it
+       comes back up to the heading with the question's line */
     if (practiceMascot.classList.contains('in')) practiceMascot.classList.remove('in');
-    if (!boardMascot.classList.contains('in')) boardMascot.classList.add('in');
 
     await clearFigures();
     await wait(300);
@@ -6054,8 +6151,6 @@
     /* Swiftee comes back up to the heading, and the banner goes */
     if (practiceMascot.classList.contains('in')) {
       await hopBetween(practiceMascot, boardMascot);
-    } else if (!boardMascot.classList.contains('in')) {
-      boardMascot.classList.add('in');
     }
     practiceSay.classList.remove('show');
     practiceTxt.textContent = '';
@@ -6422,9 +6517,7 @@
     /* 3. Swiftee jumps up from behind the board, says what to do, and
           ducks back down to leave the board to the learner -- taking the
           line with it, so the board is the cards and nothing else */
-    await mascotJumpIn();
-    await wait(240);
-    await heading(TRAP.select);
+    await heading(TRAP.select);        /* the bird comes up with this line */
     await wait(900);
     const down = mascotJumpOut();
     await wait(260);
@@ -7091,8 +7184,7 @@
 
     /* 1. the board is cleared for the trapezium. The first time the cards
           fade under it; after that the last kind's drawing and working fade
-          and Swiftee hops back up to the heading (a Back into this scene
-          may find the bird elsewhere, so it jumps up if it is not there) */
+          and Swiftee hops back up to the heading */
     const wasOn = rtrap.classList.contains('on') && !!rtArt.firstChild;
     if (wasOn) {
       const clearing = rtClear();
@@ -7114,7 +7206,6 @@
       rtrap.setAttribute('aria-hidden', 'false');
       await wait(120);
     }
-    if (!boardMascot.classList.contains('in')) { await mascotJumpIn(); await wait(200); }
     await revealShape(rtrapShape);
     await wait(200);
     rtrapShape.classList.add('marked');
@@ -7432,7 +7523,6 @@
     rtrapPSay.classList.remove('show');
     if (rtrapMascot.classList.contains('in')) await hopBetween(rtrapMascot, boardMascot);
     else if (rtrapPMascot.classList.contains('in')) await hopBetween(rtrapPMascot, boardMascot);
-    else if (!boardMascot.classList.contains('in')) await mascotJumpIn();
     await clearing;
     rtrapLines.textContent = '';
     rtrapText.querySelector('.txt').textContent = '';
@@ -7692,11 +7782,11 @@
     await introExit();
     intro.classList.remove('on');
 
-    /* the board arrives, and Swiftee jumps up from behind it to its spot */
+    /* the board arrives. Swiftee stays behind it: the shapes draw themselves
+       on an empty board, and the bird comes up with the line that names them
+       (sceneWarmUp), not four seconds ahead of it. */
     await showBoard();
     await wait(160);
-    await mascotJumpIn();
-    await wait(220);
   }
 
   /* ---------- go ---------- */
@@ -7733,6 +7823,10 @@
      are, and round 1 opens. */
   async function sceneWarmUp() {
     lockInput(true);
+    /* a replay comes back to shapes that may still carry their side names:
+       the band closes again and the slots come back up under them */
+    bay.classList.remove('labelled');
+    shapes.forEach(s => s.classList.remove('labelled'));
 
     for (const shape of shapes) {
       await revealShape(shape);
@@ -7740,9 +7834,11 @@
     }
     await wait(180);
 
-    /* the shapes are on the board: Swiftee names what the learner is looking
-       at, then the round takes the heading over with its own instruction */
+    /* the shapes are on the board: Swiftee jumps up from behind it and names
+       what the learner is looking at, then the round takes the heading over
+       with its own instruction */
     prompt.classList.add('show');
+    await mascotWithLine(SHAPES_READY);
     swiftee.hold('talking');
     await typewrite(SHAPES_READY, SHAPES_READY.length * TYPE_MS);
     swiftee.release();
