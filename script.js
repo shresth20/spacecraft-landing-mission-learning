@@ -983,13 +983,8 @@
     { entry: rhombusAside,      name: 'Aside \u00b7 on to the trapezium' },
     { entry: trapSection,       name: 'Trapezium \u00b7 its name' },
     { entry: trapSelect,        name: 'Trapezium \u00b7 pick them out' },
-    { entry: trapMatch,         name: 'Trapezium \u00b7 its kinds' },
-    { entry: rtrapArea,         name: 'Right-angled trapezium \u00b7 its area' },
-    { entry: rtrapHalf,         name: 'Right-angled trapezium \u00b7 the formula' },
     { entry: scalArea,          name: 'Scalene trapezium \u00b7 its area' },
     { entry: scalHalf,          name: 'Scalene trapezium \u00b7 the formula' },
-    { entry: isoArea,           name: 'Isosceles trapezium \u00b7 its area' },
-    { entry: isoHalf,           name: 'Isosceles trapezium \u00b7 the formula' },
     { entry: trapNumbers,       name: 'Trapezium \u00b7 drag the values' },
     { entry: trapSteps,         name: 'Trapezium \u00b7 step by step' },
     { entry: trapPractice1,     name: 'Trapezium \u00b7 practice 1' },
@@ -3247,6 +3242,8 @@
       const was = root.classList.contains('open');
       closeMenus();
       open(!was);
+      /* the tap has landed: the nudge has done its job and goes */
+      root.classList.remove('hint');
       sfx('click', .5);
     });
     opts.forEach(o => o.addEventListener('click', e => {
@@ -6323,8 +6320,9 @@
   /* the board goes, and Swiftee looks ahead from its bubble. Its own scene,
      so Replay can re-enter it. */
   const RHOM_ASIDE = [
-    'We now know how to find the area of a rhombus.',
-    'Let us now try finding the area of another special quadrilateral.'
+    'We found the area of a rhombus!',
+    'Ready for the next challenge?',
+    'Let’s find the area of another special quadrilateral!'
   ];
   async function rhombusAside() {
     await boardAside(RHOM_ASIDE, rhombusAside);
@@ -6363,7 +6361,6 @@
   const cardGrid   = document.getElementById('cardGrid');
   const trapQuiz   = document.getElementById('trapQuiz');
   const trapDD     = document.getElementById('trapDD');
-  const trapMascot = document.getElementById('trapMascot');
   const trapNote   = document.getElementById('trapNote');
   const trapNoteTxt   = trapNote.querySelector('.txt');
   const trapNoteCaret = trapNote.querySelector('.caret');
@@ -6371,7 +6368,6 @@
   const trapChips  = Array.from(trapTray.querySelectorAll('.chip'));
 
   const TRAP = {
-    tap:    'Tap here!',
     answer: 'trapezium',
     notes: {
       kite:          'Almost! A kite has two pairs of equal sides next to each other. Check the shape carefully.',
@@ -6379,14 +6375,21 @@
       trapezium:     'Correct! Look at the shape \u2014 it has only one pair of parallel sides.'
     },
     select: 'Select all the trapeziums.',
-    match:  'Drag each block to the matching shape.'
+    match:  'Drag each name to the correct shape.'
   };
   const TRAP_GHOST = [TRAP.select, TRAP.match, FEEDBACK.done];
 
   /* the banner's ghost holds its longest line from the first frame */
   trapNote.querySelector('.type-ghost').textContent =
-    longest([TRAP.tap].concat(Object.keys(TRAP.notes).map(k => TRAP.notes[k])));
-  const trapSay    = typer(trapNoteTxt, trapNoteCaret, 45);
+    longest(Object.keys(TRAP.notes).map(k => TRAP.notes[k]));
+  /* the answer's remark is not typed: it is laid out whole and every word
+     eases in together, so the learner reads one sentence rather than
+     watching it arrive */
+  function trapSay(text) {
+    trapNoteCaret.hidden = true;
+    wordSpans(trapNoteTxt, text).forEach(w => w.el.classList.add('in'));
+    return wordsSettle();
+  }
   const trapQuizDD = ddController(trapDD);
 
   /* the trapezium's corners, clockwise from the top left, in the svg's units */
@@ -6417,17 +6420,25 @@
     trapShape.classList.remove('marked', 'away');
   }
 
-  /* Swiftee's answer to a choice, in the banner under the sentence -- green
-     for the right name, red for a wrong one. The shape takes its parallel
-     marks on the first answer, whichever it is, so the learner can check
-     the answer against the shape itself. */
+  /* Swiftee's answer to a choice, above the sentence -- green for the right
+     name, red for a wrong one, in the words alone -- and gone again a few
+     seconds later, whichever it was. The shape takes its parallel marks on
+     the first answer, whichever it is, so the learner can check the answer
+     against the shape itself. */
+  let trapNoteT = null;
   function trapAnswer(v) {
-    trapNote.classList.remove('ok', 'bad');
+    clearTimeout(trapNoteT);
+    trapNote.classList.remove('ok', 'bad', 'fade');
     trapNote.classList.add(v === TRAP.answer ? 'ok' : 'bad');
     if (!trapShape.classList.contains('marked')) {
       trapShape.classList.add('marked');
       sfx('click', .35);
     }
+    const mine = runToken;
+    trapNoteT = setTimeout(() => {
+      if (mine !== runToken) return;
+      trapNote.classList.add('fade');
+    }, 3000);
     return trapSay(TRAP.notes[v] || TRAP.notes.parallelogram);
   }
 
@@ -6492,24 +6503,25 @@
     await showBoard();
     await wait(300);
 
-    /* 2. the trapezium: outline first, then the colour */
+    /* 2. the trapezium: outline first, then the colour, drawn full width
+          in the middle */
     trap.classList.add('on');
     trap.setAttribute('aria-hidden', 'false');
     await wait(120);
     await revealShape(trapShape);
     await wait(380);
 
-    /* 3. "This is a ..." with a drop-down; Swiftee jumps in beside it and
-          points the learner at the arrow */
-    trapNote.classList.remove('ok', 'bad');
+    /* 2b. it glides over to the left half, opening the right half for the
+           name quiz */
+    await layoutWide(trap, trapSvg, true);
+    await wait(300);
+
+    /* 3. "This is a ..." with a drop-down; the box's own placeholder and
+          the hand beside it point the learner at the arrow */
+    trapNote.classList.remove('ok', 'bad', 'fade');
     trapQuiz.classList.add('show');
     await wait(REDUCED ? 200 : 440);
-    await mascotJumpIn(trapMascot);
-    await wait(200);
     trapDD.classList.add('hint');
-    swiftee.hold('talking');
-    await trapSay(TRAP.tap);
-    swiftee.release();
     lockInput(false);
     await trapQuizDD.ask(v => v === TRAP.answer, trapAnswer, trapAnswer);
     lockInput(true);
@@ -6829,6 +6841,38 @@
     if (!zoomGone(mine)) closeZoom();
   }
 
+  /* the isosceles and right-angled cards carry their own tell, drawn once
+     here in the shape's own units so the wrapping SHAPE_FIT lands them on
+     the corners exactly: a tick across the middle of each equal leg, or a
+     small square in each of the two corners a right angle actually sits in.
+     Hidden until the three line up in a row (style.css), so they add
+     nothing to look at while the six are still being picked apart. */
+  function cardMarks(k) {
+    const P = CARDS[k].pts.trim().split(/\s+/).map(function (p) {
+      const n = p.split(',');
+      return { x: +n[0], y: +n[1] };
+    });
+    const TL = P[0], TR = P[1], BR = P[2], BL = P[3];
+    if (k === 'iso') {
+      const tick = (a, b) => {
+        const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
+        const ux = dx / len, uy = dy / len, nx = -uy, ny = ux, t = 6;
+        const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+        const d = 'M' + fmt(cx + nx * t) + ' ' + fmt(cy + ny * t) + ' L' + fmt(cx - nx * t) + ' ' + fmt(cy - ny * t);
+        return '<path class="halo" d="' + d + '" /><path class="ink" d="' + d + '" />';
+      };
+      return '<g class="card-mark eq">' + tick(TL, BL) + tick(TR, BR) + '</g>';
+    }
+    if (k === 'right') {
+      const S = 10;
+      return '<g class="card-mark ra">' +
+        '<path d="M' + fmt(TL.x) + ' ' + fmt(TL.y + S) + ' h' + S + ' v' + (-S) + '" />' +
+        '<path d="M' + fmt(BL.x) + ' ' + fmt(BL.y - S) + ' h' + S + ' v' + S + '" />' +
+      '</g>';
+    }
+    return '';
+  }
+
   function buildCards(keys) {
     cardGrid.innerHTML = keys.map((k, i) => {
       const c = CARDS[k];
@@ -6836,7 +6880,15 @@
                   'aria-pressed="false" aria-label="Shape ' + (i + 1) + '">' +
         '<svg class="card-box" viewBox="0 0 ' + CARD_W + ' ' + CARD_H + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
           CARD_RECT +
-          '<polygon class="card-shape" points="' + c.pts + '" transform="' + SHAPE_FIT + '" />' +
+          /* the outer g carries the fixed SHAPE_FIT placement as an SVG
+             attribute; the inner one is CSS's alone to grow in the match
+             row, so the two transforms never fight over the same element */
+          '<g transform="' + SHAPE_FIT + '">' +
+            '<g class="card-fit">' +
+              '<polygon class="card-shape" points="' + c.pts + '" />' +
+              cardMarks(k) +
+            '</g>' +
+          '</g>' +
         '</svg>' +
         (c.trap ? '<div class="slot card-slot" data-accept="' + k + '" aria-label="Name of this trapezium"></div>' : '') +
       '</div>';
@@ -6885,11 +6937,16 @@
         /* the visit to the middle, and everything after it, belongs to this
            run of the scene: a replay throws CANCELLED through the whole of
            it, and the frame unwinds here rather than answering over the top
-           of the fresh board */
+           of the fresh board. A right pick needs no explaining -- it stays
+           where it is, its green glow and confetti the whole answer -- only
+           a wrong one is carried to the middle to be shown why. */
         try {
           await wait(good ? 620 : 560);
-          if (!good) c.classList.remove('reject');
-          await zoomCard(c);
+          if (good) await wait(REDUCED ? 160 : 500);
+          else {
+            c.classList.remove('reject');
+            await zoomCard(c);
+          }
         } catch (err) {
           if (err !== CANCELLED) throw err;
           return;
@@ -6952,14 +7009,12 @@
     promptTxt.textContent = '';
     caret.hidden = true;
 
-    /* 1. the sentence goes and Swiftee ducks behind the board; the
-          trapezium fades while it is mid-air */
+    /* 1. the sentence goes; the trapezium fades while it is mid-air */
     trapQuiz.classList.add('off');
-    const out = trapMascot.classList.contains('in') ? mascotJumpOut(trapMascot) : wait(0);
     await wait(260);
     trapShape.classList.add('away');
-    await out;
     trapQuiz.classList.remove('show', 'off');
+    trap.classList.remove('wide');         /* the halves close back into one */
     trap.classList.add('lvl2');            /* the sentence's row gives up its room */
     await wait(REDUCED ? 200 : 480);
 
@@ -6997,11 +7052,12 @@
     if (mine !== runToken) throw CANCELLED;
     await wait(1400);
 
-    /* 5. the heading's row opens again for the names that are coming, and Next */
+    /* 5. the heading's row opens again, and Next -- straight on into the
+          scalene trapezium's area, the naming-the-kinds step skipped */
     trap.classList.remove('bare');
     await wait(620);
     await showNext();
-    await trapMatch();
+    await scalArea();
   }
 
   /* the three trapeziums, lined up: put back if a replay has taken the
@@ -7323,32 +7379,51 @@
   function rtKind(key, name, x0, whole, dims) {
     const P = { TL: { x: x0, y: 0 }, TR: { x: x0 + RT_A, y: 0 }, BR: { x: RT_B, y: RT_H }, BL: { x: 0, y: RT_H } };
     /* the copy is the shape turned half a circle about M, the middle of the
-       right-hand side, which is also the middle of the whole the two make */
-    const M = { x: (P.TR.x + P.BR.x) / 2, y: RT_H / 2 };
+       LEFT-hand side: it comes to rest against that side, on the left, and
+       the two make one whole */
+    const M = { x: (P.TL.x + P.BL.x) / 2, y: RT_H / 2 };
     const rot = p => ({ x: 2 * M.x - p.x, y: 2 * M.y - p.y });
     const W = RT_A + RT_B;                            /* the whole's base */
     const right = Math.max(P.TR.x, P.BR.x);          /* the trapezium's own right edge */
+    /* which corners are square: the side that stands upright, if either
+       does, is where the right-angle marks go -- and a slanted left side is
+       what calls for the dotted height inside the shape */
+    const sqL = P.TL.x === P.BL.x, sqR = P.TR.x === P.BR.x;
+    /* the copy turns about its own middle and is carried into place, so the
+       turn plays the same wherever along the way it is played */
+    const C = { x: right / 2, y: RT_H / 2 };
+    const join  = x0 - right;                         /* where the copy comes to rest */
+    const split = -(right + 76);                      /* and where it waits, a gap apart */
+    /* how far the drawing reaches past the shape on each side: a name hangs
+       its arrow, its gap and its letter out there */
+    const OUT = 58, END = 8;
     const shortName = name === 'Right-angled' ? name : name.toLowerCase();
     const home = RT_MID - right / 2;
+    const pair = RT_MID - ((join - OUT) + (right + END)) / 2;
     return {
-      key: key, name: name, x0: x0, P: P, M: M, rot: rot, W: W, whole: whole,
+      key: key, name: name, x0: x0, P: P, M: M, C: C, rot: rot, W: W, whole: whole,
+      sqL: sqL, sqR: sqR, join: join, split: split,
       /* where the drawing sits: alone, the trapezium is centred; with the
          copy, the pair is */
       home: home,
-      pair: RT_MID - (x0 + W) / 2,
+      pair: pair,
       /* the drawing's window once the trapezium stands alone: close round
          it and its names, so it fills its column */
       alone: fmt(home - 92) + ' -60 ' + fmt(right + 184) + ' 280',
       /* and the window round the pair once it shares the board with the
          working: no more margin than its names need */
-      pairBox: fmt(RT_MID - (x0 + W) / 2 - 78) + ' -56 ' + fmt(W + 150) + ' 270',
+      pairBox: fmt(pair + join - OUT - 22) + ' -56 ' + fmt((right + END) - (join - OUT) + 44) + ' 270',
+      /* the wider window the two stand apart in, while the copy waits out
+         to the left with its own names */
+      stageBox: fmt(home + split - OUT - 24) + ' -70 ' + fmt(right + END + 48 + OUT - split) + ' 300',
       say: {
         here:  'Let us try to find the area of this ' + name + ' trapezium.',
         sides: 'Its parallel sides are a and b, and its height is h.',
-        copy:  'Let us take a copy of it. Drag the copy to turn it round!',
+        copy:  'Let us take a copy of it and turn it round.',
         made:  'The two trapeziums fit together to make a ' + whole + '!',
-        eqB:   'Look! Side b of the copy is equal to side b.',
-        eqA:   'And side a of the copy is equal to side a.',
+        eqA:   'Side a of the copy is equal to side a.',
+        eqB:   'And side b of the copy is equal to side b.',
+        eqH:   'Its height is the same h too.',
         sum:   whole === 'rectangle' ? 'So the rectangle is a + b long and h wide.'
                                      : 'So the parallelogram has base a + b and height h.',
         /* from beside the working */
@@ -7368,12 +7443,14 @@
       shortName: shortName
     };
   }
+  /* the right-angled one stands its upright side on the RIGHT, so the copy
+     that turns about its left side completes it into a rectangle */
   const RT_KINDS = {
-    right:   rtKind('right',   'Right-angled', 0,                    'rectangle',     ['length', 'breadth']),
+    right:   rtKind('right',   'Right-angled', RT_B - RT_A,          'rectangle',     ['length', 'breadth']),
     scalene: rtKind('scalene', 'Scalene',      70,                   'parallelogram', ['base', 'height']),
     iso:     rtKind('iso',     'Isosceles',    (RT_B - RT_A) / 2,    'parallelogram', ['base', 'height'])
   };
-  const rtHeadLines = k => [k.say.here, k.say.sides, k.say.copy, k.say.made, k.say.eqB, k.say.eqA, k.say.sum];
+  const rtHeadLines = k => [k.say.here, k.say.sides, k.say.copy, k.say.eqA, k.say.eqB, k.say.eqH, k.say.made, k.say.sum];
   const rtSayLines  = k => [k.say.area, k.say.half, k.say.so, k.say.rule];
 
   /* the kind on the board right now, and where its drawing sits */
@@ -7425,70 +7502,55 @@
   function buildRtrap(kind) {
     rk = kind || rk;
     rtrapSvg.setAttribute('viewBox', RT_VB);
-    const P = rk.P, M = rk.M, rot = rk.rot, W = rk.W;
+    const P = rk.P, rot = rk.rot;
     const pts = [P.TL, P.TR, P.BR, P.BL];
     const path = 'M' + pts.map(p => fmt(p.x) + ' ' + fmt(p.y)).join(' L') + ' Z';
     const S = 16;                                  /* the right-angle marks' side */
+    /* a square in a corner that is one: the upright side's two, whichever
+       side it is that stands upright */
+    const sq = (c, dx) =>
+      '<path class="rt-mark" d="M' + fmt(c.x) + ' ' + fmt(c.y === 0 ? S : RT_H - S) +
+      ' h' + fmt(dx) + ' v' + fmt(c.y === 0 ? -S : S) + '" />';
     rtArt.innerHTML =
       '<polygon class="shape-fill" clip-path="url(#wipeRtrap)" points="' + pts.map(pt).join(' ') + '" />' +
       '<path class="shape-outline" d="' + path + '" fill="none" stroke-width="5" />' +
-      /* the right-angled trapezium's two right angles, in its left corners */
-      (rk.x0 === 0 ?
-        '<path class="rt-mark" d="M' + fmt(P.TL.x) + ' ' + fmt(P.TL.y + S) + ' h' + S + ' v' + (-S) + '" />' +
-        '<path class="rt-mark" d="M' + fmt(P.BL.x) + ' ' + fmt(P.BL.y - S) + ' h' + S + ' v' + S + '" />' : '');
+      (rk.sqL ? sq(P.TL, S) + sq(P.BL, S) : '') +
+      (rk.sqR ? sq(P.TR, -S) + sq(P.BR, -S) : '');
 
-    /* the copy: the same corners, turned by its transform */
+    /* the copy: the same corners, carried and turned by its transform */
     rtCopy.innerHTML =
       '<polygon class="rt-cfill" points="' + pts.map(pt).join(' ') + '" />' +
       '<path class="rt-cline" d="' + path + '" />' +
       '<path class="rt-cdash" d="' + path + '" />';
-    rtCopy.setAttribute('transform', 'rotate(0 ' + fmt(M.x) + ' ' + fmt(M.y) + ')');
-    rtCopy.classList.remove('show', 'flying');
+    rtCopyAt(0, 0);
+    rtCopy.classList.remove('show', 'flying', 'fresh');
     rtScene.insertBefore(rtCopy, rtArt);           /* under the trapezium until it lifts */
 
     /* the names: a and b along the trapezium's top and bottom and h up its
-       left; b and a along the copy's top and bottom; and a + b along the
-       whole of the top and of the bottom. When the left side is slanted,
-       the height is also dotted in from the top-left corner straight down
-       to the base, with a right angle at its foot, so h is seen to be the
-       distance between the parallel sides and not the slanted side. */
+       left; b and a along the copy's, with an h of its own up the whole's
+       left edge; and a + b along the whole of the top and of the bottom.
+       When the left side is slanted, the height is also dotted in from the
+       top-left corner straight down to the base, with a right angle at its
+       foot, so h is seen to be the distance between the parallel sides and
+       not the slanted side. */
     const G = 26, LAB = 17, yT = -G, yB = RT_H + G, MK = 12;
     const top = (cls, x1, x2, lab) => rtArrow(cls + ' rt-len', { x: x1, y: yT }, { x: x2, y: yT }, lab, (x1 + x2) / 2, yT - LAB, 'middle');
     const bot = (cls, x1, x2, lab) => rtArrow(cls + ' rt-len', { x: x1, y: yB }, { x: x2, y: yB }, lab, (x1 + x2) / 2, yB + LAB + 1, 'middle');
-    const inner = rk.x0 === 0 ? '' :
+    const hgt = (cls, x, extra) => rtArrow(cls + ' rt-hgt', { x: x, y: 0 }, { x: x, y: RT_H }, 'h', x - LAB, RT_H / 2, 'end', extra);
+    const inner = rk.sqL ? '' :
       rtLine('d-height', P.TL, { x: P.TL.x, y: RT_H }) +
       '<path class="d-mark" d="M' + fmt(P.TL.x) + ' ' + fmt(RT_H - MK) + ' H' + fmt(P.TL.x + MK) + ' V' + fmt(RT_H) + '" />';
     rtDims.innerHTML =
       top('top-a', P.TL.x, P.TR.x, 'a') +
       bot('bot-b', P.BL.x, P.BR.x, 'b') +
-      rtArrow('left-h rt-hgt', { x: -G, y: 0 }, { x: -G, y: RT_H }, 'h', -G - LAB, RT_H / 2, 'end', inner) +
-      top('top-b', P.TR.x, P.TR.x + RT_B, 'b') +
-      bot('bot-a', P.BR.x, W, 'a') +
-      top('top-ab', P.TL.x, P.TL.x + W, 'a + b') +
-      bot('bot-ab', P.BL.x, W, 'a + b') +
+      hgt('left-h', -G, inner) +
+      top('top-b', rot(P.BR).x, rot(P.BL).x, 'b') +
+      bot('bot-a', rot(P.TR).x, rot(P.TL).x, 'a') +
+      hgt('copy-h', rk.join - G, '') +
+      top('top-ab', rot(P.BR).x, P.TR.x, 'a + b') +
+      bot('bot-ab', rot(P.TR).x, P.BR.x, 'a + b') +
       '<g class="rt-par">' + parMark(P.TL, P.TR) + parMark(P.BL, P.BR) + '</g>';
-
-    /* the glowing copies of the sides compared: b along the trapezium's
-       bottom and the copy's top, a along the trapezium's top and the copy's
-       bottom */
-    rtHl.innerHTML =
-      rtLine('hl-b1', P.BL, P.BR) + rtLine('hl-b2', rot(P.BR), rot(P.BL)) +
-      rtLine('hl-a1', P.TL, P.TR) + rtLine('hl-a2', rot(P.TR), rot(P.TL));
-
-    /* the turn: a dot on M, an arc round it from the left over the top to
-       the right, an arrowhead at its end, and the finger */
-    const R = 64, a0 = Math.PI * 200 / 180, a1 = Math.PI * 340 / 180;
-    const at = t => ({ x: M.x + R * Math.cos(t), y: M.y + R * Math.sin(t) });
-    const S0 = at(a0), S1 = at(a1);
-    const d = { x: -Math.sin(a1), y: Math.cos(a1) }, n = { x: -d.y, y: d.x }, HD = 11;
-    rtGuide.innerHTML =
-      '<circle class="rt-pivot" cx="' + fmt(M.x) + '" cy="' + fmt(M.y) + '" r="3.5" />' +
-      '<path class="rt-arc" d="M' + fmt(S0.x) + ' ' + fmt(S0.y) + ' A' + R + ' ' + R + ' 0 0 1 ' + fmt(S1.x) + ' ' + fmt(S1.y) + '" />' +
-      '<path class="rt-arc-head" d="M' + fmt(S1.x - d.x * HD + n.x * HD * .7) + ' ' + fmt(S1.y - d.y * HD + n.y * HD * .7) +
-        ' L' + fmt(S1.x) + ' ' + fmt(S1.y) +
-        ' L' + fmt(S1.x - d.x * HD - n.x * HD * .7) + ' ' + fmt(S1.y - d.y * HD - n.y * HD * .7) + '" />' +
-      '<g class="rt-hand"><path d="' + HAND_D + '" /></g>';
-    rtGuide.classList.remove('show', 'tip');
+    rtCopyShift(0);
 
     rtX = rk.home;
     rtScene.setAttribute('transform', 'translate(' + fmt(rtX) + ' 0)');
@@ -7907,14 +7969,18 @@
     await showNext();
   }
 
-  /* the six scenes: each kind's whole, straight on into its half (no Next
-     between them -- the derivation is one piece), then Next and the next
-     kind. Each is its own function, so Replay and the jump menu can re-enter
-     it on its own. */
+  /* Only the scalene derivation is played now (trapMatch, the right-angled
+     pair and the isosceles pair are out of the mission -- rtArea/rtHalf stay
+     generic over every kind in RT_KINDS regardless, so re-adding one later
+     is a MISSION entry and a wrapper away): the whole, straight on into the
+     half (no Next between them -- the derivation is one piece), then Next
+     and on to the numbers. Its own function, so Replay and the jump menu
+     can still re-enter it on its own. The right-angled and isosceles
+     wrappers stay defined, unused, for the same reason. */
   async function rtrapArea() { await rtArea(RT_KINDS.right, rtrapArea); await rtrapHalf(); }
   async function rtrapHalf() { await rtHalf(RT_KINDS.right, rtrapHalf); await scalArea(); }
   async function scalArea()  { await rtArea(RT_KINDS.scalene, scalArea);  await scalHalf(); }
-  async function scalHalf()  { await rtHalf(RT_KINDS.scalene, scalHalf);  await isoArea(); }
+  async function scalHalf()  { await rtHalf(RT_KINDS.scalene, scalHalf);  await trapNumbers(); }
   async function isoArea()   { await rtArea(RT_KINDS.iso, isoArea);       await isoHalf(); }
   async function isoHalf()   { await rtHalf(RT_KINDS.iso, isoHalf);         await trapNumbers(); }
 

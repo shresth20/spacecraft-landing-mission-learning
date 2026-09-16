@@ -1041,6 +1041,32 @@ body {
   50%      { transform: translateY(.18em); }
 }
 
+/* the hand that taps the box: hidden until the box is asking for a first
+   answer, gone as soon as one goes in */
+.dd-tap {
+  position: absolute;
+  right: 6%;
+  bottom: -.62em;
+  width: clamp(30px, 5.4vh, 52px);
+  height: clamp(30px, 5.4vh, 52px);
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: 70% 20%;
+  transition: opacity .25s ease;
+}
+.dd-tap path {
+  fill: var(--heading);
+  stroke: var(--board-highlight);
+  stroke-width: 1.2;
+  paint-order: stroke;
+}
+.dd.hint .dd-tap { opacity: 1; animation: tap-bounce 1.1s ease-in-out infinite; }
+@keyframes tap-bounce {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  45%      { transform: translateY(10px) rotate(-8deg); }
+  60%      { transform: translateY(0) rotate(-8deg); }
+}
+
 .dd-menu {
   position: absolute;
   left: 0;
@@ -3281,6 +3307,28 @@ body {
 }
 .trap.on { visibility: visible; opacity: 1; transition: opacity .45s ease; }
 
+/* ---------- level 1, split in half ----------
+ * The shape is drawn full width, in the middle, then glides to the left
+ * half (script.js measures the move and plays it back, as .quad/.para/.rhom
+ * do for their own "wide" layouts); the name quiz fades in on the right
+ * half only once it has settled there. */
+.trap.wide {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  gap: clamp(12px, 3vw, 40px);
+}
+.trap.wide .trap-stage { grid-column: 1; grid-row: 1; }
+/* fitRooms() still pins an explicit content-fit height on the foot (the
+   fold-flat/open transition every *-foot panel shares); centring it as an
+   item, rather than fighting that height, puts the quiz in the middle of
+   the half instead of flush with its top */
+.trap.wide .trap-foot  { grid-column: 2; grid-row: 1; min-width: 0; align-self: center; }
+/* the note's messages are long sentences: nowrap would run them off the
+   half-width column, so here -- and only here -- they may break at a word */
+.trap.wide .trap-note .type,
+.trap.wide .trap-note .type-ghost { white-space: pre-wrap; }
+
 /* ---------- clearing the board for section 6 ----------
  * The rhombus scenes are finished: their section keeps its box but gives up
  * painting and hit-testing, so nothing above or below it moves. */
@@ -3356,18 +3404,19 @@ body {
 .trap-note {
   max-width: min(860px, 100%);
   padding: .35em 1em;
-  border: 2px solid transparent;
-  border-radius: 14px;
   font-size: clamp(15.4px, 2.5vh, 24.2px);
   text-align: center;
-  transition: background .35s ease, border-color .35s ease;
+  color: var(--heading);
+  transition: color .35s ease, opacity .4s ease;
 }
 .trap-note .type-wrap { display: block; }
 .trap-note .type-ghost { display: block; text-wrap: balance; }
 .trap-note .type { white-space: normal; text-align: center; text-wrap: balance; }
 .trap-note .caret { background: var(--heading); }
-.trap-note.ok  { background: var(--tint-correct); border-color: var(--correct); }
-.trap-note.bad { background: var(--tint-wrong);   border-color: var(--wrong); }
+.trap-note.ok  { color: var(--correct); }
+.trap-note.bad { color: var(--wrong); }
+/* the answer's remark only stands for a few seconds, then steps aside */
+.trap-note.fade { opacity: 0; }
 
 /* ---------- the cards ----------
  * Six to begin with, three across and two down, filling the shape's box;
@@ -3496,9 +3545,31 @@ body {
   aspect-ratio: 320 / 200;
   min-height: 0;
 }
+/* lined up, the three need no card round them any more -- the shape alone
+   is the answer -- and get to stand a little larger for it; a name still
+   dropped correctly keeps its green border and glow (.card.correct/.named
+   above), so only an as-yet-unnamed card's rim goes */
+.trap-cards.match .card:not(.named) .card-bg { fill: none; stroke: none; filter: none; }
+/* the shape and its marks grow together, from one group with no SVG
+   transform attribute of its own for this CSS transform to fight with */
+.trap-cards.match .card-fit {
+  transform: scale(1.12);
+  transform-box: fill-box;
+  transform-origin: center;
+}
 /* a card that has left stays out of the row -- after the rule above, which
    would otherwise outrank the attribute and lay the card out again */
 .trap-cards .card[hidden] { display: none; }
+
+/* the isosceles card's equal legs and the right-angled card's two square
+   corners: drawn from the first frame, shown only once the three have lined
+   up so they add nothing to look at while the six are still being sorted */
+.card-mark { opacity: 0; pointer-events: none; }
+.trap-cards.match .card-mark { opacity: 1; transition: opacity .4s ease .5s; }
+.card-mark.eq path { fill: none; stroke-linecap: round; }
+.card-mark.eq .halo { stroke: var(--board-highlight); stroke-width: 5; }
+.card-mark.eq .ink  { stroke: var(--heading); stroke-width: 2.2; }
+.card-mark.ra { fill: none; stroke: var(--heading); stroke-width: 2.4; stroke-linejoin: round; }
 
 .card-box {
   display: block;
@@ -3553,6 +3624,8 @@ body {
 }
 .card.correct .card-box,
 .card.named .card-box { animation: dock-pop .5s cubic-bezier(.2, .9, .3, 1.4); }
+/* the right pick's whole answer: a glow round the green border, no popup */
+.card.correct .card-bg { filter: drop-shadow(0 0 6px var(--glow-correct)); }
 .card.correct { cursor: default; }
 .card.reject .card-box { animation: shake .42s cubic-bezier(.36, .07, .19, .97); }
 .card.reject .card-bg {
