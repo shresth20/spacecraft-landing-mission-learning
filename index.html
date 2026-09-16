@@ -613,22 +613,19 @@
               <clipPath id="wipeRtrap"><rect class="wipe" x="-80" y="-60" width="680" height="280" /></clipPath>
             </defs>
             <!-- the whole drawing slides as one: centred while the trapezium
-                 is alone, over to the left once the copy joins it -->
+                 is alone, then over to the left of the board once the copy
+                 has joined it -->
             <g class="rt-scene" id="rtScene">
-              <!-- the copy, turned about the middle of the right-hand side; it
-                   is lifted over the trapezium while it turns and settles
-                   under it once it has landed -->
+              <!-- the copy: popped out of the trapezium, carried across into
+                   the right half of the board and flipped upside down there,
+                   then carried back against the trapezium's right side,
+                   where it settles under it -->
               <g class="rt-copy" id="rtCopy"></g>
               <!-- the trapezium: the fill, the outline that draws itself,
                    and its two right-angle marks -->
               <g class="art" id="rtArt"></g>
               <!-- the side names, each on a two-headed arrow -->
               <g class="rt-dims" id="rtDims"></g>
-              <!-- the glowing copies of the two sides being compared -->
-              <g class="rt-hl" id="rtHl"></g>
-              <!-- the turn: the pivot, the curved arrow round it, and the
-                   finger that follows the arrow -->
-              <g class="rt-guide" id="rtGuide"></g>
             </g>
           </svg>
         </div>

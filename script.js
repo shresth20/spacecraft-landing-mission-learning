@@ -7330,27 +7330,31 @@
    * start.
    *
    *   1. the last drawing goes (or, the first time, the cards) and a
-   *      trapezium draws itself in the middle of the board; the
+   *      trapezium draws itself in the MIDDLE of the board; the
    *      right-angled one has its two right angles marked: "Let us try to
    *      find the area of this ... trapezium."
-   *   2. it slides to the left and its sides are named on arrows: a along
-   *      the top, b along the bottom, h up the left -- with the height
-   *      itself dotted in when the left side is slanted
-   *   3. a copy in sky blue appears over it, lifts, and turns half a circle
-   *      about the middle of the right-hand side -- a finger pushes it round
-   *      a curved arrow -- to land on the right, where the two make one
-   *      rectangle or parallelogram; the copy's sides are named too, b on
-   *      top and a below
-   *   4. the equal sides are shown equal: b and b glow green together, then
-   *      a and a
-   *   5. the two names along the top merge into one, a + b, and so do the
-   *      two along the bottom
-   *   6. the drawing moves to the left half of the board and Swiftee hops
+   *   2. its sides are named there, on arrows: a along the top, b along the
+   *      bottom, h up the left -- with the height itself dotted in when the
+   *      left side is slanted
+   *   3. the board opens out to the right and the trapezium slides across
+   *      into the left half of it, leaving a whole half free beside it
+   *   4. a copy pops out of the trapezium -- in the trapezium's own colours,
+   *      so one shape is seen to become two -- takes a colour of its own,
+   *      slides across into the free half and flips upside down there: two
+   *      shapes now, half the stage each
+   *   5. the trapezium's names are carried across to the copy one at a time,
+   *      each starting on the side it was measured from and landing on the
+   *      side of the copy that is the same, the two glowing green together:
+   *      a, then b, then h
+   *   6. the copy closes on the trapezium's right side -- the two make one
+   *      rectangle or parallelogram -- and the two names along the top merge
+   *      into one, a + b, and so do the two along the bottom
+   *   7. the drawing moves to the left half of the board and Swiftee hops
    *      down to the right half, beside the working: Total area = length ×
    *      breadth (or base × height) = (a + b) × h, lighting what it names
-   *   7. the copy fades to a dashed outline -- the trapezium is exactly
+   *   8. the copy fades to a dashed outline -- the trapezium is exactly
    *      half: Area of Trapezium = Half of total area = ½ × (a + b) × h
-   *   8. the copy goes, the trapezium comes back to the middle with a, b
+   *   9. the copy goes, the trapezium comes back to the middle with a, b
    *      and h and its parallel marks, and the rule is boxed: Area of
    *      Trapezium = ½ × (sum of parallel sides) × height. Confetti, Next. */
   const rtrap       = document.getElementById('rtrap');
@@ -7360,8 +7364,6 @@
   const rtArt       = document.getElementById('rtArt');
   const rtCopy      = document.getElementById('rtCopy');
   const rtDims      = document.getElementById('rtDims');
-  const rtHl        = document.getElementById('rtHl');
-  const rtGuide     = document.getElementById('rtGuide');
   const rtrapSay    = document.getElementById('rtrapSay');
   const rtrapMascot = document.getElementById('rtrapMascot');
   const rtrapText   = document.getElementById('rtrapText');
@@ -7379,11 +7381,10 @@
   function rtKind(key, name, x0, whole, dims) {
     const P = { TL: { x: x0, y: 0 }, TR: { x: x0 + RT_A, y: 0 }, BR: { x: RT_B, y: RT_H }, BL: { x: 0, y: RT_H } };
     /* the copy is the shape turned half a circle about M, the middle of the
-       LEFT-hand side: it comes to rest against that side, on the left, and
+       RIGHT-hand side: it comes to rest against that side, on the right, and
        the two make one whole */
-    const M = { x: (P.TL.x + P.BL.x) / 2, y: RT_H / 2 };
+    const M = { x: (P.TR.x + P.BR.x) / 2, y: RT_H / 2 };
     const rot = p => ({ x: 2 * M.x - p.x, y: 2 * M.y - p.y });
-    const W = RT_A + RT_B;                            /* the whole's base */
     const right = Math.max(P.TR.x, P.BR.x);          /* the trapezium's own right edge */
     /* which corners are square: the side that stands upright, if either
        does, is where the right-angle marks go -- and a slanted left side is
@@ -7392,16 +7393,16 @@
     /* the copy turns about its own middle and is carried into place, so the
        turn plays the same wherever along the way it is played */
     const C = { x: right / 2, y: RT_H / 2 };
-    const join  = x0 - right;                         /* where the copy comes to rest */
-    const split = -(right + 76);                      /* and where it waits, a gap apart */
+    const join  = 2 * M.x - right;                    /* where the copy comes to rest */
+    const split = right + 76;                         /* and where it waits, a gap apart */
     /* how far the drawing reaches past the shape on each side: a name hangs
        its arrow, its gap and its letter out there */
     const OUT = 58, END = 8;
     const shortName = name === 'Right-angled' ? name : name.toLowerCase();
     const home = RT_MID - right / 2;
-    const pair = RT_MID - ((join - OUT) + (right + END)) / 2;
+    const pair = RT_MID - ((0 - OUT) + (join + right + END)) / 2;
     return {
-      key: key, name: name, x0: x0, P: P, M: M, C: C, rot: rot, W: W, whole: whole,
+      key: key, name: name, x0: x0, P: P, C: C, rot: rot, whole: whole,
       sqL: sqL, sqR: sqR, join: join, split: split,
       /* where the drawing sits: alone, the trapezium is centred; with the
          copy, the pair is */
@@ -7412,14 +7413,17 @@
       alone: fmt(home - 92) + ' -60 ' + fmt(right + 184) + ' 280',
       /* and the window round the pair once it shares the board with the
          working: no more margin than its names need */
-      pairBox: fmt(pair + join - OUT - 22) + ' -56 ' + fmt((right + END) - (join - OUT) + 44) + ' 270',
-      /* the wider window the two stand apart in, while the copy waits out
-         to the left with its own names */
-      stageBox: fmt(home + split - OUT - 24) + ' -70 ' + fmt(right + END + 48 + OUT - split) + ' 300',
+      pairBox: fmt(pair - OUT - 8) + ' -56 ' + fmt(join + right + END + OUT + 16) + ' 270',
+      /* the wide stage the two stand apart on: the trapezium holds the left
+         half of it and the copy the right, each with its own h hanging off
+         its outer side */
+      stageBox: fmt(home - OUT - 24) + ' -70 ' + fmt(split + right + 2 * OUT + 48) + ' 300',
       say: {
         here:  'Let us try to find the area of this ' + name + ' trapezium.',
         sides: 'Its parallel sides are a and b, and its height is h.',
-        copy:  'Let us take a copy of it and turn it round.',
+        room:  'Let us slide it across, to make room beside it.',
+        copy:  'Now let us take a copy of it.',
+        flip:  'The copy slides over and flips upside down.',
         made:  'The two trapeziums fit together to make a ' + whole + '!',
         eqA:   'Side a of the copy is equal to side a.',
         eqB:   'And side b of the copy is equal to side b.',
@@ -7443,14 +7447,15 @@
       shortName: shortName
     };
   }
-  /* the right-angled one stands its upright side on the RIGHT, so the copy
-     that turns about its left side completes it into a rectangle */
+  /* the right-angled one stands its upright side on the LEFT, so the copy
+     that turns about its right side completes it into a rectangle */
   const RT_KINDS = {
-    right:   rtKind('right',   'Right-angled', RT_B - RT_A,          'rectangle',     ['length', 'breadth']),
+    right:   rtKind('right',   'Right-angled', 0,                    'rectangle',     ['length', 'breadth']),
     scalene: rtKind('scalene', 'Scalene',      70,                   'parallelogram', ['base', 'height']),
     iso:     rtKind('iso',     'Isosceles',    (RT_B - RT_A) / 2,    'parallelogram', ['base', 'height'])
   };
-  const rtHeadLines = k => [k.say.here, k.say.sides, k.say.copy, k.say.eqA, k.say.eqB, k.say.eqH, k.say.made, k.say.sum];
+  const rtHeadLines = k => [k.say.here, k.say.sides, k.say.room, k.say.copy, k.say.flip,
+                            k.say.eqA, k.say.eqB, k.say.eqH, k.say.made, k.say.sum];
   const rtSayLines  = k => [k.say.area, k.say.half, k.say.so, k.say.rule];
 
   /* the kind on the board right now, and where its drawing sits */
@@ -7462,9 +7467,6 @@
   rtrapText.querySelector('.type-ghost').textContent =
     longest(Object.keys(RT_KINDS).reduce((all, k) => all.concat(rtSayLines(RT_KINDS[k])), []));
   const rtSay = typer(rtrapText.querySelector('.txt'), rtrapText.querySelector('.caret'), 45);
-
-  /* the finger: the rhombus hint's, so the two are one drawing */
-  const HAND_D = rhomHint.querySelector('path').getAttribute('d');
 
   const rtDim  = cls => rtDims.querySelector('.' + cls);
   const rtLine = (cls, a, b) => '<line class="' + cls + '" x1="' + fmt(a.x) + '" y1="' + fmt(a.y) + '" x2="' + fmt(b.x) + '" y2="' + fmt(b.y) + '" />';
@@ -7527,8 +7529,9 @@
     rtScene.insertBefore(rtCopy, rtArt);           /* under the trapezium until it lifts */
 
     /* the names: a and b along the trapezium's top and bottom and h up its
-       left; b and a along the copy's, with an h of its own up the whole's
-       left edge; and a + b along the whole of the top and of the bottom.
+       left; b and a along the copy's, with an h of its own down the copy's
+       right side -- which the join squeezes out, the trapezium's own being
+       the whole's; and a + b along the whole of the top and of the bottom.
        When the left side is slanted, the height is also dotted in from the
        top-left corner straight down to the base, with a right angle at its
        foot, so h is seen to be the distance between the parallel sides and
@@ -7536,19 +7539,32 @@
     const G = 26, LAB = 17, yT = -G, yB = RT_H + G, MK = 12;
     const top = (cls, x1, x2, lab) => rtArrow(cls + ' rt-len', { x: x1, y: yT }, { x: x2, y: yT }, lab, (x1 + x2) / 2, yT - LAB, 'middle');
     const bot = (cls, x1, x2, lab) => rtArrow(cls + ' rt-len', { x: x1, y: yB }, { x: x2, y: yB }, lab, (x1 + x2) / 2, yB + LAB + 1, 'middle');
-    const hgt = (cls, x, extra) => rtArrow(cls + ' rt-hgt', { x: x, y: 0 }, { x: x, y: RT_H }, 'h', x - LAB, RT_H / 2, 'end', extra);
+    /* a height stands outside the shape it measures, its letter further out
+       still: the trapezium's own off its left side, the copy's off its
+       right, so neither of them falls in the gap between the two */
+    const hgt = (cls, x, extra, out) => rtArrow(cls + ' rt-hgt', { x: x, y: 0 }, { x: x, y: RT_H }, 'h',
+      x + (out ? LAB : -LAB), RT_H / 2, out ? 'start' : 'end', extra);
     const inner = rk.sqL ? '' :
       rtLine('d-height', P.TL, { x: P.TL.x, y: RT_H }) +
       '<path class="d-mark" d="M' + fmt(P.TL.x) + ' ' + fmt(RT_H - MK) + ' H' + fmt(P.TL.x + MK) + ' V' + fmt(RT_H) + '" />';
+    /* the copy carries the same dotted height, turned round with it: down
+       from its own slanted corner, the right angle at the top. It is held
+       back until the name has landed on the copy -- while the name is still
+       travelling its group sits on the trapezium, where the dotted line
+       would fall outside the drawing altogether. */
+    const cx = rot(P.TL).x;
+    const cinner = rk.sqL ? '' : '<g class="rt-cin">' +
+      rtLine('d-height', { x: cx, y: 0 }, { x: cx, y: RT_H }) +
+      '<path class="d-mark" d="M' + fmt(cx) + ' ' + fmt(MK) + ' H' + fmt(cx - MK) + ' V0" />' + '</g>';
     rtDims.innerHTML =
       top('top-a', P.TL.x, P.TR.x, 'a') +
       bot('bot-b', P.BL.x, P.BR.x, 'b') +
       hgt('left-h', -G, inner) +
       top('top-b', rot(P.BR).x, rot(P.BL).x, 'b') +
       bot('bot-a', rot(P.TR).x, rot(P.TL).x, 'a') +
-      hgt('copy-h', rk.join - G, '') +
-      top('top-ab', rot(P.BR).x, P.TR.x, 'a + b') +
-      bot('bot-ab', rot(P.TR).x, P.BR.x, 'a + b') +
+      hgt('copy-h', rk.join + Math.max(P.TR.x, P.BR.x) + G, cinner, 1) +
+      top('top-ab', P.TL.x, rot(P.BL).x, 'a + b') +
+      bot('bot-ab', P.BL.x, rot(P.TL).x, 'a + b') +
       '<g class="rt-par">' + parMark(P.TL, P.TR) + parMark(P.BL, P.BR) + '</g>';
     rtCopyShift(0);
 
@@ -7561,19 +7577,156 @@
   function rtSlide(x, ms) {
     const from = rtX;
     rtX = x;
-    return tween(ms || 820, p => {
+    return tween(ms || 1000, p => {
       rtScene.setAttribute('transform', 'translate(' + fmt(from + (x - from) * p) + ' 0)');
     }, easeInOut);
+  }
+
+  /* ---------- the copy, carried and turned ----------
+   * The copy is popped out of the trapezium, takes a colour of its own, is
+   * carried out into the right half of the stage and flipped upside down
+   * there; its own names are then brought across to it one at a time; and it
+   * is carried back until it rests against the trapezium's right side, the
+   * two making one whole.
+   *
+   * It is always drawn turned about its OWN middle and carried by a
+   * translation, so wherever along the way it is, it is one translation from
+   * where it is going -- which is what lets the journey be played as a
+   * single tween. `lift` and `swell` are the turn's little arc through the
+   * air, nothing more. */
+  function rtCopyAt(tx, deg, lift, swell) {
+    const C = rk.C;
+    rtCopy.setAttribute('transform',
+      'translate(' + fmt(tx) + ' ' + fmt(-(lift || 0)) + ') ' +
+      'rotate(' + fmt(deg) + ' ' + fmt(C.x) + ' ' + fmt(C.y) + ')' +
+      (swell ? ' translate(' + fmt(C.x) + ' ' + fmt(C.y) + ') scale(' + fmt(1 + swell) + ') translate(' + fmt(-C.x) + ' ' + fmt(-C.y) + ')' : ''));
+  }
+
+  /* the copy part-way through its flip: it is squashed about its own middle
+     until it stands edge-on and opens out again mirrored, which at the end
+     of the turn is scale(-1, -1) -- exactly the half turn rtCopyAt draws.
+     The mirror is taken at the halfway point, where the shape is a line and
+     nothing of it can be seen to jump. */
+  function rtCopyFlip(tx, p, lift) {
+    const C = rk.C, n = v => Math.round(v * 1000) / 1000;
+    const sy = Math.cos(Math.PI * p), sx = p < .5 ? 1 : -1;
+    rtCopy.setAttribute('transform',
+      'translate(' + fmt(tx) + ' ' + fmt(-(lift || 0)) + ') ' +
+      'translate(' + fmt(C.x) + ' ' + fmt(C.y) + ') ' +
+      'scale(' + n(sx) + ' ' + n(sy) + ') ' +
+      'translate(' + fmt(-C.x) + ' ' + fmt(-C.y) + ')');
+  }
+
+  /* the copy's own names are drawn where the copy comes to rest, and ride
+     with it for as long as it stands apart */
+  const RT_COPY_NAMES = ['top-b', 'bot-a', 'copy-h'];
+  function rtCopyShift(dx) {
+    RT_COPY_NAMES.forEach(c => {
+      const g = rtDim(c);
+      if (!g) return;
+      if (dx) g.setAttribute('transform', 'translate(' + fmt(dx) + ' 0)');
+      else g.removeAttribute('transform');
+    });
+  }
+
+  /* where a name's arrow sits, its group's own offset counted in: two names
+     of the same length are one translation apart, which is the journey the
+     one makes to the other */
+  function rtNameAt(g) {
+    const l = g.querySelector('.d-arrow');
+    const t = /translate\(\s*(-?[\d.]+)/.exec(g.getAttribute('transform') || '');
+    return {
+      x: (t ? +t[1] : 0) + (l.x1.baseVal.value + l.x2.baseVal.value) / 2,
+      y: (l.y1.baseVal.value + l.y2.baseVal.value) / 2
+    };
+  }
+
+  /* 1. a copy is taken off the trapezium: it is laid on it exactly, in the
+        trapezium's own colours, and lifts -- a deeper shadow under it, the
+        shape itself never moving */
+  async function rtMakeCopy() {
+    rtCopyAt(0, 0);
+    rtCopy.classList.add('fresh');
+    rtScene.insertBefore(rtCopy, rtDims);          /* over the trapezium while it is apart */
+    rtCopy.classList.add('show');
+    sfx('click', .3);
+    await wait(REDUCED ? 100 : 520);
+    rtCopy.classList.add('flying');                /* lifted off, a shadow under it */
+    await wait(REDUCED ? 120 : 620);
+  }
+
+  /* 2. it takes a colour of its own and slides across into the half of the
+        stage the trapezium has just left free */
+  async function rtSplitCopy() {
+    rtCopy.classList.remove('fresh');              /* the colour eases over as it goes */
+    await wait(REDUCED ? 80 : 620);
+    rtCopyShift(rk.split - rk.join);               /* its names, laid where it is going */
+    await tween(REDUCED ? 200 : 1500, p => rtCopyAt(rk.split * p, 0), easeInOut);
+    await wait(REDUCED ? 80 : 380);
+  }
+
+  /* 3. where it flips over: it squashes down to a line and opens out upside
+        down again, which lands it exactly half a turn round -- the one turn
+        that makes the two fit together */
+  async function rtFlipCopy() {
+    sfx('click', .3);
+    await tween(REDUCED ? 220 : 1500, p => rtCopyFlip(rk.split, p, 26 * Math.sin(Math.PI * p)), easeInOut);
+    rtCopyAt(rk.split, 180);                       /* landed: the half turn, exactly */
+    await wait(REDUCED ? 80 : 460);
+  }
+
+  /* 4. a name is carried across: the copy's own name starts on the
+        trapezium's, over the side it is the same as, and travels to its
+        place on the copy; both go green as it lands */
+  async function rtCarry(srcCls, dstCls) {
+    const src = rtDim(srcCls), dst = rtDim(dstCls);
+    const home = rk.split - rk.join;               /* where the copy's names ride */
+    const a = rtNameAt(src), b = rtNameAt(dst);
+    const dx = a.x - b.x, dy = a.y - b.y;
+    const paint = p => dst.setAttribute('transform',
+      'translate(' + fmt(home + dx * (1 - p)) + ' ' + fmt(dy * (1 - p)) + ')');
+    paint(0);
+    rtSet(dstCls);
+    await wait(REDUCED ? 80 : 420);
+    await tween(REDUCED ? 200 : 1200, paint, easeInOut);
+    dst.classList.add('landed');                   /* its own dotted height, if it has one */
+    sfx('click', .3);
+    [srcCls, dstCls].forEach(c => rtDim(c).classList.add('eq'));
+    await wait(REDUCED ? 200 : 1150);
+    [srcCls, dstCls].forEach(c => rtDim(c).classList.remove('eq'));
+    await wait(REDUCED ? 80 : 320);
+  }
+
+  /* 5. and the copy is carried home: it closes on the trapezium's right
+        side, the board closing round the two of them, and the copy's own h
+        is squeezed out of the join -- the trapezium's is the whole's now */
+  async function rtJoinCopy() {
+    const vb0 = (rtrapSvg.getAttribute('viewBox') || RT_VB).split(/\s+/).map(Number);
+    const vb1 = RT_VB.split(/\s+/).map(Number);
+    const from = rk.split, to = rk.join, x0 = rtX, x1 = rk.pair;
+    rtDim('copy-h').classList.add('gone');
+    rtX = x1;
+    await tween(REDUCED ? 220 : 1450, p => {
+      const tx = from + (to - from) * p;
+      rtCopyAt(tx, 180);
+      rtCopyShift(tx - to);
+      rtScene.setAttribute('transform', 'translate(' + fmt(x0 + (x1 - x0) * p) + ' 0)');
+      rtrapSvg.setAttribute('viewBox', vb0.map((v, i) => fmt(v + (vb1[i] - v) * p)).join(' '));
+    }, easeInOut);
+    rtCopy.classList.remove('flying');
+    rtScene.insertBefore(rtCopy, rtArt);           /* landed: under the trapezium */
+    rtGlow();
+    sfx('correct', .45);
   }
 
   /* a name arrives: its arrow grows along the side (and the dotted height
      with it, where there is one), then the heads and the letter come on */
   async function rtDraw(cls, ms) {
     const g = rtDim(cls);
-    await Promise.all(Array.from(g.querySelectorAll('.d-arrow, .d-height')).map(l => growLine(l, ms || 560)));
+    await Promise.all(Array.from(g.querySelectorAll('.d-arrow, .d-height')).map(l => growLine(l, ms || 950)));
     g.classList.add('on');
     sfx('click', .3);
-    await wait(REDUCED ? 80 : 240);
+    await wait(REDUCED ? 80 : 340);
   }
 
   /* a name already in place, without the choreography */
@@ -7591,162 +7744,11 @@
     rtrapShape.classList.add('lit-rect');
   }
 
-  /* the finger rides the tip of the arc as it draws */
-  function rtHandAt(hand, q) {
-    hand.setAttribute('transform', 'translate(' + fmt(q.x - 20.7) + ' ' + fmt(q.y - 5.4) + ') scale(1.8)');
-  }
-
-  /* The copy peels up off the trapezium -- a second sheet lifting, turned
-     a touch -- and waits for the learner. Dragged round M it turns with the
-     finger, the arc drawing itself as it goes; past the last stretch it
-     eases home on its own, lands under the trapezium (so the side they
-     share keeps the trapezium's colour), and the whole's outline glows.
-     Let go early it eases back and waits again, rocking now and then to
-     invite the drag; a skip turns it for the learner. */
-  async function rtTurnCopy() {
-    const M = rk.M, Ms = fmt(M.x) + ' ' + fmt(M.y);
-    const PEEL = { x: 12, y: -14 };                 /* lifted off the trapezium */
-    const REST = 12;                                /* and turned a touch, in degrees */
-    const DONE = 168;                               /* from here it goes home by itself */
-    const arc  = rtGuide.querySelector('.rt-arc');
-    const hand = rtGuide.querySelector('.rt-hand');
-    let L = 200;
-    try { L = arc.getTotalLength() || L; } catch (e) { /* keep guard */ }
-    arc.style.strokeDasharray = L;
-    arc.style.strokeDashoffset = L;
-    rtGuide.classList.remove('show', 'tip');
-
-    /* the copy at a turn of q degrees: the lift is taken back as it turns,
-       and the arc and the finger keep pace with it */
-    const paint = q => {
-      const k = Math.max(0, (q - REST) / (180 - REST));
-      const lift = 34 * Math.sin(Math.PI * k);
-      rtCopy.setAttribute('transform', 'translate(' + fmt(PEEL.x * (1 - k)) + ' ' + fmt(PEEL.y * (1 - k) - lift) + ') rotate(' + fmt(q) + ' ' + Ms + ')');
-      arc.style.strokeDashoffset = L * (1 - k);
-      rtHandAt(hand, arc.getPointAtLength(L * k));
-    };
-
-    /* 1. the peel: flat on the trapezium, then up and a little round */
-    rtScene.insertBefore(rtCopy, rtDims);          /* over the trapezium while in the air */
-    rtCopy.setAttribute('transform', 'rotate(0 ' + Ms + ')');
-    rtCopy.classList.add('show');
-    await wait(REDUCED ? 60 : 260);
-    rtCopy.classList.add('flying');
-    sfx('click', .3);
-    await tween(REDUCED ? 200 : 1000, p => {
-      rtCopy.setAttribute('transform', 'translate(' + fmt(PEEL.x * p) + ' ' + fmt(PEEL.y * p) + ') rotate(' + fmt(REST * p) + ' ' + Ms + ')');
-    }, easeInOut);
-    rtHandAt(hand, arc.getPointAtLength(0));
-    rtGuide.classList.add('show');
-    await wait(REDUCED ? 60 : 300);
-
-    /* 2. the learner turns it */
-    let r = REST;
-    const toLocal = e => {
-      const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(rtrapSvg.getScreenCTM().inverse());
-      return { x: pt.x - rtX, y: pt.y };
-    };
-    const angleOf = p => Math.atan2(p.y - M.y, p.x - M.x) * 180 / Math.PI;
-    await new Promise(resolve => {
-      let over = false, held = false, th0 = 0, r0 = REST, idle = 0;
-      const cleanup = () => {
-        skipFills.delete(fill);
-        sceneWaiters.delete(teardown);
-        clearTimeout(idle);
-        rtCopy.removeEventListener('pointerdown', onDown);
-        window.removeEventListener('pointermove', onMove);
-        window.removeEventListener('pointerup', onUp);
-        window.removeEventListener('pointercancel', onUp);
-        rtCopy.classList.remove('grab', 'held');
-      };
-      /* the last stretch, and the landing, are the lesson's */
-      const settle = async auto => {
-        if (over) return;
-        over = true;
-        cleanup();
-        lockInput(true);
-        const from = r;
-        await tween(auto ? 1200 : 520, p => paint(from + (180 - from) * p), easeInOut);
-        resolve();
-      };
-      /* left alone, the copy rocks a little */
-      const nudgeLater = () => {
-        clearTimeout(idle);
-        idle = setTimeout(async () => {
-          if (over || held) return;
-          const from = r;
-          await tween(760, p => { if (!held && !over) paint(from + 14 * Math.sin(Math.PI * p)); }, easeInOut);
-          nudgeLater();
-        }, 2600);
-      };
-      const onDown = e => {
-        if (!interactive || over) return;
-        e.preventDefault();
-        held = true;
-        th0 = angleOf(toLocal(e));
-        r0 = r;
-        clearTimeout(idle);
-        rtCopy.classList.add('held');
-      };
-      const onMove = e => {
-        if (!held || over) return;
-        let d = angleOf(toLocal(e)) - th0;
-        d = ((d % 360) + 540) % 360 - 180;         /* the short way round */
-        r = Math.max(REST, Math.min(180, r0 + d));
-        paint(r);
-        if (r >= DONE) settle(false);
-      };
-      const onUp = () => {
-        if (!held || over) return;
-        held = false;
-        rtCopy.classList.remove('held');
-        const from = r;
-        tween(460, p => { if (!held && !over) { r = from + (REST - from) * p; paint(r); } }, easeOut);
-        nudgeLater();
-      };
-      const fill = () => settle(true);
-      const teardown = () => { over = true; cleanup(); };
-      rtCopy.classList.add('grab');
-      rtCopy.addEventListener('pointerdown', onDown);
-      window.addEventListener('pointermove', onMove);
-      window.addEventListener('pointerup', onUp);
-      window.addEventListener('pointercancel', onUp);
-      skipFills.add(fill);
-      sceneWaiters.add(teardown);
-      lockInput(false);
-      nudgeLater();
-    });
-
-    /* 3. landed */
-    rtGuide.classList.add('tip');
-    rtCopy.classList.remove('flying');
-    rtCopy.setAttribute('transform', 'rotate(180 ' + Ms + ')');
-    rtScene.insertBefore(rtCopy, rtArt);           /* landed: under the trapezium */
-    rtGlow();
-    sfx('correct', .45);
-    await wait(REDUCED ? 100 : 520);
-    rtGuide.classList.remove('show');
-  }
-
-  /* two equal sides shown equal: a glow grows along both together, their
-     names go green with it, and both fade again */
-  async function rtCompare(k) {
-    const names = k === 'b' ? ['bot-b', 'top-b'] : ['top-a', 'bot-a'];
-    const lines = [1, 2].map(i => rtHl.querySelector('.hl-' + k + i));
-    await Promise.all(lines.map(l => growLine(l, 720)));
-    names.forEach(c => rtDim(c).classList.add('eq'));
-    sfx('correct', .4);
-    await wait(REDUCED ? 300 : 1500);
-    lines.forEach(l => { l.style.opacity = ''; });
-    names.forEach(c => rtDim(c).classList.remove('eq'));
-    await wait(REDUCED ? 100 : 460);
-  }
-
   /* the two names along the top become one, a + b -- and the bottom's too */
   async function rtMerge() {
     ['top-a', 'top-b', 'bot-b', 'bot-a'].forEach(c => rtDim(c).classList.add('gone'));
-    await wait(REDUCED ? 60 : 200);
-    await Promise.all([rtDraw('top-ab', 760), rtDraw('bot-ab', 760)]);
+    await wait(REDUCED ? 60 : 280);
+    await Promise.all([rtDraw('top-ab', 1000), rtDraw('bot-ab', 1000)]);
   }
 
   /* a key word has landed in the working: light what it names */
@@ -7755,7 +7757,7 @@
       ['top-a', 'bot-b', 'top-b', 'bot-a', 'top-ab', 'bot-ab'].forEach(c => rtDim(c).classList.add('lit'));
       return;
     }
-    if (w === 'h') { rtDim('left-h').classList.add('lit'); return; }
+    if (w === 'h') { ['left-h', 'copy-h'].forEach(c => rtDim(c).classList.add('lit')); return; }
     /* the trapezium itself: it swells once */
     rtrapShape.classList.remove('pulse');
     void rtrapShape.offsetWidth;
@@ -7799,8 +7801,11 @@
     rtX = rk.pair;
     rtScene.setAttribute('transform', 'translate(' + fmt(rtX) + ' 0)');
     rtCopy.classList.add('show');
-    rtCopy.setAttribute('transform', 'rotate(180 ' + fmt(rk.M.x) + ' ' + fmt(rk.M.y) + ')');
-    ['top-a', 'top-b', 'bot-b', 'bot-a'].forEach(c => rtSet(c, true));
+    rtCopyAt(rk.join, 180);
+    rtCopyShift(0);
+    rtScene.insertBefore(rtCopy, rtArt);
+    /* the copy's own h went into the join; the trapezium's is the whole's */
+    ['top-a', 'top-b', 'bot-b', 'bot-a', 'copy-h'].forEach(c => rtSet(c, true));
     ['left-h', 'top-ab', 'bot-ab'].forEach(c => rtSet(c, false));
   }
 
@@ -7841,54 +7846,72 @@
     await revealShape(rtrapShape);
     await wait(200);
     rtrapShape.classList.add('marked');
-    if (rk.x0 === 0) sfx('click', .35);
+    if (rk.sqL || rk.sqR) sfx('click', .35);
     await wait(360);
     await heading(rk.say.here);
     await wait(1100);
 
-    /* 2. it moves over to the left, and its sides are named as Swiftee
-          says them: a along the top, b along the bottom, h up the left */
-    await rtSlide(rk.pair);
-    await wait(200);
+    /* 2. its sides are named where it stands, in the middle of the board, as
+          Swiftee says them: a along the top, b along the bottom, h up the
+          left */
     let said = heading(rk.say.sides);
-    await wait(300);
+    await wait(400);
     await rtDraw('top-a');
     await rtDraw('bot-b');
     await rtDraw('left-h');
     await said;
-    await wait(900);
+    await wait(1000);
 
-    /* 3. a copy lifts off and turns half a circle to land beside it: the
-          two make a rectangle or a parallelogram, and the copy's sides are
-          named too */
+    /* 3. and then it moves aside: the window opens out to the right, which
+          carries the trapezium, standing still in the drawing, across into
+          the left half of the board -- a whole half free beside it */
+    said = heading(rk.say.room);
+    await rtZoom(rk.stageBox, 1500);
+    await said;
+    await wait(700);
+
+    /* 4. a copy is popped out of it, takes a colour of its own, slides
+          across into the free half and flips upside down there: two of the
+          same shape now, half the board each */
     said = heading(rk.say.copy);
-    await wait(500);
-    await rtTurnCopy();
+    await rtMakeCopy();
+    await said;
+    await wait(420);
+    said = heading(rk.say.flip);
+    await rtSplitCopy();
+    await rtFlipCopy();
+    await said;
+    await wait(700);
+
+    /* 5. and the copy is given the trapezium's own lengths, one at a time:
+          each name starts on the side it was measured from and travels
+          across to the side of the copy that is the same */
+    said = heading(rk.say.eqA);
+    await rtCarry('top-a', 'bot-a');
     await said;
     await wait(200);
-    said = heading(rk.say.made);
-    await wait(300);
-    await rtDraw('top-b');
-    await rtDraw('bot-a');
-    await said;
-    await wait(900);
-
-    /* 4. the equal sides, shown equal: b and b, then a and a */
     said = heading(rk.say.eqB);
-    await rtCompare('b');
+    await rtCarry('bot-b', 'top-b');
     await said;
-    await wait(300);
-    said = heading(rk.say.eqA);
-    await rtCompare('a');
+    await wait(200);
+    said = heading(rk.say.eqH);
+    await rtCarry('left-h', 'copy-h');
     await said;
-    await wait(300);
+    await wait(700);
 
-    /* 5. the two names along the top become one, a + b; the bottom's too */
-    said = heading(rk.say.sum);
-    await wait(300);
-    await rtMerge();
+    /* 6. the two are put together: the copy closes on the trapezium's right
+          side and the whole is a rectangle or a parallelogram -- and the two
+          names along each of its sides become one, a + b */
+    said = heading(rk.say.made);
+    await rtJoinCopy();
     await said;
     await wait(1100);
+
+    said = heading(rk.say.sum);
+    await wait(400);
+    await rtMerge();
+    await said;
+    await wait(1200);
   }
 
   /* ---- the half ----
@@ -7910,7 +7933,7 @@
     rtrapText.querySelector('.txt').textContent = '';
     rtrapText.querySelector('.caret').hidden = true;
 
-    /* 6. the drawing moves to the left half of the board and Swiftee hops
+    /* 7. the drawing moves to the left half of the board and Swiftee hops
           down to the right half, beside the working: the whole's area,
           from the two lengths it has just named */
     rtrapSay.classList.add('show');
@@ -7928,7 +7951,7 @@
     rtGlow();
     await wait(1800);
 
-    /* 7. the copy fades to a dashed outline: the trapezium is exactly half
+    /* 8. the copy fades to a dashed outline: the trapezium is exactly half
           of the whole, so its area is half of the whole's */
     await rtClear();
     rtDims.querySelectorAll('.d-group').forEach(g => g.classList.remove('lit'));
@@ -7940,14 +7963,15 @@
     await rtWork(rk.lines.half2);
     await wait(1800);
 
-    /* 8. the copy goes; the trapezium comes back to the middle with its own
+    /* 9. the copy goes; the trapezium comes back to the middle with its own
           names and its parallel marks, and the rule is boxed */
     await rtClear();
     rtrapShape.classList.add('alone');
-    ['top-ab', 'bot-ab'].forEach(c => rtDim(c).classList.add('gone'));
+    /* the copy's h went into the join; the trapezium's own is already back */
+    ['top-ab', 'bot-ab', 'copy-h'].forEach(c => rtDim(c).classList.add('gone'));
     rtDims.querySelectorAll('.d-group').forEach(g => g.classList.remove('lit'));
     await wait(REDUCED ? 100 : 500);
-    ['top-a', 'bot-b'].forEach(c => rtDim(c).classList.remove('gone'));
+    ['top-a', 'bot-b', 'left-h'].forEach(c => rtDim(c).classList.remove('gone'));
     /* back to the middle of its column, and the window closes round it so
        it fills the column instead of sitting small in the pair's box */
     await Promise.all([rtSlide(rk.home), rtZoom(rk.alone, 820)]);
