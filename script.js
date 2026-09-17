@@ -38,12 +38,17 @@
  *
  * Section 3, the quadrilateral, once that Next is pressed:
  *   1. Swiftee jumps back behind the board and the lesson fades off it
- *   2. one quadrilateral draws itself in the middle of the empty board
- *   3. "This is a [ v ]" with a drop-down; Swiftee jumps in beside it, says
- *      "Tap here!", and answers each choice -- a wrong name is turned down
- *      with how many sides that shape has, the right one is cheered
- *   4. the sentence goes; Swiftee hops to the left: "This is a general
- *      quadrilateral." / "Let's try and find its area!"
+ *   2. one quadrilateral draws itself in the middle of the empty board and
+ *      glides to the left half of it
+ *   3. "This is a [ v ]" with a drop-down appears on the right half; Swiftee
+ *      comes up from behind the board under it and asks "What shape is
+ *      this?" from its box, and the empty slot asks to be tapped -- its own
+ *      "Tap here" and a hand beside the arrow, both gone the moment it is.
+ *      Each choice is answered in the same box, with how many sides that
+ *      shape has
+ *   4. the quiz goes, the shape comes back to the middle, and Swiftee is up
+ *      again beside it: "This is a general quadrilateral." / "Let's try and
+ *      find its area!"
  *   5. Swiftee hops up to the heading; four dots appear on the corners and
  *      "Join the corners to divide the quadrilateral into two parts." types
  *      while a finger traces the diagonal, left to right
@@ -214,6 +219,147 @@
     if (e.reason === CANCELLED) e.preventDefault();
   });
   const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- the motion system ----------
+   * js/motion.js holds every duration and easing the game uses, and every
+   * animation it makes is tracked so the two things that interrupt a scene
+   * can reach it. Handing it the two flags above is the whole of the join:
+   *   token   a replay bumps it, and Motion.retire() kills what belonged to
+   *           the scene that has just been retired
+   *   fast    a skip raises it, and every duration asked of motion.js from
+   *           then on collapses to nothing, exactly as wait() does
+   * Both are read live, not copied, so motion.js always sees the truth. */
+  Motion.bind({
+    token: function () { return runToken; },
+    fast:  function () { return fastForward; }
+  });
+
+  /* ---------- press feedback, on every button in the game ----------
+   * Most of the buttons the learner touches are not in index.html at all --
+   * the chips of a round, the cards of a match, the options of a drop-down
+   * are all built by script.js as the scene that needs them comes up, and a
+   * replay builds them again. Binding each one as it is made would mean
+   * remembering to, at a dozen build sites, forever. So the press is caught
+   * once, here, on the way up the tree.
+   *   pointerdown, not click: the give has to happen under the finger, at the
+   * moment of contact, not after the browser has decided it was a tap. It
+   * never blocks -- whatever the button does runs alongside it -- and a
+   * button that is disabled is not pressable, so it gives nothing back. */
+  document.addEventListener('pointerdown', function (e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    const btn = e.target.closest && e.target.closest('button');
+    if (!btn || btn.disabled) return;
+    Motion.pressFeedback(btn);
+  }, { passive: true });
+
+  /* ---------- the two answers ----------
+   * A judged answer has always been marked by a class, and the class still
+   * carries the colour -- green border, red tint -- because that is a state
+   * the element stays in, not a movement. What the class no longer carries is
+   * the movement: a pulse and a shake are the same length and the same curve
+   * wherever in the mission they happen, they honour a skip and they honour
+   * reduced motion, and all three of those come from motion.js rather than
+   * from a keyframe rule repeated in six places.
+   *   `part` is the piece that actually moves when the class goes on
+   * something larger than the thing the eye follows: a card's box, a figure's
+   * art, a drop-down's button. */
+  const markRight = (el, part) => { el.classList.add('correct'); Motion.correctPulse(part || el); };
+  const markWrong = (el, part) => { el.classList.add('reject');  Motion.wrongShake(part || el); };
+
+  /* A motion.js timeline, waited on the way every other beat of the game is
+     waited on. Not `await tl` directly: a timeline killed by a replay never
+     reaches its end, so its promise never settles and the frame awaiting it
+     would sit there for the rest of the session instead of unwinding. The
+     scene's own wait() is stamped with the scene's token, so a replay throws
+     CANCELLED through it like any other wait, and a skip collapses it -- by
+     which time the timeline was built at no length anyway. */
+  const played = tl => wait(tl ? tl.totalDuration() * 1000 : 0);
+
+  /* A group arriving in reading order: the state class goes on at once (it is
+     what makes them visible and touchable), and motion.js walks them in.
+     `revealing` stands the stylesheet's own transition of the same two
+     properties down for the length of it -- two animations of one opacity,
+     fighting frame by frame, is how a reveal ends up looking soft. */
+  async function revealGroup(els, opts) {
+    if (!els.length) return;
+    els.forEach(el => el.classList.add('revealing', 'reveal'));
+    await played(Motion.revealSequence(els, opts));
+    els.forEach(el => el.classList.remove('revealing'));
+  }
+
+  /* ---------- the copy a drag carries ----------
+   * Three parts of the mission are drag-and-drop -- the words, the lengths,
+   * the measurements -- and all three carry a copy of the chip under the
+   * finger. They share this.
+   *   The copy is placed once, at the chip's own box, and moved from then on
+   * with a transform. It used to be moved by writing left and top, which put
+   * a layout and a paint of the whole board into every single pointermove:
+   * the one loop in the game with a finger to keep up with, and the one that
+   * cannot afford the work. A transform is composited, and costs neither.
+   *   Nothing is eased while the finger is down -- a drag that lags its own
+   * finger feels broken, not smooth. Only the release is animated. */
+  const GHOST_LIFT = 1.05;                  /* the copy rides just above the board */
+  const ghostTransform = (dx, dy) =>
+    'translate3d(' + dx + 'px, ' + dy + 'px, 0) scale(' + GHOST_LIFT + ')';
+
+  /* the copy, and the numbers the move and the release both need */
+  function liftGhost(chip, e, z) {
+    const rect = chip.getBoundingClientRect();
+    const ghost = chip.cloneNode(true);
+    ghost.classList.add('ghost');
+    ghost.disabled = true;
+    Object.assign(ghost.style, {
+      position: 'fixed',
+      left: rect.left + 'px',
+      top: rect.top + 'px',
+      width: rect.width + 'px',
+      height: rect.height + 'px',
+      margin: 0,
+      pointerEvents: 'none',
+      zIndex: z || 999,
+      transform: ghostTransform(0, 0),
+      willChange: 'transform'                /* for the length of the drag only */
+    });
+    document.body.appendChild(ghost);
+    return {
+      el: chip, ghost: ghost, box: rect,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      start: { x: e.clientX, y: e.clientY }
+    };
+  }
+
+  const moveGhost = (d, x, y) => {
+    d.ghost.style.transform = ghostTransform(x - d.offsetX - d.box.left,
+                                             y - d.offsetY - d.box.top);
+  };
+
+  /* The release, and the only eased part of a drag: the copy springs the last
+     stretch to wherever it is going -- the slot it was dropped on, or back to
+     the chip it came from -- and is only taken away once it has landed, so
+     the real chip never appears underneath one still in the air.
+       A replay in the middle of that half second sweeps the copy with the
+     rest of the stage (clearStage drops loose ghosts), and `done` is run
+     regardless, so a drag is never left half finished. */
+  function dropGhost(d, slot, done) {
+    const g = d.ghost;
+    const to = slot ? slot.getBoundingClientRect() : null;
+    const dx = to ? to.left + (to.width  - d.box.width)  / 2 - d.box.left : 0;
+    const dy = to ? to.top  + (to.height - d.box.height) / 2 - d.box.top  : 0;
+    let landed = false;
+    const land = () => {
+      if (landed) return;
+      landed = true;
+      g.style.willChange = '';
+      g.remove();
+      if (done) done();
+    };
+    const tl = Motion.snapTo(g, dx, dy);
+    if (tl) tl.eventCallback('onComplete', land); else land();
+    /* a scene torn down mid-flight: the tween is killed and never completes,
+       so the landing is taken at the teardown's own pace instead */
+    return land;
+  }
 
   /* ---------- the half ----------
    * Every "½" in the lesson is drawn as a stacked fraction, a 1 over a bar
@@ -832,6 +978,19 @@
      Waiting a beat before closing means only a room that is really finished
      with ever moves; a room that fills again in the meantime never moved at
      all. Opening is never delayed: arrivals are what the room is for. */
+  /* ---- the one place the game still animates a layout property ----
+     Everything else moves on transform and opacity alone. A room cannot:
+     it is an accordion, and the whole point of it is that the rows below
+     move up as it folds. A transform does not move anything below it, and
+     a scale would squash whatever is standing inside the room instead of
+     closing the room around it -- which is why GSAP's Flip, offered a box
+     that has to change size with live content in it, is not a way out here
+     either. The height of these rooms is the layout; animating it IS the
+     effect. The rooms are few, they are siblings on one grid, and only one
+     of them moves at a time, so the reflow is bounded and predictable.
+       The same reasoning covers the .slot rule in style.css, which
+     transitions height, margin-top and border-width when a round changes
+     the shape of its dock. */
   const ROOM_CLOSE_DELAY = 360;
   let roomsDue = 0;
   const roomClose = new Map();
@@ -1036,8 +1195,8 @@
     { entry: rhombusAside,      name: 'Aside \u00b7 on to the trapezium' },
     { entry: trapSection,       name: 'Trapezium \u00b7 its name' },
     { entry: trapSelect,        name: 'Trapezium \u00b7 pick them out' },
-    { entry: scalArea,          name: 'Scalene trapezium \u00b7 its area' },
-    { entry: scalHalf,          name: 'Scalene trapezium \u00b7 the formula' },
+    { entry: scalArea,          name: 'Trapezium \u00b7 its area' },
+    { entry: scalHalf,          name: 'Trapezium \u00b7 the formula' },
     /* the step-by-step working used to be a scene of its own here
        (trapSteps); it is now the tail of the values scene, on the same
        board, so there is one entry rather than two */
@@ -1146,6 +1305,9 @@
      scene creates while it unwinds. Endless ones (the caret's blink, a
      button's pulse) are left alone: finish() throws on them. */
   function flushAnimations() {
+    /* the same for GSAP: everything motion.js has in the air lands where it
+       was going, and anything started after this is built at nothing-length */
+    Motion.skip();
     document.getAnimations().forEach(function (a) {
       const timing = a.effect && a.effect.getComputedTiming();
       if (!timing || timing.iterations === Infinity) return;
@@ -1288,7 +1450,7 @@
      one property at a time rather than by dropping the style attribute, so the
      sprite sheet custom properties on the mascots survive. */
   const PARKED = ['transform', 'opacity', 'width', 'height', 'left', 'top',
-                  'visibility', 'transition', 'min-height'];
+                  'visibility', 'transition', 'min-height', 'will-change'];
 
   function clearStage() {
     /* let go of anything blocked on the scene's own furniture, so its frame
@@ -1369,6 +1531,12 @@
     document.querySelectorAll('.type .txt').forEach(function (t) { t.textContent = ''; });
     document.querySelectorAll('.type .caret').forEach(function (c) { c.hidden = true; });
 
+    /* and every answer left in a drop-down written in the HTML: the class
+       reset above puts the slot back to empty and dashed, so a value still
+       sitting in it would read as an answer the learner never gave -- and
+       would hide the box's "Tap here" */
+    document.querySelectorAll('.dd-value').forEach(function (v) { v.textContent = ''; });
+
     /* neither Next belongs to the scene being replayed */
     pendingNext = null;
     [nextBtn, nextBtnFree].forEach(function (b) {
@@ -1423,6 +1591,7 @@
     lockInput(true);
 
     runToken++;                           /* retire the scene that is running */
+    Motion.retire();                      /* and kill what it had in the air */
     clearStage();
     restoreStage(stage);
     lockTrayHeight();
@@ -1437,6 +1606,7 @@
        once more, so those belong to nobody either, and put the stage back a
        second time for anything they wrote while they had the chance. */
     runToken++;
+    Motion.retire();
     clearStage();
     restoreStage(stage);
 
@@ -1818,11 +1988,13 @@
     /* only the deck in play takes pointer events */
     Object.keys(trays).forEach(k => trays[k].classList.toggle('live', Number(k) === n));
 
-    roundSlots.forEach((s, i) => setTimeout(() => s.classList.add('reveal'), i * 170));
-    await wait(roundSlots.length * 170 + 380);
-
-    roundChips.forEach((c, i) => setTimeout(() => c.classList.add('reveal'), i * 170));
-    await wait(roundChips.length * 170 + 380);
+    /* The slots first, then the deck that fills them: the order the learner
+       needs to read them in. Both were a chain of setTimeouts, which kept a
+       clock of their own -- a skip raced past the wait below and then stood
+       and watched the chips trickle in afterwards, at full speed, over a
+       scene that had already moved on. */
+    await revealGroup(roundSlots, { y: 12, scale: .95 });
+    await revealGroup(roundChips, { y: 16, scale: .9 });
 
     await briefing(ROUNDS[n]);
 
@@ -2066,7 +2238,7 @@
     chip.disabled = true;
     slot.closest('.cell').classList.add('docked');
 
-    slot.classList.add('correct');
+    markRight(slot);
     setTimeout(() => slot.classList.remove('correct'), 520);
 
     sfx('correct', earned ? 1 : .55);
@@ -2086,8 +2258,8 @@
     if (slot.dataset.accept !== chip.dataset.word) {
       sfx('wrong');
       feedback(FEEDBACK.wrong);
-      slot.classList.add('reject');
-      chip.classList.add('reject');
+      markWrong(slot);
+      markWrong(chip);
       setTimeout(() => {
         slot.classList.remove('reject');
         chip.classList.remove('reject');
@@ -2127,26 +2299,10 @@
     if (chip.disabled || chip.dataset.round !== String(round)) return;
     if (e.button !== undefined && e.button !== 0) return;
 
-    const rect = chip.getBoundingClientRect();
-    const ghost = chip.cloneNode(true);
-    ghost.classList.add('ghost');
-    Object.assign(ghost.style, {
-      position: 'fixed',
-      left: rect.left + 'px',
-      top: rect.top + 'px',
-      width: rect.width + 'px',
-      height: rect.height + 'px',
-      margin: 0,
-      pointerEvents: 'none',
-      zIndex: 999,
-      transform: 'scale(1.05)'
-    });
-    document.body.appendChild(ghost);
+    drag = liftGhost(chip, e);
     chip.classList.add('dragging');
     unpick();
     sfx('click', .5);
-
-    drag = { el: chip, ghost, offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top };
 
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
@@ -2156,8 +2312,7 @@
 
   function onMove(e) {
     if (!drag) return;
-    drag.ghost.style.left = (e.clientX - drag.offsetX) + 'px';
-    drag.ghost.style.top = (e.clientY - drag.offsetY) + 'px';
+    moveGhost(drag, e.clientX, e.clientY);
 
     clearOver();
     const slot = slotUnder(e.clientX, e.clientY);
@@ -2170,14 +2325,17 @@
     window.removeEventListener('pointerup', onUp);
     window.removeEventListener('pointercancel', onUp);
 
-    const { el, ghost } = drag;
+    const d = drag;
     drag = null;
-    ghost.remove();
-    el.classList.remove('dragging');
     clearOver();
 
+    /* the copy springs home, or into the slot it was dropped on, and the
+       chip only comes back out of its dragging state once it has landed */
     const slot = slotUnder(e.clientX, e.clientY);
-    if (slot) place(el, slot);
+    dropGhost(d, slot, function () {
+      d.el.classList.remove('dragging');
+      if (slot) place(d.el, slot);
+    });
   }
 
   /* ---------- click / keyboard: pick a word, then choose a slot ---------- */
@@ -2267,7 +2425,7 @@
 
   function setProgress(v) {
     const pct = Math.max(0, Math.min(100, v));
-    loadFill.style.width = pct + '%';
+    loadFill.style.setProperty('--fill', (pct / 100).toFixed(4));
     loadPct.textContent = Math.round(pct) + '%';
     loadTrack.setAttribute('aria-valuenow', String(Math.round(pct)));
   }
@@ -2367,8 +2525,9 @@
       { transform: 'translate(0, 0) scale(.97, 1.03)', opacity: 1, offset: .78, easing: 'ease-out' },
       { transform: 'translate(0, 0) scale(1)',      opacity: 1,  offset: 1 }
     ];
+    const drop = Motion.willChange(introMascot, 'transform, opacity');
     const a = introMascot.animate(kf, { duration: 820, fill: 'forwards' });
-    return finished(a).then(() => {
+    return finished(a).finally(drop).then(() => {
       /* bake the resting pose into the element so the next animation starts
          from a clean transform instead of stacking on this one. Written out
          rather than committed from the animation: commitStyles() folds in
@@ -2423,8 +2582,15 @@
       r1 = measure();
     }
 
-    /* the box is only measured true once it is shown (before that it is
-       scaled down to its pop-in size), so a resize is only ever a second line */
+    /* The second place, and the last: the box grows or shrinks to fit the
+       line about to be typed into it. A scale would stretch its 4px border
+       and its corner radius with it, and the tail under the beak with them,
+       so this one box is transitioned on width and height. It is absolutely
+       positioned and empty at this moment -- the text types in afterwards --
+       so the reflow is the bubble itself and nothing else on the screen.
+         The box is only measured true once it is shown (before that it is
+       scaled down to its pop-in size), so a resize is only ever a second
+       line. */
     if (shown && !REDUCED && (Math.abs(r1.width - r0.width) > 1 || Math.abs(r1.height - r0.height) > 1)) {
       bubble.style.width  = r0.width + 'px';
       bubble.style.height = r0.height + 'px';
@@ -2454,13 +2620,14 @@
     if (!r.width || REDUCED) return;
     const drop = window.innerHeight - r.top + 40;      /* clear of the bottom edge */
 
+    const layer = Motion.willChange(introMascot, 'transform, opacity');
     const a = introMascot.animate([
       { transform: 'translate(0, 0)', easing: 'ease-in' },
       { transform: 'translate(0, 5%) scale(1.06, .92)', offset: .2, easing: 'cubic-bezier(.2, .6, .35, 1)' },
       { transform: 'translate(0, -30%) scale(1)', offset: .52, easing: 'cubic-bezier(.45, 0, .85, .5)' },
       { transform: 'translate(0, ' + drop + 'px) scale(1)' }
     ], { duration: 980, fill: 'forwards' });
-    await finished(a);
+    try { await finished(a); } finally { layer(); }
     /* The drop is baked into the element and the animation let go. Left
        filling forwards on the hidden intro, the browser stops reporting it,
        so the aside's tidy-up could not cancel it -- and the bird would stand
@@ -2700,11 +2867,16 @@
     const from = tri.style.transform;
     tri.style.transform = '';
     if (!from || REDUCED) return wait(120);
+    /* A triangle sits still for the whole of the lesson bar this one slide,
+       so the compositor is asked to hold a layer for it here and told it can
+       let go the moment the slide is over -- including the way over where a
+       replay cancels it. */
+    const drop = Motion.willChange(tri);
     const a = tri.animate(
       [{ transform: from }, { transform: 'none' }],
       { duration: 760, easing: 'cubic-bezier(.4, 0, .2, 1)' }
     );
-    await finished(a);
+    try { await finished(a); } finally { drop(); }
   }
 
   /* Grow a dashed line out from its first point. The dash pattern is anchored
@@ -2866,6 +3038,7 @@
   const quizBlock  = document.getElementById('quizBlock');
   const quizMascot = document.getElementById('quizMascot');
   const dd         = document.getElementById('dd');
+  const quizBubble = document.getElementById('quizNote');
   const noteGhost  = document.getElementById('noteGhost');
   const noteType   = document.getElementById('noteType');
   const noteTxt    = noteType.querySelector('.txt');
@@ -2916,8 +3089,9 @@
   const SPEC_A2 = {
     pts: PTS_A, diag: ['T', 'B'], base: 'base',
     tris: [{ apex: 'L', color: 'green', label: 'height' }, { apex: 'R', color: 'purple', label: 'height' }],
-    /* the second cut carries the numbering on from the first */
-    short: { base: 'b', h: ['h₃', 'h₄'] }
+    /* the heights are h₁ and h₂ again: this is a fresh pair of triangles,
+       and the working beside it is read the same way as the first cut's */
+    short: { base: 'b', h: ['h₁', 'h₂'] }
   };
   /* section 4: a different one, with measurements */
   const SPEC_B = {
@@ -2932,12 +3106,17 @@
 
   /* ---- Swiftee's lines ---- */
   const QUAD = {
-    tap:     'Tap here!',
+    /* the bird asks from its box; the box under the sentence says "Tap here"
+       and the hand beside it points at the arrow, so the line itself does
+       not have to */
+    ask:     'What shape is this?',
     answer:  'quadrilateral',
+    /* every remark carries the reason -- how many sides that shape has --
+       so a choice is answered with the thing being taught, not with praise */
     notes: {
-      triangle:      'A triangle has 3 sides. Check again!',
-      pentagon:      'A pentagon has 5 sides. Check again!',
-      quadrilateral: 'Correct! A quadrilateral has 4 sides.'
+      triangle:      'Incorrect. A triangle has 3 sides.',
+      pentagon:      'Incorrect. A pentagon has 5 sides.',
+      quadrilateral: 'Correct. A quadrilateral has 4 sides.'
     },
     general: 'This is a general quadrilateral.',
     area:    'Let’s try and find its area!',
@@ -2982,13 +3161,26 @@
      { t: ' + ' }, { t: 'h₂', w: 'h-green' }, { t: ')' }]
   ];
   const SUM_A2 = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = Area of ' }, { t: 'Orange Triangle', w: 'green' }, { t: ' + Area of ' }, { t: 'Purple Triangle', w: 'purple' }];
+  /* The second cut's third line is taken all the way too, on the row it was
+     written on, exactly as QUAD_STEPS takes the first cut's: each half's
+     area put in, then the base both halves share taken outside the bracket.
+     The learner may have filled the boxes above in either order; the working
+     writes ½ × b × h either way, so the shared base stands in the same
+     place in both halves and can be seen to come out. */
+  const QUAD_STEPS2 = [
+    SUM_A2,
+    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: 'b', w: 'base' }, { t: ' × ' }, { t: 'h₁', w: 'h-green' },
+     { t: ' + ½ × ' }, { t: 'b', w: 'base' }, { t: ' × ' }, { t: 'h₂', w: 'h-purple' }],
+    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: 'b', w: 'base' }, { t: ' × (' }, { t: 'h₁', w: 'h-green' },
+     { t: ' + ' }, { t: 'h₂', w: 'h-purple' }, { t: ')' }]
+  ];
   const SUM_B  = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ' }, { t: '30 sq. cm', w: 'green' }, { t: ' + ' }, { t: '25 sq. cm', w: 'purple' }, { t: ' = 55 sq. cm' }];
 
   /* what the drop-downs in a formula offer: the parts of the drawing by name
      in section 3, and by measurement in section 4 */
   /* (the parts carry the short names the shape has shown by then: the
-     orange triangle is the first of that cut, so its height is h₃) */
-  const NOTATION = [{ v: 'base', t: 'b' }, { v: 'h-green', t: 'h₃' }, { v: 'h-purple', t: 'h₄' }];
+     orange triangle is the first of that cut, so its height is h₁) */
+  const NOTATION = [{ v: 'base', t: 'b' }, { v: 'h-green', t: 'h₁' }, { v: 'h-purple', t: 'h₂' }];
   const MEASURES = [{ v: '10', t: '10 cm' }, { v: '6', t: '6 cm' }, { v: '5', t: '5 cm' }];
 
   const AREA_MS    = 64;       /* per character */
@@ -2997,8 +3189,10 @@
   const longest = list => list.reduce((a, b) => (b.length > a.length ? b : a), '');
 
   /* every ghost holds its longest line from the first frame, so no box under
-     the shape changes size once it is on screen */
-  wordSpans(noteGhost, longest([QUAD.tap].concat(Object.keys(QUAD.notes).map(k => QUAD.notes[k]))));
+     the shape changes size once it is on screen. Swiftee's box wraps its
+     lines, so its ghost is plain text rather than words -- the trapezium's
+     name quiz, which shares the box, does the same */
+  noteGhost.textContent = longest([QUAD.ask].concat(Object.keys(QUAD.notes).map(k => QUAD.notes[k])));
   wordSpans(sayGhost, longest([QUAD.general, QUAD.area]));
 
   /* ---------- building a quadrilateral ---------- */
@@ -3027,31 +3221,28 @@
   const pt  = p => fmt(p.x) + ',' + fmt(p.y);
 
   /* ---- denoting a part ----
-   * A ring sweeps once round whatever the working has just named, holds
-   * while the eye finds it, and fades away. Nothing on the drawing moves or
-   * changes weight, so a part can be pointed at as often as the working
-   * names it without the picture flickering -- which is why a named line is
-   * no longer thickened and left glowing where it stands. `hold` is how long
-   * the ring stays closed; a ring asked for again simply starts over. */
-  let ringSeq = 0;
-  async function ringDenote(ring, hold) {
-    if (!ring) return;
-    const mine = String(++ringSeq);
-    ring.dataset.seq = mine;
-    const len = ring.getTotalLength();
-    ring.style.strokeDasharray = fmt(len);
-    ring.style.strokeDashoffset = fmt(len);
-    ring.style.opacity = 1;
-    await tween(820, e => {
-      if (ring.dataset.seq === mine) ring.style.strokeDashoffset = fmt(len * (1 - e));
-    }, easeInOut);
-    if (ring.dataset.seq !== mine) return;
-    await wait(REDUCED ? 120 : (hold == null ? 620 : hold));
-    if (ring.dataset.seq !== mine) return;
-    ring.style.opacity = '';
-    await wait(REDUCED ? 60 : 400);
+   * The working names a line: THAT LINE lights up where it stands, its name
+   * with it -- a glow in its own hue swells round it, holds while the eye
+   * finds it, and settles back (user, 2026-09-17: point at the line, not a
+   * circle round it). Nothing moves and no stroke swells, so a part can be
+   * denoted as often as the working names it without the picture
+   * flickering. `hold` is how long the light stays on; a part asked for
+   * again simply starts over. */
+  let denoteSeq = 0;
+  async function lineDenote(els, hold) {
+    const parts = (Array.isArray(els) ? els : [els]).filter(Boolean);
+    if (!parts.length) return;
+    const mine = String(++denoteSeq);
+    parts.forEach(el => { el.dataset.seq = mine; el.classList.add('denote'); });
+    await wait(REDUCED ? 160 : (hold == null ? 900 : hold + 300));
+    parts.forEach(el => { if (el.dataset.seq === mine) el.classList.remove('denote'); });
+    await wait(REDUCED ? 60 : 340);
   }
-  const denoteQuad = (part, hold) => ringDenote(quadRings.querySelector('.ring-' + part), hold);
+  /* the quadrilateral's base is the diagonal it is measured along; a
+     triangle's part is its height. Each goes lit with its own name. */
+  const denoteQuad = (part, hold) => lineDenote(part === 'base'
+    ? [joinLine, quadDims.querySelector('.lbl-base')]
+    : [quadSvg.querySelector('.h-' + part), quadDims.querySelector('.lbl-' + part)], hold);
 
   /* ---- naming a half of the shape ----
    * The working calls the two halves "Triangle 1" and "Triangle 2". Each
@@ -3113,6 +3304,20 @@
     grp.classList.add('done');
   }
 
+  /* A name written beside the line it belongs to, upright.
+     Every label on the quadrilateral used to be turned to run along its
+     line, which read as a different kind of mark from the working it is
+     being checked against -- and put h₁ on its side. They are all
+     straight now, and kept off the drawing by being ANCHORED away from it
+     rather than merely offset: `away` is the direction the label was pushed
+     in, so however long the word, it grows into the clear. */
+  function labelAt(M, away) {
+    const anchor = Math.abs(away.x) < .35 ? 'middle' : (away.x > 0 ? 'start' : 'end');
+    const base   = Math.abs(away.y) < .35 ? 'middle' : (away.y > 0 ? 'hanging' : 'auto');
+    return 'x="' + fmt(M.x) + '" y="' + fmt(M.y) + '" font-size="13" ' +
+           'text-anchor="' + anchor + '" dominant-baseline="' + base + '"';
+  }
+
   function buildQuad(spec) {
     const P = spec.pts;
     const [d1, d2] = spec.diag;
@@ -3130,20 +3335,11 @@
     quadFill = quadArt.querySelector('.shape-fill');
 
     /* each height: from the triangle's far corner straight down onto the
-       diagonal, a right-angle mark at its foot, and a label alongside, run
-       along the line and set on whichever side has more room */
+       diagonal, a right-angle mark at its foot, and its name written
+       upright beside it. The three are one group per triangle, so a scene
+       writing one triangle's area can step the other's height back without
+       reaching past the inline opacity the line's own draw leaves on it. */
     let dims = '';
-    let rings = '';
-    let tallest = spec.tris[0];
-    /* a ring round a part of the drawing: an ellipse laid along it, wide
-       enough to take its name with it */
-    const ringFor = (cls, a, b, ry, pad) => {
-      const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
-      const ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
-      return '<ellipse class="q-ring ring-' + cls + '" cx="' + fmt(cx) + '" cy="' + fmt(cy) + '" ' +
-             'rx="' + fmt(Math.hypot(b.x - a.x, b.y - a.y) / 2 + pad) + '" ry="' + fmt(ry) + '" ' +
-             'transform="rotate(' + fmt(ang) + ' ' + fmt(cx) + ' ' + fmt(cy) + ')" />';
-    };
     spec.tris.forEach(t => {
       const X = P[t.apex];
       const tt = ((X.x - A.x) * dx + (X.y - A.y) * dy) / L2;
@@ -3153,43 +3349,31 @@
       const hv = { x: X.x - F.x, y: X.y - F.y };
       const hl = Math.hypot(hv.x, hv.y);
       const v = { x: hv.x / hl, y: hv.y / hl };
-      t.height = hl;
       t.foot = tt;
-      if (hl > tallest.height) tallest = t;
       const s = 11;
-      dims += '<line class="dim h-' + t.color + '" x1="' + fmt(X.x) + '" y1="' + fmt(X.y) + '" x2="' + fmt(F.x) + '" y2="' + fmt(F.y) + '" />';
-      rings += ringFor(t.color, X, F, 15, 9);
-      dims += '<path class="dim-mark mark-' + t.color + '" d="M' + fmt(F.x + u.x * s) + ' ' + fmt(F.y + u.y * s) +
+      const M = { x: (X.x + F.x) / 2 + u.x * 11, y: (X.y + F.y) / 2 + u.y * 11 };
+      dims += '<g class="hgrp hgrp-' + t.color + '">' +
+              '<line class="dim h-' + t.color + '" x1="' + fmt(X.x) + '" y1="' + fmt(X.y) + '" x2="' + fmt(F.x) + '" y2="' + fmt(F.y) + '" />' +
+              '<path class="dim-mark mark-' + t.color + '" d="M' + fmt(F.x + u.x * s) + ' ' + fmt(F.y + u.y * s) +
               ' L' + fmt(F.x + u.x * s + v.x * s) + ' ' + fmt(F.y + u.y * s + v.y * s) +
-              ' L' + fmt(F.x + v.x * s) + ' ' + fmt(F.y + v.y * s) + '" />';
-      const M = { x: (X.x + F.x) / 2 + u.x * 12, y: (X.y + F.y) / 2 + u.y * 12 };
-      let ang = Math.atan2(hv.y, hv.x) * 180 / Math.PI;
-      if (ang > 90) ang -= 180;
-      if (ang < -90) ang += 180;
-      dims += '<text class="dim-label lbl-h lbl-' + t.color + '" x="' + fmt(M.x) + '" y="' + fmt(M.y) + '" font-size="13" text-anchor="middle" ' +
-              'dominant-baseline="middle" transform="rotate(' + fmt(ang) + ' ' + fmt(M.x) + ' ' + fmt(M.y) + ')">' + t.label + '</text>';
+              ' L' + fmt(F.x + v.x * s) + ' ' + fmt(F.y + v.y * s) + '" />' +
+              '<text class="dim-label lbl-h lbl-' + t.color + '" ' + labelAt(M, u) + '>' + t.label + '</text>' +
+              '</g>';
     });
-    /* the base label: along the diagonal, set into the taller triangle, at
-       whichever of three places is farthest from both heights' feet */
+    /* the base label: under the MIDDLE of the diagonal, on the side of the
+       triangle whose height comes down farthest from that middle -- so the
+       name and a right-angle mark never land on the same spot */
     {
-      const X = P[tallest.apex];
-      const feet = spec.tris.map(t => t.foot);
-      const at = [.22, .5, .78].reduce((best, c) => {
-        const gap = Math.min.apply(null, feet.map(f => Math.abs(f - c)));
-        return gap > best.gap ? { t: c, gap: gap } : best;
-      }, { t: .5, gap: -1 }).t;
-      const mid = { x: A.x + dx * at, y: A.y + dy * at };
+      const clear = spec.tris.reduce((a, b) => (Math.abs(b.foot - .5) > Math.abs(a.foot - .5) ? b : a));
+      const X = P[clear.apex];
+      const mid = { x: A.x + dx * .5, y: A.y + dy * .5 };
       let n = { x: -dy / len, y: dx / len };
       if ((X.x - mid.x) * n.x + (X.y - mid.y) * n.y < 0) n = { x: -n.x, y: -n.y };
-      const M = { x: mid.x + n.x * 14, y: mid.y + n.y * 14 };
-      let ang = Math.atan2(dy, dx) * 180 / Math.PI;
-      if (ang > 90) ang -= 180;
-      if (ang < -90) ang += 180;
-      dims += '<text class="dim-label lbl-base" x="' + fmt(M.x) + '" y="' + fmt(M.y) + '" font-size="13" text-anchor="middle" ' +
-              'dominant-baseline="middle" transform="rotate(' + fmt(ang) + ' ' + fmt(M.x) + ' ' + fmt(M.y) + ')">' + spec.base + '</text>';
+      const M = { x: mid.x + n.x * 13, y: mid.y + n.y * 13 };
+      dims += '<text class="dim-label lbl-base" ' + labelAt(M, n) + '>' + spec.base + '</text>';
     }
     quadDims.innerHTML = dims;
-    quadRings.innerHTML = ringFor('base', A, B, 17, 6) + rings;
+    quadRings.innerHTML = '';                 /* the rings went: the line itself lights now */
     quadNames.innerHTML = triNameArt(spec);
 
     /* the corners; the hit circle is bigger than the dot it serves */
@@ -3201,9 +3385,13 @@
     CORNERS = {};
     ORDER.forEach(k => { CORNERS[k] = P[k]; });
 
-    /* a clean slate: no split, no lights, no lines, one column */
-    quadShape.className = 'quad-shape';
-    quad.classList.remove('wide');
+    /* a clean slate: no split, no lights, no lines, one column -- neither
+       the quiz's half-and-half nor the working's two fifths. `measured` says
+       the parts are labelled with their lengths rather than renamed b, h1,
+       h2 -- the diagonal's number is then written in its own colour (see
+       .quad-shape.measured .lbl-base in style.css). */
+    quadShape.className = 'quad-shape' + (spec.short ? '' : ' measured');
+    quad.classList.remove('wide', 'ask');
     setLine(joinLine, A, A);
     joinLine.classList.remove('live', 'bad', 'done');
     demoG.classList.remove('on');
@@ -3235,8 +3423,25 @@
       await wordsSettle();
     };
   }
-  const note  = typer(noteTxt, noteCaret, 55);        /* Swiftee's remark on an answer */
   const aside = typer(sayTxt, sayCaret, TYPE_MS);     /* Swiftee's line beside itself */
+
+  /* ---------- Swiftee's box in the name quiz ----------
+   * The question and every answer to a choice are spoken from the box beside
+   * the bird, not typed under the sentence: the box pops out of its own tail
+   * the first time and then simply changes what it holds, green for the
+   * right name and red for a wrong one.
+   * The words are laid out whole and eased in together, as the trapezium's
+   * are, so the learner reads one sentence rather than watching it arrive --
+   * and they are laid in BEFORE the box opens, so a second try never shows
+   * the last try's line for the frame before its own is written. */
+  function quizSay(text, tone) {
+    quizBubble.classList.remove('ok', 'bad');
+    if (tone) quizBubble.classList.add(tone);
+    noteCaret.hidden = true;
+    wordSpans(noteTxt, text).forEach(w => w.el.classList.add('in'));
+    quizBubble.classList.add('show');
+    return wordsSettle();
+  }
 
   /* ---------- the bird arrives with its line ----------
    * Swiftee is never left standing beside an empty heading: it waits behind
@@ -3502,8 +3707,9 @@
       if (!check(v)) {
         sfx('wrong');
         swiftee.play('confused', 1);
-        void btn.offsetWidth;                              /* restart the shake */
-        root.classList.add('reject');
+        /* no reflow needed to restart it: motion.js takes over a shake
+           already in flight rather than waiting for the old one to end */
+        markWrong(root, btn);
         setTimeout(() => root.classList.remove('reject'), 430);
         if (onWrong) onWrong(v);
         resetT = setTimeout(() => {
@@ -3517,7 +3723,7 @@
       /* ---- right: the slot closes up green, confetti out of it ---- */
       live = false;
       skipFills.delete(fill);
-      root.classList.add('correct');
+      markRight(root, btn);
       sfx('correct', auto ? .55 : 1);
       if (!auto) {
         swiftee.play('happy', 1);
@@ -3826,13 +4032,18 @@
     await wait(260);
   }
 
-  /* Once the shape is cut: both heights drop and the base lights, each under
-     its full name, and stay so for a two-second look. Then, if the spec gives
-     short names, the labels take them -- the base becomes b, the heights h₁
-     and h₂ (the next cut carries on with h₃ and h₄), in the order of the
-     cut's triangles -- each label fading out under one name and back in under
-     the other. This all happens with the shape still in the middle of the
-     board; only afterwards does it move aside for the working. */
+  /* Once the shape is cut, its parts are named ONE AT A TIME, in the order
+     the formula will need them.
+     The base goes first and slowly: a ring sweeps round the diagonal, its
+     full name is written under the middle of it, and then -- if the spec
+     gives short names -- that name dissolves into b. Only then does each
+     height drop onto the base, one after the other, each with its
+     right-angle mark, its full name, and its own dissolve into h₁ and h₂
+     (the next cut names its own pair h₁ and h₂ in the same way).
+     Naming them together made the drawing arrive all at once; a part at a
+     time, each one is read before the next appears. It all happens with the
+     shape still in the middle of the board; only afterwards does it move
+     aside for the working. */
   async function relabel(el, text) {
     if (!el) return;
     const out = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' });
@@ -3842,24 +4053,51 @@
     await finished(el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320 }));
   }
 
-  function nameDims(spec) {
-    const jobs = spec.tris.map((t, i) => relabel(quadDims.querySelector('.lbl-' + t.color), spec.short.h[i]));
-    jobs.push(relabel(quadDims.querySelector('.lbl-base'), spec.short.base));
-    return Promise.all(jobs);
-  }
-
   async function revealDims(spec, rename) {
-    for (const t of spec.tris) {
+    rename = rename !== false && !!spec.short;
+    /* the slow look is for the scenes that go on to rename: elsewhere the
+       base carries a measurement, there is nothing to dissolve into, and
+       the drawing should not be held up over it */
+    const slow = rename;
+
+    /* 1. the base, on its own: the ring sweeps round the diagonal and the
+          name settles under the middle of it, then becomes b */
+    quadShape.classList.add('lit-base');
+    await denoteQuad('base', REDUCED ? 200 : (slow ? 1000 : 480));
+    await wait(REDUCED ? 120 : (slow ? 620 : 280));
+    if (rename) {
+      await relabel(quadDims.querySelector('.lbl-base'), spec.short.base);
+      await wait(REDUCED ? 120 : 480);
+    }
+
+    /* 2. then a height at a time, each with its right-angle mark */
+    for (let i = 0; i < spec.tris.length; i++) {
+      const t = spec.tris[i];
       await dropHeight(t.color);
       quadShape.classList.add('lit-' + t.color);
+      await wait(REDUCED ? 100 : 380);
+      if (rename) {
+        await relabel(quadDims.querySelector('.lbl-' + t.color), spec.short.h[i]);
+        await wait(REDUCED ? 100 : 280);
+      }
     }
-    quadShape.classList.add('lit-base');
-    rename = rename !== false && !!spec.short;
-    await wait(rename ? 2000 : 500);
-    if (rename) {
-      await nameDims(spec);
-      await wait(500);
-    }
+  }
+
+  /* ---- one half at a time ----
+   * While a triangle's area is being written the OTHER half steps back --
+   * its colour, its height, its right-angle mark, its name. Both halves
+   * shaded alike meant the line being typed and the drawing beside it were
+   * about different things; with one dimmed, the formula and the shape are
+   * pointing at each other. Cleared once the working is about the two
+   * together.
+   *
+   * The quadrilateral asks for this first; the parallelogram, cut into the
+   * same two hues, asks for exactly the same thing, so the shape it is done
+   * to is an argument rather than the one this was written for. */
+  function focusTri(color, shape) {
+    const el = shape || quadShape;
+    el.classList.remove('focus-green', 'focus-purple');
+    if (color) el.classList.add('focus-' + color);
   }
 
   /* a key word has landed in the working: light the part of the drawing it
@@ -3964,13 +4202,26 @@
 
   /* Both boxes are live at once, and between them they must hold the two
      parts named -- in either order. A part already in one box is turned down
-     by the other. */
+     by the other.
+
+     A right answer also points at what it names: the moment the box closes
+     green, a ring sweeps round that side on the drawing -- the base along
+     the diagonal, a height down its own triangle. It is started, not waited
+     on, so the ring runs while the box is still finishing its own reaction
+     and the learner sees the two as one thing. A box answered with a
+     measurement rather than a part's name has nothing to point at, and the
+     drawing is left alone. */
+  const PART_ANSWER = { base: 'base', 'h-green': 'h-green', 'h-purple': 'h-purple' };
   async function askFormula(f, need) {
     const taken = new Set();
     const ok = v => need.indexOf(v) !== -1 && !taken.has(v);
     lockInput(false);
     await Promise.all(f.dds.map(d => d.ask(ok,
-      v => { taken.add(v); feedback(FEEDBACK.right); },
+      v => {
+        taken.add(v);
+        feedback(FEEDBACK.right);
+        if (PART_ANSWER[v]) onAreaWord(PART_ANSWER[v]);
+      },
       () => feedback(FEEDBACK.wrong))));
     lockInput(true);
   }
@@ -4061,7 +4312,8 @@
     promptReserve(longest([QUAD.join, QUAD.divided, QUAD.twoNew, QUAD.swap, QUAD.share, QUAD.rule,
                            FOUR.pick, FIVE.turn, QUAD.joinWrong('bottom', 'right')]));
 
-    /* 2. the quadrilateral: outline first, then the colour */
+    /* 2. the quadrilateral: outline first, then the colour, drawn full width
+          in the middle of the board */
     buildQuad(SPEC_A);
     quad.classList.add('on');
     quad.setAttribute('aria-hidden', 'false');
@@ -4069,29 +4321,45 @@
     await revealShape(quadShape);
     await wait(360);
 
-    /* 3. "This is a ..." with a drop-down; Swiftee jumps in beside it and
-          points the learner at the arrow */
+    /* 2b. it glides over to the left half, opening the right half for the
+           name quiz */
+    await layoutWide(quad, quadSvg, true, 'ask');
+    await wait(REDUCED ? 120 : 340);
+
+    /* 3. the sentence and its empty box fade up on the right; Swiftee comes
+          up from behind the board into the room under them and asks what the
+          shape is, and only then does the box start asking to be tapped --
+          its own "Tap here" and the hand beside the arrow */
+    quizBubble.classList.remove('show', 'ok', 'bad');
     quizBlock.classList.add('show');
     await wait(REDUCED ? 200 : 440);
     await mascotJumpIn(quizMascot);
-    await wait(200);
-    dd.classList.add('hint');
+    await wait(REDUCED ? 100 : 260);
     swiftee.hold('talking');
-    await note(QUAD.tap);
+    await quizSay(QUAD.ask);
     swiftee.release();
+    await wait(REDUCED ? 100 : 320);
+    dd.classList.add('hint');
     lockInput(false);
     await quizDD.ask(v => v === QUAD.answer,
-      v => note(QUAD.notes[v]),
-      v => note(QUAD.notes[v] || QUAD.notes.triangle));
+      v => quizSay(QUAD.notes[v], 'ok'),
+      v => quizSay(QUAD.notes[v] || QUAD.notes.triangle, 'bad'));
     lockInput(true);
-    await wait(1900);
+    /* time to read the answer */
+    await wait(REDUCED ? 900 : 2400);
 
-    /* 4. the sentence goes; Swiftee hops to the left and names the shape */
+    /* 4. the quiz goes, Swiftee ducks back behind the board, and the shape
+          comes back to the middle of it; then the bird is up again beside
+          the shape to name it */
+    quizBubble.classList.remove('show');
     quizBlock.classList.add('off');
-    await wait(380);
-    sayRow.classList.add('show');
-    await hopBetween(quizMascot, sideMascot);
+    await wait(REDUCED ? 150 : 380);
+    await mascotJumpOut(quizMascot);
     quizBlock.classList.remove('show');
+    await layoutWide(quad, quadSvg, false, 'ask');
+    await wait(REDUCED ? 120 : 300);
+    sayRow.classList.add('show');
+    await mascotJumpIn(sideMascot);
     await wait(220);
     swiftee.hold('talking');
     await aside(QUAD.general);
@@ -4131,10 +4399,14 @@
     await revealDims(SPEC_A, true);
     await layoutWide();
     await wait(400);
+    focusTri('purple');
     await showTypedLine(LINES_A[0]);
     await wait(760);
+    focusTri('green');
     await showTypedLine(LINES_A[1]);
     await wait(760);
+    /* the sum is about both halves: neither is held back for it */
+    focusTri(null);
 
     /* 8. the third line is written as the sum of the two above it, and then
           carries on being worked where it stands: each triangle's area put
@@ -4211,19 +4483,49 @@
     await wait(400);
 
     /* the learner names the base and height of each triangle in turn... */
+    focusTri('green');
     const g = formulaLine('Orange Triangle', 'green', NOTATION);
     await showLine(g.line);
     await askFormula(g, ['base', 'h-green']);
     onAreaWord('green');
     await wait(700);
+    focusTri('purple');
     const p = formulaLine('Purple Triangle', 'purple', NOTATION);
     await showLine(p.line);
     await askFormula(p, ['base', 'h-purple']);
     onAreaWord('purple');
     await wait(700);
 
-    /* ...and the sum is written out */
-    await showTypedLine(SUM_A2);
+    /* ...and then the third line, with both halves back: written as the sum
+       of the two above it and then carried the rest of the way where it
+       stands, a step at a time, each step said before it is made -- the same
+       derivation the first cut ended on, so the rule is met twice over. */
+    focusTri(null);
+    const sum = await showTypedLine(QUAD_STEPS2[0]);
+    const sumTxt = sum.querySelector('.txt');
+    await wait(REDUCED ? 300 : 1300);
+
+    await heading(QUAD.swap);
+    await wait(REDUCED ? 200 : 700);
+
+    /* forward a step for as long as it is being worked on, and settled at
+       its new size before anything in it moves -- a morph measures the
+       width it is easing to */
+    sum.classList.add('solving');
+    await wait(REDUCED ? 100 : 620);
+
+    await morphTo(sumTxt, QUAD_STEPS2[1], false, true);
+    await wait(REDUCED ? 300 : 1400);
+
+    await heading(QUAD.share);
+    await denoteQuad('base', 700);
+    await morphTo(sumTxt, QUAD_STEPS2[2], false, true);
+    await wait(REDUCED ? 300 : 1100);
+
+    sum.classList.remove('solving');
+    await wait(REDUCED ? 100 : 620);
+    await heading(QUAD.rule);
+    await wait(REDUCED ? 150 : 350);
     celebrate();
     await wait(2600);
     await showNext();
@@ -4283,18 +4585,26 @@
        is answered: the heights added, then the diagonal, then the area */
     const right = () => feedback(FEEDBACK.right);
     const wrong = () => feedback(FEEDBACK.wrong);
-    const askOne = async (label, opts, answer) => {
+    /* `show` runs once the answer is in: a ring sweeps round the part the
+       question was about, so the number in the box and the thing on the
+       drawing are read as one. The parts are pointed at ONE AT A TIME --
+       the two heights in turn for the sum, then the diagonal -- and the
+       drawing is left exactly as the ring found it. */
+    const askOne = async (label, opts, answer, show) => {
       const q = questionLine(label, opts);
       await showLine(q.line);
       lockInput(false);
       await q.dd.ask(v => v === answer, right, wrong);
       lockInput(true);
+      if (show) await show();
       await wait(700);
     };
     await askOne('The sum of the perpendicular heights is',
-      [{ v: '24', t: '24 cm' }, { v: '9', t: '9 cm' }, { v: '21', t: '21 cm' }], '9');
+      [{ v: '24', t: '24 cm' }, { v: '9', t: '9 cm' }, { v: '21', t: '21 cm' }], '9',
+      async () => { await denoteQuad('green', 380); await denoteQuad('purple', 380); });
     await askOne('Diagonal length is',
-      [{ v: '6', t: '6 cm' }, { v: '3', t: '3 cm' }, { v: '18', t: '18 cm' }], '18');
+      [{ v: '6', t: '6 cm' }, { v: '3', t: '3 cm' }, { v: '18', t: '18 cm' }], '18',
+      () => denoteQuad('base', 520));
     await askOne('The area of the quadrilateral is',
       [{ v: '81', t: '81 sq. cm' }, { v: '162', t: '162 sq. cm' }, { v: '182', t: '182 sq. cm' }], '81');
     celebrate();
@@ -4383,6 +4693,8 @@
   const paraDims   = document.getElementById('paraDims');
   const paraTray   = document.getElementById('paraTray');
   const paraChips  = Array.from(paraTray.querySelectorAll('.chip'));
+  const paraNote   = document.getElementById('paraNote');
+  const paraNoteTxt = paraNote.querySelector('.txt');
   const areaTray   = document.getElementById('areaTray');
   const areaChips  = Array.from(areaTray.querySelectorAll('.chip'));
   const paraLines  = document.getElementById('paraLines');
@@ -4416,6 +4728,8 @@
     measure: 'Now let’s compare their lengths.',
     fit1:    'The top side fits the bottom side exactly!',
     fit2:    'And the left side fits the right side too!',
+    /* the wrong name is turned down with the reason, not just a shake */
+    hint:    'Check it has two parallel sides.',
     facts: {
       par: [{ t: 'Opposite sides are ' }, { t: 'parallel', w: 'par' }, { t: ' to each other.' }],
       eq:  [{ t: 'Opposite sides are ' }, { t: 'equal in length', w: 'eq' }, { t: '.' }]
@@ -4536,12 +4850,20 @@
         /* the glowing copy, grown from the first corner */
         ex += ln('side-hl', A, B);
 
-        /* "parallel": an arrowhead most of the way along, pointing the way
-           the side runs */
-        const M = at(A, u, len * .62, n, 0), s = 9;
-        const chev = 'M' + fmt(M.x - u.x * s + n.x * s) + ' ' + fmt(M.y - u.y * s + n.y * s) +
-                    ' L' + fmt(M.x) + ' ' + fmt(M.y) +
-                    ' L' + fmt(M.x - u.x * s - n.x * s) + ' ' + fmt(M.y - u.y * s - n.y * s);
+        /* "parallel": arrowheads most of the way along, pointing the way the
+           side runs -- one on the first pair and two on the second, the same
+           count as the ticks. Both pairs' marks are on the shape at the same
+           time by the end of the scene, and a single arrow on all four sides
+           would say all four run the same way. They sit well past the middle
+           so they never crowd the ticks that land there. */
+        const M = at(A, u, len * .74, n, 0), s = 9, astep = 8;
+        let chev = '';
+        for (let j = 0; j < pair.ticks; j++) {
+          const T = at(M, u, (j - (pair.ticks - 1) / 2) * astep, n, 0);
+          chev += 'M' + fmt(T.x - u.x * s + n.x * s) + ' ' + fmt(T.y - u.y * s + n.y * s) +
+                 ' L' + fmt(T.x) + ' ' + fmt(T.y) +
+                 ' L' + fmt(T.x - u.x * s - n.x * s) + ' ' + fmt(T.y - u.y * s - n.y * s) + ' ';
+        }
         ex += '<g class="par-mark"><path class="halo" d="' + chev + '" /><path class="ink" d="' + chev + '" /></g>';
 
         /* "equal": one or two ticks across the middle */
@@ -4566,8 +4888,11 @@
   /* ---------- tap the right chip ----------
    * A row of chips under the shape. The right one goes green with a burst; a
    * wrong one is shaken off, turned down in the heading, and steps back. A
-   * skip taps the right one. */
-  function askChips(chips, answer) {
+   * skip taps the right one.
+   *
+   * `onWrong`, if a question has one, is told which chip was tapped, so the
+   * question can say why that name is wrong as well as that it is. */
+  function askChips(chips, answer, onWrong) {
     return new Promise(resolve => {
       let over = false;
       const finish = (chip, auto) => {
@@ -4578,7 +4903,7 @@
         lockInput(true);
         chips.forEach(c => c.removeEventListener('click', onTap));
         feedbackGen++;                       /* a "Try again" still typing stops here */
-        chip.classList.add('correct');
+        markRight(chip);
         if (!auto) {
           sfx('correct', .7);
           burst(chip);
@@ -4592,8 +4917,9 @@
         if (chip.dataset.answer === answer) { finish(chip, false); return; }
         sfx('wrong', .6);
         feedback(FEEDBACK.wrong);
+        if (onWrong) onWrong(chip);
         swiftee.play('confused', 1);
-        chip.classList.add('reject');
+        markWrong(chip);
         setTimeout(() => {
           chip.classList.remove('reject');
           chip.classList.add('spent');
@@ -4616,6 +4942,31 @@
       lockInput(false);
     });
   }
+
+  /* ---- why the wrong name is wrong ----
+   * A shaken chip says only that the name was wrong. This says what to look
+   * at instead, under the chips, in the room the half-board leaves below
+   * them. It is not typed: the line is laid out whole and every word eases
+   * in together, so the learner reads one sentence rather than watching it
+   * arrive -- the same voice the trapezium's quiz answers in. The same box
+   * holds every try, and the ghost carries the line from the first frame. */
+  paraNote.querySelector('.type-ghost').textContent = PARA.hint;
+
+  /* And each fact's box is its whole line from the first frame. The live
+     text is laid over its ghost rather than in the flow, so without this the
+     lines have no width of their own: they hang out of the right of their
+     box, and the column they stand in is sized by nothing at all. */
+  Object.keys(PARA.facts).forEach(k => {
+    factEls[k].querySelector('.type-ghost').textContent =
+      PARA.facts[k].map(seg => seg.t).join('');
+  });
+  function showParaNote(text) {
+    paraNote.querySelector('.caret').hidden = true;
+    wordSpans(paraNoteTxt, text).forEach(w => w.el.classList.add('in'));
+    paraNote.classList.add('show');
+    return wordsSettle();
+  }
+  const hideParaNote = () => paraNote.classList.remove('show');
 
   /* the chips fade up one after another */
   async function dealChips(chips) {
@@ -4649,13 +5000,14 @@
     await wait(REDUCED ? 160 : 480);
   }
 
-  /* the point is made: the carry-ons and arrows leave, the sides dim to a
-     trace. The lines were lit inline by growLine, so that is lifted first
-     and the classes take over the fade. */
+  /* the point is made: the carry-ons leave and the sides dim to a trace, but
+     the arrow marks stay -- they are what the shape is marked with from here
+     to the end of the scene, and the ticks come to join them rather than to
+     replace them. The lines were lit inline by growLine, so that is lifted
+     first and the classes take over the fade. */
   function quietPair(k) {
     const pair = pairEl(k);
     pair.querySelectorAll('.ext, .side-hl').forEach(l => { l.style.opacity = ''; });
-    pair.classList.remove('show-par');
     pair.classList.add('quiet');
   }
 
@@ -4703,12 +5055,17 @@
     await typeSegments(el.querySelector('.txt'), el.querySelector('.caret'), PARA.facts[k], TYPE_MS, 420, null);
     swiftee.release();
     el.classList.add('done');
+    Motion.correctPulse(el.querySelector('.fact-check'));
     sfx('correct', .45);
   }
 
   async function paraSection() {
     lockInput(true);
     sceneStart(paraSection);
+    /* the section's root keeps its own class list through a teardown, so a
+       replay can find the last run's columns still on it: the shape is
+       revealed in the middle of the board and moves aside afterwards */
+    para.classList.remove('sides', 'wide');
 
     /* 1. the aside ends: the bubble pops away and Swiftee drops out of the
           frame, as it did before the board first arrived */
@@ -4736,16 +5093,26 @@
     await revealShape(paraShape);
     await wait(380);
 
+    /* 2b. it glides over to the left half. Everything this scene has to say
+           -- the two names, then the two facts -- is a short line, and beside
+           the shape rather than under it they leave the parallelogram the
+           whole height of the board instead of a strip of it, and no flank
+           of the board standing empty. */
+    await layoutWide(para, paraSvg, true, 'sides');
+    await wait(300);
+
     /* 3. Swiftee jumps up from behind the board to the heading; the two
-          names appear, and the question is asked */
+          names appear, and the question is asked. A wrong name is turned
+          down with the reason, written under the chips. */
     await dealChips(paraChips);
     await wait(200);
     await heading(PARA.ask);           /* the bird comes up with this line */
-    await askChips(paraChips, PARA_ANSWER);
+    await askChips(paraChips, PARA_ANSWER, () => showParaNote(PARA.hint));
+    hideParaNote();
     await heading(PARA.right);
     await wait(1500);
 
-    /* 4. the names go; the fact list stands ready under the shape */
+    /* 4. the names go; the fact list stands ready beside the shape */
     paraTray.classList.add('off');
     await wait(460);
     facts.classList.add('show');
@@ -4769,17 +5136,21 @@
 
     /* Swiftee hops down and states the first fact */
     await stateFact('par');
-    await wait(1500);
 
-    /* 6. equal: the marks step back, Swiftee hops back up, and a copy of
-          each first side is laid over its partner */
+    /* 6. equal: the carry-ons step back and the shape is left standing under
+          its parallel marks alone. Two seconds of that -- long enough to read
+          the marking as the marking, not as a passing highlight -- and the
+          equal marks arrive beside them, a copy of each first side laid over
+          its partner. The bird travels back up to the heading inside those
+          two seconds, so they belong to the marks rather than to the hop. */
     quietPair('a');
     quietPair('b');
-    await hopBetween(factMascot, boardMascot);
-    await wait(240);
-    await heading(PARA.measure);
-    await wait(500);
+    const backUp = hopBetween(factMascot, boardMascot);
+    await wait(2000);
+    await backUp;
+    let measured = heading(PARA.measure);
     await measurePair('a');
+    await measured;
     await heading(PARA.fit1);
     await wait(700);
     await measurePair('b');
@@ -4840,8 +5211,12 @@
     await wait(REDUCED ? 160 : 520);
   }
 
-  /* the diagonal draws, the two colours shade in, and the second base and
-     height arrive with it */
+  /* The diagonal draws, and the two halves come out of it one at a time:
+     the top triangle shades in and takes its own base and height, and only
+     once it is whole does the bottom one shade in under it -- which already
+     has the base and the height the parallelogram was given. Both at once
+     was a single event the eye had to unpick afterwards; one after the other
+     is the cut being made, then each piece being measured. */
   async function dividePara() {
     paraShape.classList.add('divided');
     const diag = paraDims.querySelector('.join-line');
@@ -4849,10 +5224,15 @@
     diag.classList.add('done');
     await wait(300);
     if (paraFill) paraFill.style.opacity = '';
-    paraShape.classList.add('split');
+    /* the fill gives way to the top half alone */
+    paraShape.classList.add('cut-top', 'split');
     await wait(REDUCED ? 300 : 800);
     await drawBase('d-top');
     await drawHeight('d-right');
+    await wait(REDUCED ? 200 : 600);
+    /* and the bottom half takes the rest of the shape */
+    paraShape.classList.remove('cut-top');
+    await wait(REDUCED ? 300 : 800);
   }
 
   /* the shape is put back together: the working leaves, the cut and the
@@ -4887,7 +5267,8 @@
   async function mendPara() {
     paraLines.classList.add('off');
     await wait(450);
-    paraShape.classList.remove('split', 'divided', 'lit-b', 'lit-h', 'lit-quad');
+    paraShape.classList.remove('split', 'divided', 'cut-top', 'lit-b', 'lit-h',
+                               'lit-quad', 'focus-purple', 'focus-green');
     if (paraFill) paraFill.style.opacity = 1;
     await wait(600);
     await layoutWide(para, paraSvg, false);
@@ -4907,6 +5288,9 @@
     paraEx.classList.add('gone');
     facts.classList.remove('show');
     await wait(560);
+    /* the facts have gone from the right half: the shape comes back to the
+       middle of the board, where the base and the height are drawn on it */
+    if (para.classList.contains('sides')) await layoutWide(para, paraSvg, false, 'sides');
     await heading(PARA2.here);
     await wait(1000);
 
@@ -4936,10 +5320,21 @@
           each triangle, their sum, and what that comes to */
     await layoutWide(para, paraSvg);
     await wait(300);
+    /* each triangle's area is written with that triangle alone lit: the
+       other half, and the base and height that belong to it, step back, so
+       the b and the h in the line being typed have exactly one pair on the
+       drawing to point at */
+    focusTri('purple', paraShape);
+    await wait(REDUCED ? 160 : 420);
     await showTypedLine(PARA_LINES[0], paraLines, onParaWord);
     await wait(760);
+    focusTri('green', paraShape);
+    await wait(REDUCED ? 160 : 420);
     await showTypedLine(PARA_LINES[1], paraLines, onParaWord);
     await wait(760);
+    /* the sum is about both halves: neither is held back for it */
+    focusTri(null, paraShape);
+    await wait(REDUCED ? 160 : 420);
     await showTypedLine(PARA_LINES[2], paraLines, onParaWord);
     await wait(760);
     await showTypedLine(PARA_LINES[3], paraLines, onParaWord);
@@ -5593,9 +5988,9 @@
   const RHOM2 = {
     here:   'Here, is a Rhombus.',
     askG:   'Choose the correct area of the orange triangle.',
-    rightG: 'That’s Correct! Area of the orange triangle = ½ × d₁ × h₁.',
+    rightG: 'That’s Correct!',
     askP:   'Choose the correct area of the purple triangle.',
-    rightP: 'That’s Correct! Area of the purple triangle = ½ × d₁ × h₂.',
+    rightP: 'That’s Correct!',
     sum:    'Let’s find the area of the whole rhombus.',
     both:   'Put in what each triangle’s area is.',
     share:  'Both parts have ½ × d₁ in them, so take it out.',
@@ -5653,33 +6048,62 @@
 
   const areaEl = cls => rhomArea.querySelector('.' + cls);
 
+  /* ---- the line an answer is written on ----
+   * A triangle's area is not said in the heading any more (user,
+   * 2026-09-17: do not show the area at the top): once the chip is picked
+   * the line is WRITTEN, under the shape, in the cell the chips have just
+   * stepped out of -- and as each part of it lands it is pointed at on the
+   * drawing, one at a time. It is taken back before the next question, so
+   * the two questions are asked on the same clear board; the derivation
+   * that follows puts both lines up together beside the shape. */
+  async function showRhomWork(segs) {
+    rhom.classList.add('work');
+    fitRooms();
+    await wait(REDUCED ? 80 : 240);
+    return showTypedLine(segs, rhomLines, onRhomWord);
+  }
+  async function clearRhomWork() {
+    if (!rhomLines.firstChild) { rhom.classList.remove('work'); return; }
+    Array.from(rhomLines.children).forEach(l => l.classList.add('off'));
+    await wait(REDUCED ? 100 : 420);
+    rhomLines.textContent = '';
+    rhom.classList.remove('work');
+    fitRooms();
+    await wait(REDUCED ? 60 : 200);
+  }
+
   /* the lesson's marks, laid over the tilted shape: the diagonals with their
      names, a right angle in the upper-right corner of the crossing and one in
      the lower-right, and the two heights with theirs. The halves of the
-     shape go into the art, under the outline. */
+     shape go into the art, under the outline.
+     d₁ is written in the MIDDLE of its own diagonal (user, 2026-09-17), which
+     is where the upright lines cross it: they are drawn through a mask that
+     leaves a hole the size of the name, so whichever of them is up at the
+     time is parted round it rather than running through it -- the same
+     answer `arrowDash` gives a length written on its arrow. */
+  const D1_DROP = 30, D1_GAP = { w: 34, h: 26 };   /* how far under the diagonal d₁ sits, and its room */
   function buildRhomArea() {
     const P = rhomPts();
     const O = P.O, M = 12;
     const ln = (cls, a, b) => '<line class="' + cls + '" x1="' + fmt(a.x) + '" y1="' + fmt(a.y) + '" x2="' + fmt(b.x) + '" y2="' + fmt(b.y) + '" />';
     const lbl = (cls, x, y, anchor, text) => '<text class="rd-lbl ' + cls + '" x="' + fmt(x) + '" y="' + fmt(y) + '" font-size="17" text-anchor="' + anchor + '" dominant-baseline="middle">' + text + '</text>';
-    /* the rings the working denotes a part with: one round each diagonal and
-       one round each height, sitting under the lines so a name is never
-       crossed out by one */
-    const ring = (cls, cx, cy, rx, ry) =>
-      '<ellipse class="rd-ring ' + cls + '" cx="' + fmt(cx) + '" cy="' + fmt(cy) + '" rx="' + fmt(rx) + '" ry="' + fmt(ry) + '" />';
-    const halfD1 = Math.abs(P.TR.x - P.BL.x) / 2, halfD2 = Math.abs(O.y - P.TL.y);
-    rhomArea.innerHTML =
-      ring('ring-d1', O.x, O.y, halfD1 + 15, 27) +
-      ring('ring-d2', O.x, O.y, 31, halfD2 + 15) +
-      ring('ring-h1', O.x, (O.y + P.BR.y) / 2, 31, halfD2 / 2 + 15) +
-      ring('ring-h2', O.x, (O.y + P.TL.y) / 2, 31, halfD2 / 2 + 15) +
+    const halfD2 = Math.abs(O.y - P.TL.y);
+    const gap =
+      '<defs><mask id="rhomD1Gap" maskUnits="userSpaceOnUse" x="-40" y="-40" width="520" height="380">' +
+        '<rect x="-40" y="-40" width="520" height="380" fill="#fff" />' +
+        '<rect x="' + fmt(O.x - D1_GAP.w / 2) + '" y="' + fmt(O.y + D1_DROP - D1_GAP.h / 2) + '" ' +
+          'width="' + fmt(D1_GAP.w) + '" height="' + fmt(D1_GAP.h) + '" rx="7" fill="#000" />' +
+      '</mask></defs>';
+    rhomArea.innerHTML = gap +
       ln('rd rd-d1', P.BL, P.TR) +
-      ln('rd rd-d2', P.BR, P.TL) +
-      ln('rd rd-h rd-h1', O, P.BR) +
-      ln('rd rd-h rd-h2', O, P.TL) +
+      '<g mask="url(#rhomD1Gap)">' +
+        ln('rd rd-d2', P.BR, P.TL) +
+        ln('rd rd-h rd-h1', O, P.BR) +
+        ln('rd rd-h rd-h2', O, P.TL) +
+      '</g>' +
       '<path class="rmark mark-up" d="M' + fmt(O.x) + ' ' + fmt(O.y - M) + ' H' + fmt(O.x + M) + ' V' + fmt(O.y) + '" />' +
       '<path class="rmark mark-down" d="M' + fmt(O.x) + ' ' + fmt(O.y + M) + ' H' + fmt(O.x + M) + ' V' + fmt(O.y) + '" />' +
-      lbl('lbl-d1', O.x - 62, O.y + 18, 'middle', 'd₁') +
+      lbl('lbl-d1', O.x, O.y + D1_DROP, 'middle', 'd₁') +
       lbl('lbl-d2', O.x + 14, (O.y + P.TL.y) / 2, 'start', 'd₂') +
       lbl('lbl-h lbl-h1', O.x + 14, (O.y + P.BR.y) / 2, 'start', 'h₁') +
       lbl('lbl-h lbl-h2', O.x + 14, (O.y + P.TL.y) / 2, 'start', 'h₂');
@@ -5703,8 +6127,9 @@
     await wait(REDUCED ? 160 : 480);
   }
 
-  /* the rhombus's rings; the quadrilateral's are swept by the same hand */
-  const denote = (part, hold) => ringDenote(areaEl('ring-' + part), hold);
+  /* the rhombus lights its lines by the same hand as the quadrilateral: the
+     line and the name it carries, together */
+  const denote = (part, hold) => lineDenote([areaEl('rd-' + part), areaEl('lbl-' + part)], hold);
 
   /* a key word of the working lands: denote what it names. The ring runs on
      its own clock -- the line carries on being read while it sweeps */
@@ -5737,7 +6162,7 @@
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
-    rhom.classList.remove('wide', 'numbers');
+    rhom.classList.remove('wide', 'numbers', 'work');
     rhomLines.textContent = '';
     rhomLines.classList.remove('off');
     /* a replay has taken the built shape away: it is built again from the
@@ -5799,11 +6224,17 @@
     await askChips(rhomChips1, 'half');
     if (mine !== runToken) throw CANCELLED;
     await heading(RHOM2.rightG);
-    await wait(1600);
+
+    /* the answer, written out under the shape: d₁ and h₁ light on the
+       drawing as the line names them */
+    rhomTray1.classList.add('off');
+    await wait(560);
+    await showRhomWork(RHOM_LINES[0]);
+    await wait(REDUCED ? 400 : 1700);
+    await clearRhomWork();
 
     /* 5. the green steps back; the upper half shades purple with its own
           height, and the same question */
-    rhomTray1.classList.add('off');
     rhomShape.classList.add('quiet-green');
     areaEl('mark-down').classList.remove('on');
     areaEl('rd-h1').style.opacity = '';
@@ -5822,7 +6253,13 @@
     if (mine !== runToken) throw CANCELLED;
     await heading(RHOM2.rightP);
     swiftee.play('happy', 1);
-    await wait(1800);
+
+    /* and the purple triangle's line the same way */
+    rhomTray2.classList.add('off');
+    await wait(560);
+    await showRhomWork(RHOM_LINES[1]);
+    await wait(REDUCED ? 400 : 1700);
+    await clearRhomWork();
     await showNext();
     await rhombusSum();
   }
@@ -5861,7 +6298,7 @@
       rhomShape.classList.add('fill-green', 'quiet-green', 'fill-purple');
     }
     rhomTray2.classList.add('off');
-    rhom.classList.remove('wide', 'numbers');
+    rhom.classList.remove('wide', 'numbers', 'work');
     rhomLines.textContent = '';
     rhomLines.classList.remove('off');
     await wait(460);
@@ -5889,9 +6326,13 @@
     await wait(REDUCED ? 300 : 1200);
 
     /* 3. and that line is taken the rest of the way, in place. Each step is
-          said first, then shown on the drawing, then written */
+          said first, then shown on the drawing, then written -- and what it
+          is about is pointed at on the drawing ONE PART AT A TIME, in the
+          order the line will put them in */
     await heading(RHOM2.both);
-    await wait(REDUCED ? 200 : 700);
+    await wait(REDUCED ? 200 : 500);
+    await denote('h1', 340);
+    await denote('h2', 340);
     await morphTo(txt, RHOM_STEPS[1], false, true);
     await wait(REDUCED ? 300 : 1500);
 
@@ -5922,24 +6363,19 @@
   }
 
   /* h₁ and h₂ already lie end to end along the short diagonal, so nothing
-     has to be moved to join them: one ring sweeps round the pair and holds,
-     and while it holds them together the two dashed halves give way to the
-     whole diagonal drawn solid, their two names gathering into its one. */
+     has to be moved to join them: the two are lit together and held lit,
+     and while they are the two dashed halves give way to the whole diagonal
+     drawn solid, their two names gathering into its one. */
   async function joinHeights() {
     const h1 = areaEl('rd-h1'), h2 = areaEl('rd-h2');
     const l1 = areaEl('lbl-h1'), l2 = areaEl('lbl-h2');
     const d2 = areaEl('rd-d2'), ld2 = areaEl('lbl-d2');
-    const ring = areaEl('ring-d2');
-    const mine = String(++ringSeq);
-    ring.dataset.seq = mine;
-    const len = ring.getTotalLength();
-    ring.style.strokeDasharray = fmt(len);
-    ring.style.strokeDashoffset = fmt(len);
-    ring.style.opacity = 1;
-    await tween(900, e => { ring.style.strokeDashoffset = fmt(len * (1 - e)); }, easeInOut);
-    await wait(REDUCED ? 140 : 620);
+    const lit = [h1, h2, l1, l2];
+    const mine = String(++denoteSeq);
+    lit.forEach(el => { el.dataset.seq = mine; el.classList.add('denote'); });
+    await wait(REDUCED ? 140 : 900);
 
-    /* inside the ring, the two become one */
+    /* held together, the two become one */
     const dy = (+ld2.getAttribute('y')) - (+l1.getAttribute('y'));
     d2.style.opacity = 1;
     h1.style.opacity = '';
@@ -5960,8 +6396,11 @@
     });
     ld2.classList.add('on');
     areaEl('mark-up').classList.add('on');
-    await wait(REDUCED ? 140 : 620);
-    ring.style.opacity = '';
+    /* the light passes to the diagonal the pair has become */
+    lit.forEach(el => el.classList.remove('denote'));
+    [d2, ld2].forEach(el => { el.dataset.seq = mine; el.classList.add('denote'); });
+    await wait(REDUCED ? 140 : 700);
+    [d2, ld2].forEach(el => { if (el.dataset.seq === mine) el.classList.remove('denote'); });
     await wait(REDUCED ? 60 : 420);
   }
 
@@ -5997,7 +6436,9 @@
    * answer is said in the heading, and Next. */
   const NUM = {
     drag:  'Drag the two lengths into the formula.',
-    right: 'That’s Correct! Area = ½ × 16 × 12 = 96 sq. cm'
+    /* the working the learner has just built IS the answer; saying it again
+       at the top would also give away the question the next page asks */
+    right: 'That’s Correct!'
   };
   const NUM_D1 = '16 cm', NUM_D2 = '12 cm';
   const NUM_NEED = ['16', '12'];
@@ -6075,7 +6516,7 @@
         slot.classList.add('filled');
         chip.classList.remove('picked', 'dragging');
         chip.disabled = true;
-        slot.classList.add('correct');
+        markRight(slot);
         setTimeout(() => slot.classList.remove('correct'), 520);
         rhomShape.classList.add(chip.dataset.len === '16' ? 'lit-d1' : 'lit-d2');
         sfx('correct', earned ? 1 : .55);
@@ -6093,8 +6534,8 @@
           sfx('wrong');
           feedback(FEEDBACK.wrong);
           swiftee.play('confused', 1);
-          slot.classList.add('reject');
-          chip.classList.add('reject');
+          markWrong(slot);
+          markWrong(chip);
           setTimeout(() => { slot.classList.remove('reject'); chip.classList.remove('reject'); }, 430);
           return;
         }
@@ -6108,19 +6549,10 @@
         const chip = e.currentTarget;
         if (chip.disabled) return;
         if (e.button !== undefined && e.button !== 0) return;
-        const rect = chip.getBoundingClientRect();
-        const ghost = chip.cloneNode(true);
-        ghost.classList.add('ghost');
-        Object.assign(ghost.style, {
-          position: 'fixed', left: rect.left + 'px', top: rect.top + 'px',
-          width: rect.width + 'px', height: rect.height + 'px',
-          margin: 0, pointerEvents: 'none', zIndex: 999, transform: 'scale(1.05)'
-        });
-        document.body.appendChild(ghost);
+        ldrag = liftGhost(chip, e);
         chip.classList.add('dragging');
         unpick();
         sfx('click', .5);
-        ldrag = { el: chip, ghost: ghost, offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top, start: { x: e.clientX, y: e.clientY } };
         window.addEventListener('pointermove', onMoveL);
         window.addEventListener('pointerup', onUpL);
         window.addEventListener('pointercancel', onUpL);
@@ -6128,8 +6560,7 @@
       };
       const onMoveL = e => {
         if (!ldrag) return;
-        ldrag.ghost.style.left = (e.clientX - ldrag.offsetX) + 'px';
-        ldrag.ghost.style.top  = (e.clientY - ldrag.offsetY) + 'px';
+        moveGhost(ldrag, e.clientX, e.clientY);
         clearOver();
         const slot = slotAt(e.clientX, e.clientY);
         if (slot && !slot.classList.contains('filled')) slot.classList.add('over');
@@ -6139,18 +6570,19 @@
         window.removeEventListener('pointermove', onMoveL);
         window.removeEventListener('pointerup', onUpL);
         window.removeEventListener('pointercancel', onUpL);
-        const { el, ghost, start } = ldrag;
+        const d = ldrag;
         ldrag = null;
-        ghost.remove();
-        el.classList.remove('dragging');
         clearOver();
         const slot = slotAt(e.clientX, e.clientY);
-        if (slot) return tryPlace(el, slot);
-        /* a tap, not a drag: the chip waits for a slot to be tapped */
-        if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) {
-          lpicked = el;
-          el.classList.add('picked');
-        }
+        dropGhost(d, slot, function () {
+          d.el.classList.remove('dragging');
+          if (slot) return tryPlace(d.el, slot);
+          /* a tap, not a drag: the chip waits for a slot to be tapped */
+          if (Math.hypot(e.clientX - d.start.x, e.clientY - d.start.y) < 6) {
+            lpicked = d.el;
+            d.el.classList.add('picked');
+          }
+        });
       };
       const onSlotTap = e => {
         if (!interactive || !lpicked) return;
@@ -6284,7 +6716,7 @@
    * from a panel of its own beside the figure. */
   const PRACTICE = {
     area:     'Choose the correct area.',
-    areaOk:   'That’s Correct! ½ × 16 × 12 = 96 sq. cm',
+    areaOk:   'That’s Correct!',
     find:     'This rhombus has an area of 240 sq. cm. Find the other diagonal.',
     findOk:   'That’s Correct! ½ × 30 × d₂ = 240, so d₂ is 16 cm.',
     which:    'Which formula can you use here?',
@@ -6457,7 +6889,7 @@
         lockInput(true);
         figs.forEach(f => { f.removeEventListener('click', onTap); f.classList.remove('pick'); });
         feedbackGen++;
-        fig.classList.add('correct');
+        markRight(fig, fig.querySelector('.fig-chip'));
         if (!auto) {
           sfx('correct', .7);
           const chip = fig.querySelector('.fig-chip');
@@ -6473,7 +6905,7 @@
         sfx('wrong', .6);
         feedback(FEEDBACK.wrong);
         swiftee.play('confused', 1);
-        fig.classList.add('reject');
+        markWrong(fig, fig.querySelector('.fig-art'));
         setTimeout(() => { fig.classList.remove('reject'); fig.classList.add('spent'); }, 440);
       };
       const fill = () => finish(figs.find(f => f.dataset.fig === answer), true);
@@ -6603,7 +7035,7 @@
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
-    rhom.classList.remove('numbers');
+    rhom.classList.remove('numbers', 'work');
     rhomQuiz.classList.remove('show');
     rhomChips3.forEach(c => { rhomTray3.appendChild(c); c.disabled = false; });
     rcClear();
@@ -6625,11 +7057,11 @@
     /* the halving first, then the multiplying: the two steps the formula is,
        in the order it is read in */
     work: ['Area = ½ × 24 × 10', 'Area = 12 × 10', 'Area = 120 sq. cm'],
-    /* the first nudge is the formula, the second the lengths it wants -- and
-       the second points at them on the figure as well. Neither is the
-       arithmetic: a nudge that worked it out would answer the question. */
-    hints: ['Use ½ × diagonal 1 × diagonal 2.',
-            'The diagonals are 24 cm and 10 cm.']
+    /* the first miss puts the formula up -- in words, not in letters -- and
+       the second the lengths it wants, pointed at on the figure as well.
+       Neither is the arithmetic: a nudge that worked it out would answer
+       the question. */
+    hint: 'The diagonals are 24 cm and 10 cm.'
   };
   function rcHint(text) { showHint(rcHintEl, text); }
 
@@ -6778,7 +7210,7 @@
     const mine = practiceOpen(rhombusPractice3);
     practiceTray.classList.add('off');
     rhomShape.classList.add('away');
-    rhom.classList.remove('wide', 'numbers', 'cfu');
+    rhom.classList.remove('wide', 'numbers', 'cfu', 'work');
     /* the question before left Swiftee up at the heading: it goes behind the
        board, so the rhombus draws itself on an empty one and the bird comes
        up with the question rather than standing beside an empty heading for
@@ -6843,28 +7275,32 @@
     swiftee.release();
     await wait(REDUCED ? 100 : 380);
 
-    /* the formula, with the letters and nothing else: the scaffold the
-       question is asked on, not a step of the answer */
-    rcFormula.classList.add('show');
-    sfx('click', .3);
-    await wait(REDUCED ? 100 : 520);
-
-    /* ---- 5. and the four answers ---- */
+    /* ---- 5. and the four answers. The formula is NOT put up with them
+         (user, 2026-09-17): the question is asked of the figure alone, and
+         a learner who has it does not need telling ---- */
     const chips = practiceChips(RC.opts, rcTray);
     await dealChips(chips);
     await wait(REDUCED ? 80 : 200);
 
     let missed = 0;
     const onWrong = () => {
-      rcHint(RC.hints[Math.min(missed, RC.hints.length - 1)]);
-      /* the second miss points at the two lengths in turn, in the order the
-         formula uses them -- pointed at, not left lit: nothing stands on the
-         figure that the learner has not answered for */
-      if (missed >= 1) (async () => {
-        await rcPoint(f, 'd1');
-        await wait(REDUCED ? 60 : 260);
-        await rcPoint(f, 'd2');
-      })().catch(e => { if (e !== CANCELLED) throw e; });
+      /* the first miss brings the formula out, said in words rather than in
+         d₁ and d₂ -- it is a reminder of what to do, not the answer laid
+         out with the lengths already in it */
+      if (!missed) {
+        rcFormula.classList.add('show');
+        sfx('click', .3);
+      } else {
+        /* and the second points at the two lengths in turn, in the order the
+           formula uses them -- pointed at, not left lit: nothing stands on
+           the figure that the learner has not answered for */
+        rcHint(RC.hint);
+        (async () => {
+          await rcPoint(f, 'd1');
+          await wait(REDUCED ? 60 : 260);
+          await rcPoint(f, 'd2');
+        })().catch(e => { if (e !== CANCELLED) throw e; });
+      }
       missed++;
     };
     await tcAskChips(chips, RC.right, onWrong);
@@ -7601,7 +8037,7 @@
 
         if (good) {
           /* ---- a trapezium: it locks green, confetti out of the card ---- */
-          c.classList.add('correct');
+          markRight(c, c.querySelector('.card-box'));
           c.setAttribute('aria-pressed', 'true');
           sfx('correct', .85);
           sfx('confetti', .5);
@@ -7611,7 +8047,7 @@
           /* ---- not a trapezium: red shake, and it will step back for good ---- */
           sfx('wrong');
           swiftee.play('confused', 1);
-          c.classList.add('reject');
+          markWrong(c, c.querySelector('.card-box'));
           c.setAttribute('aria-disabled', 'true');
         }
 
@@ -7656,7 +8092,7 @@
         lockInput(true);
         cards.forEach(c => {
           if (!isTrapCard(c)) return;
-          c.classList.add('correct');
+          markRight(c, c.querySelector('.card-box'));
           c.setAttribute('aria-pressed', 'true');
         });
         if (!auto) {
@@ -7785,8 +8221,13 @@
   /* Drag a chip onto a slot -- or tap the chip, then the slot. `fits` says
      whether a chip belongs in a slot; a wrong drop shakes both and the chip
      stays where it was; a right one docks, and `onDock` is told. Resolves
-     once every slot is filled. A skip fills them; a replay lets go. */
-  function dragMatch(chips, slots, fits, onDock) {
+     once every slot is filled -- so a scene that asks for one box at a time
+     passes that one slot. A skip fills them; a replay lets go.
+       `how.quiet` keeps the confetti back (a scene saving it for its last
+     answer) and `how.onWrong` is told about a drop that did not fit, for a
+     scene that puts a reason on the board. */
+  function dragMatch(chips, slots, fits, onDock, how) {
+    how = how || {};
     return waitForScene(resolve => {
       let mdrag = null, mpicked = null, over = false;
       const free = () => slots.filter(s => !s.classList.contains('filled'));
@@ -7802,14 +8243,16 @@
         slot.classList.add('filled');
         chip.classList.remove('picked', 'dragging');
         chip.disabled = true;
-        slot.classList.add('correct');
+        markRight(slot);
         setTimeout(() => slot.classList.remove('correct'), 520);
         if (onDock) onDock(chip, slot);
         sfx('correct', earned ? 1 : .55);
         if (earned) {
           swiftee.play('happy', 1);
-          sfx('confetti', .55);
-          requestAnimationFrame(() => burst(chip));
+          if (!how.quiet) {
+            sfx('confetti', .55);
+            requestAnimationFrame(() => burst(chip));
+          }
         }
       };
       const tryPlace = (chip, slot) => {
@@ -7818,9 +8261,10 @@
           sfx('wrong');
           feedback(FEEDBACK.wrong);
           swiftee.play('confused', 1);
-          slot.classList.add('reject');
-          chip.classList.add('reject');
+          markWrong(slot);
+          markWrong(chip);
           setTimeout(() => { slot.classList.remove('reject'); chip.classList.remove('reject'); }, 430);
+          if (how.onWrong) how.onWrong(chip, slot);
           return;
         }
         dockIn(chip, slot, true);
@@ -7833,19 +8277,10 @@
         const chip = e.currentTarget;
         if (chip.disabled) return;
         if (e.button !== undefined && e.button !== 0) return;
-        const rect = chip.getBoundingClientRect();
-        const ghost = chip.cloneNode(true);
-        ghost.classList.add('ghost');
-        Object.assign(ghost.style, {
-          position: 'fixed', left: rect.left + 'px', top: rect.top + 'px',
-          width: rect.width + 'px', height: rect.height + 'px',
-          margin: 0, pointerEvents: 'none', zIndex: 999, transform: 'scale(1.05)'
-        });
-        document.body.appendChild(ghost);
+        mdrag = liftGhost(chip, e);
         chip.classList.add('dragging');
         unpick();
         sfx('click', .5);
-        mdrag = { el: chip, ghost: ghost, offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top, start: { x: e.clientX, y: e.clientY } };
         window.addEventListener('pointermove', onMoveM);
         window.addEventListener('pointerup', onUpM);
         window.addEventListener('pointercancel', onUpM);
@@ -7853,8 +8288,7 @@
       };
       const onMoveM = e => {
         if (!mdrag) return;
-        mdrag.ghost.style.left = (e.clientX - mdrag.offsetX) + 'px';
-        mdrag.ghost.style.top  = (e.clientY - mdrag.offsetY) + 'px';
+        moveGhost(mdrag, e.clientX, e.clientY);
         clearOver();
         const slot = slotAt(e.clientX, e.clientY);
         if (slot) slot.classList.add('over');
@@ -7864,18 +8298,19 @@
         window.removeEventListener('pointermove', onMoveM);
         window.removeEventListener('pointerup', onUpM);
         window.removeEventListener('pointercancel', onUpM);
-        const { el, ghost, start } = mdrag;
+        const d = mdrag;
         mdrag = null;
-        ghost.remove();
-        el.classList.remove('dragging');
         clearOver();
         const slot = slotAt(e.clientX, e.clientY);
-        if (slot) return tryPlace(el, slot);
-        /* a tap, not a drag: the chip waits for a slot to be tapped */
-        if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) {
-          mpicked = el;
-          el.classList.add('picked');
-        }
+        dropGhost(d, slot, function () {
+          d.el.classList.remove('dragging');
+          if (slot) return tryPlace(d.el, slot);
+          /* a tap, not a drag: the chip waits for a slot to be tapped */
+          if (Math.hypot(e.clientX - d.start.x, e.clientY - d.start.y) < 6) {
+            mpicked = d.el;
+            d.el.classList.add('picked');
+          }
+        });
       };
       const onSlotTap = e => {
         if (!interactive || !mpicked) return;
@@ -7987,7 +8422,11 @@
     /* 5. the names go onto the shapes */
     await dragMatch(deck, slots,
       (chip, slot) => chip.dataset.kind === slot.dataset.accept,
-      (chip, slot) => slot.closest('.card').classList.add('named'));
+      (chip, slot) => {
+        const card = slot.closest('.card');
+        card.classList.add('named');
+        Motion.correctPulse(card.querySelector('.card-box'));
+      });
     if (mine !== runToken) throw CANCELLED;
 
     /* 6. all three named: Well Done, and Next */
@@ -8101,7 +8540,7 @@
          its outer side */
       stageBox: fmt(home - OUT - 24) + ' -70 ' + fmt(split + right + 2 * OUT + 48) + ' 300',
       say: {
-        here:  'Let us try to find the area of this ' + name + ' trapezium.',
+        here:  'Let us try to find the area of this trapezium.',
         sides: 'Its parallel sides are a and b, and its height is h.',
         room:  'Let us slide it across, to make room beside it.',
         copy:  'Now let us take a copy of it.',
@@ -8123,7 +8562,7 @@
         total2: [{ t: '= ' }, { t: '(a + b)', w: 'ab' }, { t: ' × ' }, { t: 'h', w: 'h' }],
         half:   [{ t: 'Area of ' }, { t: 'Trapezium', w: 'trap' }, { t: ' = Half of total area' }],
         half2:  [{ t: '= ½ × ' }, { t: '(a + b)', w: 'ab' }, { t: ' × ' }, { t: 'h', w: 'h' }],
-        final:  [{ t: 'Area of ' }, { t: name + ' Trapezium', w: 'trap' }, { t: ' = ½ × (a + b) × h' }],
+        final:  [{ t: 'Area of ' }, { t: 'Trapezium', w: 'trap' }, { t: ' = ½ × (a + b) × h' }],
         rule:   [{ t: 'Area of Trapezium = ½ × ' }, { t: '(sum of parallel sides)', w: 'ab' }, { t: ' × ' }, { t: 'height', w: 'h' }]
       },
       shortName: shortName
@@ -8702,7 +9141,7 @@
    *   2. the figure moves to the left and Swiftee hops down to the right:
    *      "Follow each simplification step." -- the working from the formula
    *      in words down to 66 sq. cm, one line at a time
-   *   3. a trapezium measured 18 cm, 20 cm and 10 cm, with two drop-downs
+   *   3. a trapezium measured 13 cm, 20 cm and 10 cm, with two drop-downs
    *      under it: the sum of the parallel sides, and the height
    *   4. the same figure: "Choose the correct area of the above trapezium."
    *      over three chips
@@ -8728,7 +9167,7 @@
     steps:   'Follow each simplification step.',
     read:    'Look at the trapezium and choose the correct values.',
     area:    'What is the area of the trapezium?',
-    areaOk:  'That’s Correct! The area is 190 sq. cm.'
+    areaOk:  'That’s Correct!'
   };
   const TP_GHOST = [TP.read, TP.area, TP.areaOk];
   const TP_STEPS = [
@@ -8770,9 +9209,10 @@
     /* 8, 14 and 6: the bottom is 300 wide, the top set in and shorter */
     n:  { P: { TL: { x: 85, y: 62 }, TR: { x: 256, y: 62 }, BR: { x: 330, y: 190 }, BL: { x: 30, y: 190 } },
           labels: { a: '8 cm', b: '14 cm', h: '6 cm' }, hgt: { from: 'TL', side: 1 } },
-    /* 18, 20 and 10 */
-    p:  { P: { TL: { x: 50, y: 40 }, TR: { x: 320, y: 40 }, BR: { x: 330, y: 190 }, BL: { x: 30, y: 190 } },
-          labels: { a: '18 cm', b: '20 cm', h: '10 cm' }, hgt: { from: 'TL', side: 1 } },
+    /* 13, 20 and 10, drawn to one scale: the bottom is 300 units for 20 cm
+       and the height 150 for 10, so the 13 cm top is 195 units */
+    p:  { P: { TL: { x: 50, y: 40 }, TR: { x: 245, y: 40 }, BR: { x: 330, y: 190 }, BL: { x: 30, y: 190 } },
+          labels: { a: '13 cm', b: '20 cm', h: '10 cm' }, hgt: { from: 'TL', side: 1 } },
     /* the check for understanding: 30 on top, 40 below, 15 high, its right
        side square, so the height is plainly the distance between the two
        parallel sides and not one of the slanted ones */
@@ -8899,6 +9339,7 @@
    *      drawing that it is about and the shape swelling once at the answer */
   const tnPanel   = document.getElementById('tnPanel');
   const tnFormula = document.getElementById('tnFormula');
+  const tnTray    = document.getElementById('tnTray');
   const tnAsk     = document.getElementById('tnAsk');
   const tnHintEl  = document.getElementById('tnHint');
   const tnWork    = document.getElementById('tnWork');
@@ -8907,7 +9348,7 @@
     say:   'Let’s find the area of this trapezium.',
     area:  'What is the area of the trapezium?',
     solve: 'Let’s simplify it, step by step.',
-    done:  'That’s Correct! The area is 66 sq. cm.'
+    done:  'That’s Correct!'
   };
   /* the working the answer solves itself through, and the measurement each
      step is about: the step is simplified, then the side it came from flares
@@ -8937,6 +9378,10 @@
       opts: [{ v: '14', t: '14' }, { v: '6', t: '6' }, { v: '8', t: '8' }], right: '6',
       hint: 'Look at the perpendicular height.' }
   ];
+  /* the three measurements to carry into the formula, in an order that is
+     not the formula's: reading them off the drawing is the question */
+  const TN_CHIPS = [{ v: '14', t: '14' }, { v: '6', t: '6' }, { v: '8', t: '8' }];
+  let tnChips = [];
   const TN_AREA = {
     opts: [{ v: '44', t: '44 sq. cm' }, { v: '66', t: '66 sq. cm' }, { v: '132', t: '132 sq. cm' }],
     right: '66',
@@ -8951,6 +9396,9 @@
     tnWork.textContent = '';
     tnHintEl.textContent = '';
     tnHintEl.classList.remove('show');
+    tnTray.textContent = '';
+    tnTray.classList.remove('off');
+    tnChips = [];
     Object.keys(tnDD).forEach(k => { delete tnDD[k]; });
   }
   /* the whole formula is built before any of it shows, so the panel is its
@@ -8975,11 +9423,13 @@
   const tnSlot = k => tnFormula.querySelector('.tn-slot[data-k="' + k + '"]');
 
   /* ---- page 27: the box in the formula IS the question ----
-   * a, b and h are not letters with a drop-down parked in the row under
-   * them: each letter is itself a drop-down standing in the formula, so the
-   * answer is chosen exactly where it will be read, and there is only ever
-   * one "Area = ..." line on the board. The area is asked the same way, on
-   * a line of its own under the formula, which then solves itself.
+   * a, b and h are not letters with a question parked in the row under
+   * them: each letter is a DROP SLOT standing in the formula, and the three
+   * measurements sit in a tray beneath it. The learner reads a length off
+   * the drawing and carries it to the letter it belongs to -- which is a
+   * truer action than picking it out of a list -- and the answer lands
+   * exactly where it will be read. The area, which is worked out rather
+   * than read off, is still chosen from a drop-down on a line of its own.
    *   The plain boxes and the labelled question row above stay as they are:
    * the scenes after this one fill a box from a question that is a sentence,
    * which will not fit inside a formula. */
@@ -8995,11 +9445,24 @@
         return;
       }
       const q = TN_QS.find(x => x.k === part.k);
-      const d = makeDD(q.opts, true, part.t);      /* the letter is its placeholder */
-      tnFormula.appendChild(d);
-      tnDD[part.k] = ddController(d);
+      const el = document.createElement('span');
+      el.className = 'fslot tn-drop';
+      el.dataset.k = part.k;
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', '-1');
+      el.setAttribute('aria-label', q.ask);
+      const letter = document.createElement('i');
+      letter.className = 'hint';
+      setTxt(letter, part.t);                      /* the letter it stands for */
+      el.appendChild(letter);
+      tnFormula.appendChild(el);
     });
+    /* and the values to carry into them */
+    tnTray.innerHTML = TN_CHIPS.map(c =>
+      '<button class="chip" type="button" data-len="' + c.v + '"><span>' + c.t + '</span></button>').join('');
+    tnChips = Array.from(tnTray.querySelectorAll('.chip'));
   }
+  const tnDrop = k => tnFormula.querySelector('.tn-drop[data-k="' + k + '"]');
   function tnAreaLine() {
     const line = document.createElement('div');
     line.className = 'area-line tn-area';
@@ -9217,12 +9680,22 @@
     await tnReveal();
     await wait(REDUCED ? 120 : 460);
 
-    /* ---- 8. a, b and h, one box of the formula at a time ---- */
+    /* ---- 8. a, b and h: the three measurements are carried into the
+         formula, one box at a time. Only the box being asked about takes a
+         drop, so an answer can never land in the wrong letter by accident,
+         and only the measurement that belongs there is let in. ---- */
+    await dealChips(tnChips);
+    await wait(REDUCED ? 100 : 420);
     for (const q of TN_QS) {
+      const slot = tnDrop(q.k);
+      slot.classList.add('live');
       await heading(q.ask);
-      await tnAskBox(tnDD[q.k], q, true);
+      await wait(REDUCED ? 80 : 300);
+      await dragMatch(tnChips, [slot], chip => chip.dataset.len === q.right, null,
+        { quiet: true, onWrong: () => tnHint(q.hint) });
       if (mine !== runToken) throw CANCELLED;
       tnHint('');
+      slot.classList.remove('live');
       tpLight('n', q.k);
       await wait(REDUCED ? 200 : 900);
     }
@@ -9347,7 +9820,7 @@
    *     2. the perpendicular height drops in dotted and squares off at its
    *        foot; then one chevron lands on the top parallel side and the
    *        same one on the bottom -- the pair is named before it is measured
-   *     3. the three measurements arrive in turn -- 18 cm above, 20 cm
+   *     3. the three measurements arrive in turn -- 13 cm above, 20 cm
    *        below, 10 cm beside the height -- each popping in on its own
    *        arrow, and its line glowing for a moment as the number lands
    *     4. only now does Swiftee come up from behind the board: "Look at the
@@ -9357,7 +9830,7 @@
    *        with it, so the questions are asked on a quiet board
    *     5. "Sum of parallel sides is [ v ]". A right pick lights both
    *        parallel sides and writes where the value came from under the
-   *        question: "18 + 20" becomes "18 + 20 = 38 cm"
+   *        question: it becomes "Sum of parallel sides is 13 + 20 = 33 cm"
    *     6. "Height is [ v ]", with the dotted height lit from the moment the
    *        question appears; its answer joins the first under it
    *
@@ -9367,8 +9840,8 @@
    *        in words: "Area = 1/2 x (sum of parallel sides) x height"
    *     8. the two boxes then give way to the numbers the learner found,
    *        each lighting the part of the figure it was read off, so the
-   *        formula reads "Area = 1/2 x 38 x 10" before the options exist
-   *     9. and only then the answer, which solves itself into 190 sq. cm
+   *        formula reads "Area = 1/2 x 33 x 10" before the options exist
+   *     9. and only then the answer, which solves itself into 165 sq. cm
    *
    * A wrong pick shakes its box and is answered under it, and the nudge goes
    * a step further every time: first the part of the figure to look at, then
@@ -9388,16 +9861,17 @@
      step that working is at its widest on */
   const TV_QS = [
     { k: 'ab', label: 'Sum of parallel sides is', place: 'value',
-      opts: [{ v: '30', t: '30 cm' }, { v: '38', t: '38 cm' }, { v: '28', t: '28 cm' }],
-      right: '38', lit: 'ab',
-      found: ['18 + 20 = ?', '18 + 20 = 38 cm'], wide: '18 + 20 = 38 cm',
-      hints: ['Add the two parallel sides: 18 + 20.',
-              'The parallel sides are 18 cm and 20 cm — add them.',
-              '18 + 20 = 38, so the sum of the parallel sides is 38 cm.'] },
+      opts: [{ v: '30', t: '30 cm' }, { v: '33', t: '33 cm' }, { v: '23', t: '23 cm' }],
+      right: '33', lit: 'ab',
+      found: ['Sum of parallel sides is 13 + 20 = ?', 'Sum of parallel sides is 13 + 20 = 33 cm'],
+      wide: 'Sum of parallel sides is 13 + 20 = 33 cm',
+      hints: ['Add the two parallel sides: 13 + 20.',
+              'The parallel sides are 13 cm and 20 cm — add them.',
+              '13 + 20 = 33, so the sum of the parallel sides is 33 cm.'] },
     { k: 'h', label: 'Height is', place: 'value',
-      opts: [{ v: '18', t: '18 cm' }, { v: '10', t: '10 cm' }, { v: '20', t: '20 cm' }],
+      opts: [{ v: '13', t: '13 cm' }, { v: '10', t: '10 cm' }, { v: '20', t: '20 cm' }],
       right: '10', lit: 'h', early: true,
-      found: ['Height = 10 cm'],
+      found: ['Height is 10 cm'],
       hints: ['Look at the dotted perpendicular line.',
               'The dotted line runs straight from the top parallel side down to the bottom one.',
               'The dotted perpendicular height is the one marked 10 cm.'] }
@@ -9409,18 +9883,18 @@
     { k: 'ab', t: '(sum of parallel sides)', wordy: true }, { t: '×' },
     { k: 'h', t: 'height', wordy: true }
   ];
-  const TV_SET = { ab: '38', h: '10' };
+  const TV_SET = { ab: '33', h: '10' };
   const TV_AREA = {
     label: 'Area is', place: 'area',
-    opts: [{ v: '380', t: '380 sq. cm' }, { v: '190', t: '190 sq. cm' }, { v: '270', t: '270 sq. cm' }],
-    right: '190', lit: 'ab',
+    opts: [{ v: '330', t: '330 sq. cm' }, { v: '165', t: '165 sq. cm' }, { v: '230', t: '230 sq. cm' }],
+    right: '165', lit: 'ab',
     hints: ['Use ½ × sum of parallel sides × height.',
-            'Work out ½ × 38 × 10.',
-            'Half of 38 is 19, and 19 × 10 = 190 sq. cm.']
+            'Work out ½ × 33 × 10.',
+            'Half of 10 is 5, and 33 × 5 = 165 sq. cm.']
   };
   /* what page 29 leaves written under its questions, for a replay or a jump
      that lands on page 30 without having played it */
-  const TV_FOUND = ['18 + 20 = 38 cm', 'Height = 10 cm'];
+  const TV_FOUND = ['Sum of parallel sides is 13 + 20 = 33 cm', 'Height is 10 cm'];
 
   /* The figure is POINTED at rather than lit: the measurement blinks twice
      and is left exactly as it was found, so a nudge can draw the eye to a
@@ -9648,7 +10122,7 @@
     await tnDropQ(last);
 
     /* ---- 5. the working, one line that solves itself under the formula ---- */
-    await showSolveLine(tnWork, ['Area = ½ × 38 × 10', 'Area = 19 × 10', 'Area = 190 sq. cm']);
+    await showSolveLine(tnWork, ['Area = ½ × 33 × 10', 'Area = 33 × 5', 'Area = 165 sq. cm']);
     feedback(FEEDBACK.done);
     await wait(REDUCED ? 200 : 700);
     await heading(TV.done);
@@ -9753,7 +10227,7 @@
         lockInput(true);
         chips.forEach(c => c.removeEventListener('click', onTap));
         feedbackGen++;
-        chip.classList.add('correct');
+        markRight(chip);
         if (!auto) {
           sfx('correct', .7);
           burst(chip);
@@ -9768,7 +10242,7 @@
         sfx('wrong', .6);
         feedback(FEEDBACK.wrong);          /* announced, never shown */
         swiftee.play('confused', 1);
-        chip.classList.add('reject');
+        markWrong(chip);
         setTimeout(() => {
           chip.classList.remove('reject');
           chip.classList.add('spent');

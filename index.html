@@ -173,9 +173,7 @@
               </g>
               <g class="dims">
                 <line class="dim dim-base"   x1="22"  y1="186" x2="218" y2="186" />
-                <path class="dim-head head-base" d="M30 181 L22 186 L30 191 M210 181 L218 186 L210 191" />
                 <line class="dim dim-height" x1="120" y1="16"  x2="120" y2="176" />
-                <path class="dim-head head-height" d="M115 24 L120 16 L125 24 M115 168 L120 176 L125 168" />
                 <path class="dim-mark" d="M132 176 V164 H120" />
                 <text class="dim-label lbl-base" x="120" y="203" font-size="13" text-anchor="middle">Base</text>
                 <text class="dim-label lbl-height" x="133" y="98" font-size="13" text-anchor="middle"
@@ -198,9 +196,7 @@
               </g>
               <g class="dims">
                 <line class="dim dim-base"   x1="30" y1="186" x2="214" y2="186" />
-                <path class="dim-head head-base" d="M38 181 L30 186 L38 191 M206 181 L214 186 L206 191" />
                 <line class="dim dim-height" x1="20" y1="26"  x2="20"  y2="176" />
-                <path class="dim-head head-height" d="M15 34 L20 26 L25 34 M15 168 L20 176 L25 168" />
                 <path class="dim-mark" d="M42 176 V164 H30" />
                 <text class="dim-label lbl-base" x="122" y="203" font-size="13" text-anchor="middle">Base</text>
                 <text class="dim-label lbl-height" x="9" y="101" font-size="13" text-anchor="middle"
@@ -223,11 +219,9 @@
               </g>
               <g class="dims">
                 <line class="dim dim-base"   x1="118" y1="186" x2="226" y2="186" />
-                <path class="dim-head head-base" d="M126 181 L118 186 L126 191 M218 181 L226 186 L218 191" />
                 <!-- the base carried on to meet the height -->
                 <line class="dim dim-ext"    x1="118" y1="176" x2="40"  y2="176" />
                 <line class="dim dim-height" x1="40"  y1="22"  x2="40"  y2="176" />
-                <path class="dim-head head-height" d="M35 30 L40 22 L45 30 M35 168 L40 176 L45 168" />
                 <path class="dim-mark" d="M52 176 V164 H40" />
                 <text class="dim-label lbl-base" x="172" y="203" font-size="13" text-anchor="middle">Base</text>
                 <text class="dim-label lbl-height" x="29" y="100" font-size="13" text-anchor="middle"
@@ -291,32 +285,46 @@
 
       <!-- three occupants of one cell, so the shape above never moves -->
       <div class="quad-foot">
-        <!-- the name quiz: "This is a [ v ]", Swiftee beside it, its remark under -->
+        <!-- the name quiz, on the right half: the room Swiftee drops into to
+             ask the question and answer each choice -- the bird on the left,
+             its box up and to its right, as the trapezium's name quiz has --
+             and under it the sentence, "This is a [ v ]" -->
         <div class="quiz-block" id="quizBlock">
+          <!-- Swiftee's landing spot, above the sentence so the drop-down's
+               menu opens into free board rather than over the bird's box. The
+               row is laid out from the first frame -- bird and box both
+               invisible until they are wanted -- so neither arrival moves
+               anything. -->
+          <div class="quiz-say">
+            <div class="mascot" id="quizMascot" aria-hidden="true"></div>
+            <p class="quiz-bubble" id="quizNote" aria-live="polite">
+              <span class="type-wrap">
+                <span class="type-ghost" id="noteGhost"></span>
+                <span class="type" id="noteType"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+              </span>
+            </p>
+          </div>
           <div class="quiz-row">
             <div class="quiz-sentence">
               <span class="quiz-label">This is a</span>
               <div class="dd" id="dd">
                 <button class="dd-btn" id="ddBtn" type="button" aria-haspopup="listbox" aria-expanded="false"
                         aria-label="Choose the name of the shape">
-                  <span class="dd-value" id="ddValue"></span>
+                  <span class="dd-value" id="ddValue" data-hint="Tap here"></span>
                   <svg class="dd-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-8 10z" /></svg>
                 </button>
                 <div class="dd-menu" id="ddMenu" role="listbox">
-                  <button class="dd-opt" type="button" role="option" data-value="triangle">Triangle</button>
-                  <button class="dd-opt" type="button" role="option" data-value="quadrilateral">Quadrilateral</button>
-                  <button class="dd-opt" type="button" role="option" data-value="pentagon">Pentagon</button>
+                  <button class="dd-opt" type="button" role="option" data-value="triangle">triangle</button>
+                  <button class="dd-opt" type="button" role="option" data-value="quadrilateral">quadrilateral</button>
+                  <button class="dd-opt" type="button" role="option" data-value="pentagon">pentagon</button>
                 </div>
+                <!-- the hand that points at the arrow until the box is tapped -->
+                <svg class="dd-tap" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z" />
+                </svg>
               </div>
             </div>
-            <div class="mascot" id="quizMascot" aria-hidden="true"></div>
           </div>
-          <p class="quiz-note" id="quizNote" aria-live="polite">
-            <span class="type-wrap">
-              <span class="type-ghost" id="noteGhost"></span>
-              <span class="type" id="noteType"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
-            </span>
-          </p>
         </div>
 
         <!-- Swiftee's aside, standing to the left of what it says -->
@@ -368,10 +376,21 @@
 
       <!-- two occupants of one cell, so the shape above never moves -->
       <div class="para-foot">
-        <!-- the name quiz: two chips, tap the right one -->
-        <div class="para-tray" id="paraTray">
-          <button class="chip" type="button" data-answer="parallelogram"><span>Parallelogram</span></button>
-          <button class="chip" type="button" data-answer="trapezium"><span>Trapezium</span></button>
+        <!-- the name quiz: two chips, tap the right one, with the reason a
+             wrong one is wrong written under them. The note is taken out of
+             the flow, so the room it uses is the empty half of the board
+             below the chips and nothing above it ever moves. -->
+        <div class="para-ask" id="paraAsk">
+          <div class="para-tray" id="paraTray">
+            <button class="chip" type="button" data-answer="parallelogram"><span>Parallelogram</span></button>
+            <button class="chip" type="button" data-answer="trapezium"><span>Trapezium</span></button>
+          </div>
+          <p class="quiz-note para-note" id="paraNote" aria-live="polite">
+            <span class="type-wrap">
+              <span class="type-ghost"></span>
+              <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+            </span>
+          </p>
         </div>
 
         <!-- the area quiz: three formulas, tap the right one -->
@@ -528,10 +547,11 @@
               </span>
             </p>
           </div>
-          <!-- the formula, put up before the answers: the scaffold the
-               question is asked on, with no number anywhere in it -->
+          <!-- the formula, held back until a wrong pick asks for it: a
+               reminder of what to do, said in words rather than in d1 and
+               d2, and never up while the question is still open -->
           <div class="area-line rc-formula" id="rcFormula">
-            <span class="seg">Area = <span class="frac"><span class="num">1</span><span class="den">2</span></span> &#215; d&#8321; &#215; d&#8322;</span>
+            <span class="seg">Area of rhombus = <span class="frac"><span class="num">1</span><span class="den">2</span></span> &#215; product of diagonals</span>
           </div>
           <div class="para-tray rc-tray" id="rcTray"></div>
           <p class="tn-hint rc-hint" id="rcHint" aria-live="polite"></p>
@@ -714,6 +734,8 @@
              clears it. -->
         <div class="tn-panel" id="tnPanel">
           <div class="tn-formula" id="tnFormula" aria-live="polite"></div>
+          <!-- the three measurements, to be dragged into the formula's boxes -->
+          <div class="para-tray tn-tray" id="tnTray"></div>
           <div class="tn-ask" id="tnAsk"></div>
           <div class="area-lines tn-work" id="tnWork" aria-live="polite"></div>
           <p class="tn-hint" id="tnHint" aria-live="polite"></p>
@@ -931,6 +953,13 @@
     </div>
   </div>
 
+  <!-- The motion system, in the one order it can load in: GSAP, then the Flip
+       plugin it registers, then js/motion.js which holds every duration and
+       easing in the game, then the game itself. All three are in the repo --
+       nothing here reaches the network, at load or at any point after. -->
+  <script src="libs/gsap.min.js"></script>
+  <script src="libs/Flip.min.js"></script>
+  <script src="js/motion.js"></script>
   <script src="swiftee-sheets.js"></script>
   <script src="script.js"></script>
 </body>
