@@ -98,6 +98,14 @@
   --quad-purple-dark: var(--square-border);
   --quad-green:       var(--tri-fill);
   --quad-green-dark:  var(--tri-border);
+  /* Where the diagonal carries a length rather than the name b, that number
+     is written ON the orange half, and the base highlight's orange all but
+     disappears into it. It is set in the deep shade of the quadrilateral's
+     own aqua instead -- the colour of the diagonal it measures, dark enough
+     to read on either half. Only the measured quadrilaterals use it: where
+     the base is renamed b, the name stays orange so the b on the drawing
+     and the b in the working are the same colour. */
+  --quad-base-lbl:    var(--rect-chip-text);
 
   /* Section 4 -- the parallelogram is the palette's pink, and
      the two pairs of opposite sides are told apart by the two highlight hues
@@ -130,6 +138,18 @@
      always reads against whichever fill it crosses. */
   --base-hl:   #F0932B;
   --height-hl: #2E86DE;
+  /* ---- ink for a letter or a length DRAWN ON A SHAPE ----
+     The hues above name a base and a height on the lines themselves, where
+     they read against the board. As the fill of a letter they do not: b was
+     drawn in the base orange on the peach triangle, a contrast of 1.2, and
+     was simply not there (and h1, h2, d1 and d2 were little better on their
+     own fills). These are the same four hues taken dark enough to read on
+     every fill the game uses -- 4.2 : 1 at worst, 11 : 1 on the board -- so
+     the bright line and the dark number still say the same thing. */
+  --ink-base:   #5A2F04;
+  --ink-height: #0E3355;
+  --ink-purple: #3B1580;
+  --ink-peach:  #7A3305;
 
   /* The neutral shape accent: what a slot or a chip borrows to show it is
      being dragged over, hovered or picked. Deliberately not one of the three
@@ -629,7 +649,6 @@ body {
   inset: 0;
   display: grid;
   place-items: center;
-  will-change: transform;
 }
 .tri svg {
   display: block;
@@ -693,10 +712,10 @@ body {
   stroke: var(--board-highlight);
   stroke-width: 3;
   paint-order: stroke;
-  transition: opacity .45s ease .1s;
+  transition: opacity .45s ease .1s, filter .4s ease;
 }
-.lbl-base   { fill: var(--base-hl); }
-.lbl-height { fill: var(--height-hl); }
+.lbl-base   { fill: var(--ink-base); }
+.lbl-height { fill: var(--ink-height); }
 .tri.lit-base .lbl-base,
 .tri.lit-height .lbl-height { opacity: 1; }
 
@@ -711,7 +730,7 @@ body {
   padding: .2em .4em;
   color: var(--heading);
   font-weight: 700;
-  font-size: clamp(17.6px, 3.3vh, 30.8px);
+  font-size: clamp(20px, 4vh, 30.8px);
   line-height: 1.3;
   letter-spacing: .2px;
 
@@ -796,7 +815,7 @@ body {
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
-  transition: opacity .7s ease;
+  transition: opacity .7s ease, filter .45s ease;
 }
 .c-purple { fill: var(--quad-purple); }
 .c-green  { fill: var(--quad-green); }
@@ -804,6 +823,10 @@ body {
 .para-shape.split .tri-fill { opacity: 1; }
 .quad-shape.split .shape-fill,
 .para-shape.split .shape-fill { opacity: 0; transition: opacity .7s ease; }
+/* the parallelogram is cut one half at a time: the top triangle takes the
+   fill's place on its own, and the bottom one waits until that half has
+   been measured */
+.para-shape.split.cut-top .c-green { opacity: 0; }
 /* the parallelogram is put back together for its quiz */
 .para-shape .shape-fill { transition: opacity .7s ease; }
 
@@ -846,30 +869,31 @@ body {
 .join-line.done { opacity: 1; stroke-dasharray: none; }
 /* The heights reuse the lesson's dashed-line language, but each takes the
    deep shade of its own triangle -- so "green height" and "purple height"
-   are things the learner can point to. Naming one in the working no longer
-   thickens it or leaves it glowing: a line that changed weight every time
-   the formula said its name made the drawing flicker. A ring is swept round
-   it instead (.q-ring below), and the line itself never moves. */
+   are things the learner can point to. Naming one in the working never
+   thickens it: the line is LIT instead (.denote below), which points at it
+   without moving it or changing its weight. */
 .quad-shape.lit-green .h-green  { stroke: var(--quad-green-dark); }
 .quad-shape.lit-purple .h-purple { stroke: var(--quad-purple-dark); }
 
-/* ---------- denoting a part of the quadrilateral ----------
- * The same ring the rhombus is pointed at with: it sweeps once round the
- * base or a height, holds while the eye finds it, and fades. Drawn over the
- * two colours but under every line and name, so nothing it loops round is
- * crossed out. */
-.q-ring {
-  opacity: 0;
-  fill: none;
-  stroke-width: 3.2;
-  stroke-opacity: .85;
-  stroke-linecap: round;
-  pointer-events: none;
-  transition: opacity .42s ease;
+/* ---------- denoting a part ----------
+ * The working names a line: that line glows in its own hue, its name with
+ * it, holds while the eye finds it, and settles back. A ring used to be
+ * swept round it instead; the line itself is pointed at now (user,
+ * 2026-09-17: "remove the circle... and highlight that line"). Nothing
+ * moves and no stroke swells, so the drawing cannot flicker. */
+/* the quadrilateral: the diagonal it is measured along, and each height */
+.join-line.denote,
+.dim-label.lbl-base.denote {
+  filter: drop-shadow(0 0 3px var(--glow-base)) drop-shadow(0 0 10px var(--glow-base));
 }
-.ring-base   { stroke: var(--base-hl); }
-.ring-green  { stroke: var(--quad-green-dark); }
-.ring-purple { stroke: var(--quad-purple-dark); }
+.h-green.denote,
+.dim-label.lbl-green.denote {
+  filter: drop-shadow(0 0 3px var(--glow-green)) drop-shadow(0 0 10px var(--glow-green));
+}
+.h-purple.denote,
+.dim-label.lbl-purple.denote {
+  filter: drop-shadow(0 0 3px var(--glow-purple)) drop-shadow(0 0 10px var(--glow-purple));
+}
 
 /* ---------- the name of a half ----------
  * "Triangle 1" written in the empty corner beside its half, with a dashed
@@ -915,11 +939,37 @@ body {
 .tname.done .tname-head { opacity: 1; }
 .quad-shape.marked-green  .mark-green,
 .quad-shape.marked-purple .mark-purple { opacity: 1; }
-.lbl-green  { fill: var(--quad-green-dark); }
-.lbl-purple { fill: var(--quad-purple-dark); }
+.lbl-green  { fill: var(--ink-peach); }
+.lbl-purple { fill: var(--ink-purple); }
+/* the diagonal's letter and its length, in the deep aqua of the line they
+   measure rather than the base highlight's orange, which sat orange on the
+   peach triangle. From the first frame, not only once it is measured. */
+.quad-shape .lbl-base { fill: var(--quad-base-lbl); }
 .quad-shape.lit-base   .lbl-base,
 .quad-shape.lit-green  .lbl-green,
 .quad-shape.lit-purple .lbl-purple { opacity: 1; }
+
+/* ---------- one half at a time ----------
+ * While a triangle's area is being written, the other half steps back: its
+ * colour, and the group holding its height, right-angle mark and name. The
+ * height's own opacity is set inline by the draw that grows it, which is
+ * why the three are grouped -- the group's opacity is a separate thing and
+ * can be turned down without touching it.
+ * Later than the rules that light each part, so it outranks them for as
+ * long as the focus is on. */
+/* the quadrilateral's names are written ON the coloured halves, not beside
+   a plain shape, and each is in the hue of the part it names -- so b and h₂
+   land orange on the orange half. A heavier halo, not a different colour,
+   is what keeps them legible there. */
+.quad-shape .dim-label { stroke-width: 4.5; }
+
+.hgrp { transition: opacity .5s ease; }
+.quad-shape.focus-green  .c-purple,
+.quad-shape.focus-green  .hgrp-purple,
+.quad-shape.focus-green  .tname-purple,
+.quad-shape.focus-purple .c-green,
+.quad-shape.focus-purple .hgrp-green,
+.quad-shape.focus-purple .tname-green { opacity: .24; }
 
 /* ---------- the corner dots ----------
  * Pop in one after another, and take the pointer only while the join is the
@@ -1015,6 +1065,10 @@ body {
 .quiz-block .quiz-note { transition: opacity .36s ease, transform .36s ease; }
 .quiz-block.off .quiz-sentence,
 .quiz-block.off .quiz-note { opacity: 0; transform: translateY(8px); }
+/* the quadrilateral's box speaks from its own tail, so it is shut by having
+   its .show taken away rather than faded with the sentence -- but the
+   sentence still goes the way every quiz sentence does */
+.quiz-block.off .quiz-say { opacity: 0; transition: opacity .36s ease; }
 
 .quiz-row {
   display: flex;
@@ -1161,7 +1215,6 @@ body {
   box-shadow: 0 0 0 4px var(--tint-correct);
 }
 .dd.reject .dd-btn {
-  animation: shake .42s cubic-bezier(.36, .07, .19, .97);
   border-style: solid;
   border-color: var(--wrong);
   background: var(--tint-wrong);
@@ -1236,6 +1289,42 @@ body {
 .area-line .type-wrap { display: inline-block; vertical-align: top; margin-left: 0; }
 .area-line .type { white-space: nowrap; }
 
+/* ---------- the name quiz, side by side ----------
+ * Before the diagonal: the quadrilateral is drawn full width in the middle,
+ * then glides to the left half (script.js measures the move and plays it
+ * back, as every other two-column layout here does) and the name quiz fades
+ * in on the right half -- the sentence with its empty box across the top,
+ * and under it the room Swiftee drops into to ask and to answer.
+ * Half and half, unlike .wide: the shape is the thing being named, so it
+ * keeps as much room as the question does. */
+.quad.ask {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  gap: clamp(12px, 3vw, 40px);
+}
+.quad.ask .quad-stage { grid-column: 1; grid-row: 1; }
+/* fitRooms() pins an explicit content-fit height on the foot; centring it as
+   an item rather than fighting that height puts the quiz in the middle of
+   the half instead of flush with its top */
+.quad.ask .quad-foot { grid-column: 2; grid-row: 1; min-width: 0; align-self: center; }
+/* pinned to the half, so the box below wraps inside it rather than being
+   laid out against a width the column has not got */
+.quad.ask .quad-foot,
+.quad.ask .quiz-block { grid-template-columns: minmax(0, 1fr); }
+.quad.ask .quiz-block { width: 100%; }
+/* the remarks are sentences: nowrap would run them off the half-width
+   column, so here -- and only here -- they may break at a word. They also
+   read a size down from the body, since the box they are spoken from shares
+   its half with the bird. Later than the shared type sizes. */
+.quad.ask .quiz-bubble .type,
+.quad.ask .quiz-bubble .type-ghost { white-space: pre-wrap; }
+.quad.ask .quiz-bubble { font-size: clamp(14px, 2.5vh, 23px); }
+/* the bird stands ABOVE its sentence here, so the room the trapezium keeps
+   over its box belongs under this one -- and the drop-down's menu has the
+   rest of the half to open into instead of the bird's box */
+.quad.ask .quiz-say { margin: 0 0 clamp(10px, 2.6vh, 28px); }
+
 /* ---------- the working, side by side ----------
  * Once the diagonal is in, the board's middle cell turns into two columns:
  * the shape slides to the left two fifths (script.js animates the move) and
@@ -1261,6 +1350,7 @@ body {
 .rhom.wide { grid-template-columns: minmax(0, 1fr) minmax(min-content, 1fr); }
 .quad.wide .quiz-block,
 .quad.wide .say-row,
+.para.wide .para-ask,
 .para.wide .para-tray,
 .para.wide .facts,
 .rhom.wide .rhom-say,
@@ -1268,10 +1358,13 @@ body {
 .rhom.wide .practice-tray,
 .rhom.wide .rhom-tray { display: none; }
 /* the parallelogram's working only exists while the shape is aside; back in
-   the middle the cell is the quiz's again */
+   the middle the cell is the quiz's again. The rhombus has one more place
+   for it: `.work`, the line each triangle's answer is written on with the
+   shape still in the middle of the board, in the cell the chips just left */
 .para .area-lines,
 .rhom .area-lines { display: none; }
 .para.wide .area-lines,
+.rhom.work .area-lines,
 .rhom.wide .area-lines { display: grid; }
 .quad.wide .area-lines,
 .para.wide .area-lines,
@@ -1300,6 +1393,35 @@ body {
 .para.wide .area-line .type-ghost,
 .rhom.wide .area-line .type,
 .rhom.wide .area-line .type-ghost { white-space: pre-wrap; }
+/* ---------- the sides lesson, side by side ----------
+ * The name quiz and the two facts are short lines, and under the shape they
+ * left the board's two flanks empty while the parallelogram itself was
+ * fitted to a strip of the height. Standing them beside it instead gives the
+ * shape the whole of the row and the lines the other half of it, so nothing
+ * on the board is empty. Same columns as the working's layout -- the foot
+ * keeps its min-content, so a fact never has to wrap -- but it is the quiz
+ * and the facts that stand in it, and the area quiz, which shares their cell
+ * and is not wanted until two scenes later, is taken out of the flow so it
+ * cannot set the column's width. */
+.para.sides {
+  /* the shape takes the larger share -- it is the thing being talked about,
+     and the lines beside it are read in one glance */
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  gap: clamp(12px, 2.4vw, 34px);
+}
+.para.sides .para-foot { align-self: center; justify-items: center; min-width: 0; }
+.para.sides .area-tray { display: none; }
+/* a fact is longer than half a board, so here -- as in the working's column,
+   and only here -- it may break at a word, ghost and live text alike. Held on
+   one line it would either run off the board or drag its column out past the
+   shape's. */
+.para.sides .fact { white-space: normal; text-align: left; }
+.para.sides .fact .type,
+.para.sides .fact .type-ghost { white-space: pre-wrap; text-wrap: balance; }
+.para.sides .fact .type-wrap { max-width: 100%; }
+
 /* the working leaves before the shape comes back to the middle */
 .area-lines { transition: opacity .4s ease; }
 .area-lines.off { opacity: 0; }
@@ -1466,8 +1588,10 @@ body {
    arrows leave and the sides dim to a trace, so the next point starts on a
    quiet shape */
 .pair.lit .side-hl { opacity: 1; }
-.pair.quiet .ext,
-.pair.quiet .par-mark { opacity: 0; }
+/* Only the carry-ons go. The arrows are the notation rather than a passing
+   highlight, so once they have landed they stay for the rest of the scene
+   and the equal ticks arrive beside them, not in their place. */
+.pair.quiet .ext { opacity: 0; }
 .pair.quiet .side-hl { opacity: .35; }
 
 /* the measuring copy of a side: lifts off its side and travels across to
@@ -1567,13 +1691,31 @@ body {
   stroke-width: 4;
   filter: drop-shadow(0 0 3px var(--glow-base));
 }
-.para-shape.lit-b .d-base .d-label { fill: var(--base-hl); }
+.para-shape.lit-b .d-base .d-label { fill: var(--ink-base); }
 .para-shape.lit-h .d-h .d-height {
   stroke: var(--height-hl);
   stroke-width: 2.4;
   filter: drop-shadow(0 0 3px var(--glow-height));
 }
-.para-shape.lit-h .d-h .d-label { fill: var(--height-hl); }
+.para-shape.lit-h .d-h .d-label { fill: var(--ink-height); }
+
+/* ---- one half at a time ----
+ * The same step-back the quadrilateral does while a triangle's area is
+ * written, on the two halves the parallelogram is cut into -- and here it
+ * takes the marks with it, since each half has a base and a height of its
+ * own: the top triangle the top base and the right height, the bottom one
+ * the pair the whole shape was given. Left lit, all four would light
+ * together on a line that names one b and one h. Blurred as well as faded,
+ * so the half being written about is the only thing in focus.
+ * Later than the rules that light each part, so it outranks them for as
+ * long as the focus is on. */
+.para-dims .d-group { transition: opacity .45s ease, filter .45s ease; }
+.para-shape.focus-green  .c-purple,
+.para-shape.focus-green  .d-top,
+.para-shape.focus-green  .d-right,
+.para-shape.focus-purple .c-green,
+.para-shape.focus-purple .d-bottom,
+.para-shape.focus-purple .d-left { opacity: .2; filter: blur(1.6px); }
 
 /* ---------- under the shape ----------
  * The two-chip quiz, the area quiz, the working and the facts share one
@@ -1607,7 +1749,6 @@ body {
   background: var(--board-highlight);
   box-shadow: 0 0 0 4px var(--tint-correct);
   transform: none;
-  animation: dock-pop .5s cubic-bezier(.2, .9, .3, 1.4);
   cursor: default;
 }
 /* a wrong name, once turned down, steps back */
@@ -1615,6 +1756,29 @@ body {
   opacity: .42;
   transform: none;
   pointer-events: none;
+}
+
+/* ---------- why the wrong name is wrong ----------
+ * Shaking the chip off says only that it was wrong. The line under the chips
+ * says what to look at instead. It hangs below the tray rather than sitting
+ * in it, so the room it takes is the board's own empty half and the chips,
+ * the shape and the facts all stay exactly where they were. */
+.para-ask { position: relative; display: grid; justify-items: center; }
+.para-note {
+  position: absolute;
+  top: calc(100% + clamp(10px, 2.4vh, 26px));
+  left: 50%;
+  color: var(--wrong);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%) translateY(9px);
+  transition: opacity .28s ease, transform .28s ease, visibility 0s linear .28s;
+}
+.para-note.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%);
+  transition: opacity .22s ease, transform .42s cubic-bezier(.2, .9, .3, 1.45);
 }
 
 /* ---------- the facts ----------
@@ -1680,7 +1844,6 @@ body {
 .fact.done .fact-check {
   background: var(--correct);
   border-color: var(--correct);
-  animation: dock-pop .5s cubic-bezier(.2, .9, .3, 1.4);
 }
 .fact.done .fact-check svg { animation: tick-draw .4s ease-out .12s forwards; }
 @keyframes tick-draw { to { stroke-dashoffset: 0; } }
@@ -1937,12 +2100,12 @@ body {
   stroke: var(--board-highlight);
   stroke-width: 3;
   paint-order: stroke;
-  transition: opacity .45s ease, fill .4s ease;
+  transition: opacity .45s ease, fill .4s ease, filter .4s ease;
 }
 .rd-lbl.on { opacity: 1; }
-.rd-lbl.lbl-d1 { fill: var(--base-hl); }
+.rd-lbl.lbl-d1 { fill: var(--ink-base); }
 .rd-lbl.lbl-d2,
-.rd-lbl.lbl-h  { fill: var(--height-hl); }
+.rd-lbl.lbl-h  { fill: var(--ink-height); }
 .rmark {
   opacity: 0;
   fill: none;
@@ -1953,24 +2116,19 @@ body {
 }
 .rmark.on { opacity: 1; }
 
-/* ---------- denoting a part ----------
- * The working names a diagonal or a height: a ring sweeps once round it
- * (script.js runs the sweep off the stroke's dash), holds, and fades. It is
- * drawn under the lines and the names, so nothing it loops round is crossed
- * out, and nothing on the drawing moves or changes weight while it does it. */
-.rd-ring {
-  opacity: 0;
-  fill: none;
-  stroke-width: 3.2;
-  stroke-opacity: .85;
-  stroke-linecap: round;
-  pointer-events: none;
-  transition: opacity .42s ease;
+/* the rhombus's own parts, lit by the same hand (.denote above): the long
+   diagonal in the base hue, the short one and the two heights in the
+   height hue, each with the name it carries */
+.rd-d1.denote,
+.rd-lbl.lbl-d1.denote {
+  filter: drop-shadow(0 0 3px var(--glow-base)) drop-shadow(0 0 10px var(--glow-base));
 }
-.ring-d1 { stroke: var(--base-hl); }
-.ring-d2,
-.ring-h1,
-.ring-h2 { stroke: var(--height-hl); }
+.rd-d2.denote,
+.rd-h.denote,
+.rd-lbl.lbl-d2.denote,
+.rd-lbl.lbl-h.denote {
+  filter: drop-shadow(0 0 3px var(--glow-height)) drop-shadow(0 0 10px var(--glow-height));
+}
 
 /* a length dropped into the formula still lights the diagonal it measures */
 .rhom-shape.lit-d1 .rd-d1 { filter: drop-shadow(0 0 3px var(--glow-base)); }
@@ -1991,14 +2149,14 @@ body {
 }
 .rhom-stage .d-d1 .d-arrow,
 .rhom-stage .d-d1 .d-head { stroke: var(--base-hl); }
-.rhom-stage .d-d1 .d-label { fill: var(--base-hl); }
+.rhom-stage .d-d1 .d-label { fill: var(--ink-base); }
 .rhom-stage .d-d2 .d-arrow,
 .rhom-stage .d-d2 .d-head { stroke: var(--height-hl); }
-.rhom-stage .d-d2 .d-label { fill: var(--height-hl); }
+.rhom-stage .d-d2 .d-label { fill: var(--ink-height); }
 /* a height on a practice figure: dashed, in the height hue */
 .rhom-stage .d-hgt .d-height { stroke: var(--height-hl); }
 .rhom-stage .d-hgt .d-mark { stroke: var(--height-hl); }
-.rhom-stage .d-hgt .d-label { fill: var(--height-hl); }
+.rhom-stage .d-hgt .d-label { fill: var(--ink-height); }
 /* the length sits on its own arrow, so the halo is wide enough to part it */
 .rhom-stage .d-label { stroke-width: 7; }
 /* a diagonal whose length is asked for */
@@ -2224,10 +2382,8 @@ body {
 .fslot.correct {
   border-color: var(--correct);
   box-shadow: 0 0 0 4px var(--tint-correct);
-  animation: dock-pop .5s cubic-bezier(.2, .9, .3, 1.4);
 }
 .fslot.reject {
-  animation: shake .42s cubic-bezier(.36, .07, .19, .97);
   border-color: var(--wrong);
   border-style: solid;
   background: var(--tint-wrong);
@@ -2368,7 +2524,6 @@ body {
 .fig.pick:hover .fig-art,
 .fig.pick:focus-visible .fig-art { transform: translateY(-4px); }
 .fig .fig-chip { pointer-events: none; }
-.fig.reject .fig-art { animation: shake .42s cubic-bezier(.36, .07, .19, .97); }
 .fig.spent { opacity: .5; cursor: default; }
 .fig.correct .art { filter: drop-shadow(0 0 6px var(--glow-correct)) drop-shadow(0 3px 5px var(--shadow-soft)); }
 .fig.correct .shape-fill { fill: var(--quad-green); }
@@ -2377,7 +2532,6 @@ body {
   background: var(--board-highlight);
   box-shadow: 0 0 0 4px var(--tint-correct);
   transform: none;
-  animation: dock-pop .5s cubic-bezier(.2, .9, .3, 1.4);
 }
 /* the working under a compared figure, typed once the answer is in */
 .fig-work {
@@ -2820,6 +2974,13 @@ body {
               border-color .2s ease;
 }
 .slot.reveal { opacity: 1; transform: none; }
+/* While motion.js walks a group in, the two properties it is writing are its
+   own: the transition above would be a second animation of the same opacity
+   and the same transform, settling towards a value that moves every frame.
+   Everything else the transition covers is left running. */
+.slot.revealing {
+  transition-property: height, margin-top, border-width, background, box-shadow, border-color;
+}
 
 /* a slot that has not been introduced yet is invisible and untouchable, but
    still occupies its row */
@@ -2859,36 +3020,25 @@ body {
   --docked-text:   var(--tri-chip-text);
 }
 
-/* a correct dock gives the slot one short outward pulse */
+/* A correct dock: the green the slot keeps. The pulse that goes with it
+   is Motion.correctPulse(), in js/motion.js. */
 .slot.correct {
   border-color: var(--correct);
   box-shadow: 0 0 0 4px var(--tint-correct);
-  animation: dock-pop .5s cubic-bezier(.2, .9, .3, 1.4);
-}
-@keyframes dock-pop {
-  0%   { transform: scale(1); }
-  45%  { transform: scale(1.08); }
-  100% { transform: scale(1); }
 }
 
-/* ---------- wrong answer: red flash + shake ---------- */
+/* ---------- wrong answer: the red flash ----------
+ * The shake that goes with it is Motion.wrongShake(), in js/motion.js. */
 .slot.reject {
-  animation: shake .42s cubic-bezier(.36, .07, .19, .97);
   border-color: var(--wrong);
   border-style: solid;
   background: var(--tint-wrong);
   box-shadow: 0 0 0 4px var(--glow-wrong);
 }
 .chip.reject {
-  animation: shake .42s cubic-bezier(.36, .07, .19, .97);
   border-color: var(--wrong);
   background: var(--tint-wrong);
   box-shadow: 0 0 0 3px var(--glow-wrong);
-}
-@keyframes shake {
-  0%, 100%      { transform: translateX(0); }
-  15%, 45%, 75% { transform: translateX(-8px) rotate(-1.4deg); }
-  30%, 60%, 90% { transform: translateX(8px) rotate(1.4deg); }
 }
 
 /* ---------- word choices ---------- */
@@ -2953,6 +3103,7 @@ body {
               background .16s ease;
 }
 .chip.reveal { opacity: 1; transform: none; }
+.chip.revealing { transition-property: box-shadow, border-color, background; }
 .chip:not(.reveal) { pointer-events: none; }
 
 /* Area formulas run longer than a single word, so they get a step down in
@@ -3061,10 +3212,11 @@ body {
   background-size: var(--sw-size);
   background-position: var(--sw-pos);
   filter: drop-shadow(0 5px 8px var(--shadow-soft));
-  will-change: transform;
 }
+/* .on is on for exactly the length of one flight, which is exactly how long
+   the compositor should be holding a layer for it */
 .hopper.on,
-.flyer.on { display: block; }
+.flyer.on { display: block; will-change: transform; }
 /* over the board (which has no z-index of its own) and under the input lock
    at 900 -- which is transparent, so nothing is hidden by the order */
 .flyer { z-index: 800; }
@@ -3087,7 +3239,10 @@ body {
 
 .intro-mascot {
   position: absolute;
-  left: 50%;
+  /* left of centre: the bubble sits off the right shoulder, so standing the
+     bird dead centre pushes the pair into the right edge of the screen --
+     the two together read as centred from here */
+  left: 37.5%;
   margin-left: calc(var(--im) / -2);
   /* feet (87.7% down the cell) on the ground line, 17.5% up from the foot of
      the screen -- the sprite's empty foot strip hangs below that */
@@ -3102,7 +3257,6 @@ body {
   /* below the ground line and invisible until script.js springs it up */
   transform: translateY(60%);
   opacity: 0;
-  will-change: transform, opacity;
 }
 
 /* ---------- an aside between sections ----------
@@ -3140,7 +3294,9 @@ body {
 /* ---------- speech bubble ---------- */
 .bubble {
   position: absolute;
-  left: 50.5%;
+  /* half a point right of the bird's centre, so the tail comes down by the
+     beak; moves with .intro-mascot */
+  left: 38%;
   bottom: 57.5vh;
   /* wide enough for either line to stay on one row; script.js slides the box
      left when the screen runs out before the line does. The subtraction is the
@@ -3255,6 +3411,9 @@ body {
   pointer-events: none;
   overflow: hidden;
 }
+/* A confetti piece is made when it starts falling and removed when it lands,
+   so its whole life is its animation: the hint is held for exactly as long as
+   the rule asks, and there is no later moment to take it off in. */
 .fx-layer i {
   position: fixed;
   display: block;
@@ -3421,15 +3580,26 @@ body {
   overflow: hidden;
 }
 
+/* The bar is full width and scaled down to the part that is loaded, rather
+   than being a narrow box that is widened: a width is a layout on every
+   frame of a bar that moves for as long as the game takes to load, and a
+   scale is a transform the compositor does for nothing. --fill is the one
+   number script.js sets, 0 to 1. */
 .loader-fill {
   position: relative;
-  width: 0%;
+  width: 100%;
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--mountain) 0%, var(--board-border) 62%, var(--board-highlight) 100%);
+  --fill: 0;
+  transform: scaleX(var(--fill));
+  transform-origin: left center;
 }
 /* a sheen sliding along the filled length, so the bar looks powered rather
-   than merely long */
+   than merely long. The bar it sits on is squashed horizontally, so the
+   sheen is stretched back out by the same amount and keeps its width
+   whatever the bar is showing. The floor on the divisor keeps an empty bar
+   from dividing by zero -- nothing is visible there anyway. */
 .loader-fill::after {
   content: "";
   position: absolute;
@@ -3438,6 +3608,8 @@ body {
   background: linear-gradient(90deg, transparent 0%, var(--sheen) 50%, transparent 100%);
   background-size: 90px 100%;
   animation: loader-sheen 1.15s linear infinite;
+  transform: scaleX(calc(1 / max(var(--fill), .02)));
+  transform-origin: left center;
 }
 @keyframes loader-sheen {
   from { background-position: -90px 0; }
@@ -3647,8 +3819,13 @@ body {
  *
  * Green for the right name, red for a wrong one, in the words and the box's
  * edge alike. The lines are long, so they are allowed to wrap; the ghost
- * holds the longest of them, so the box is one size for the whole quiz. */
-.trap-say {
+ * holds the longest of them, so the box is one size for the whole quiz.
+ *
+ * Section 3's name quiz is the same room and the same box -- the bird asks
+ * from it before the first choice and answers into it after each one -- so
+ * the two share every rule below. */
+.trap-say,
+.quiz-say {
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -3659,7 +3836,8 @@ body {
 }
 /* scoped to the block so it outranks the banner transition every .quiz-note
    shares: this one is a box that opens and shuts, not a line that fades */
-.quiz-block .trap-note {
+.quiz-block .trap-note,
+.quiz-block .quiz-bubble {
   --note-edge: var(--board-border);
   position: relative;
   min-width: 0;
@@ -3685,7 +3863,8 @@ body {
   transition: transform .3s ease-in, opacity .22s ease, visibility 0s linear .3s,
               color .35s ease, border-color .35s ease;
 }
-.quiz-block .trap-note.show {
+.quiz-block .trap-note.show,
+.quiz-block .quiz-bubble.show {
   opacity: 1;
   visibility: visible;
   transform: none;
@@ -3693,7 +3872,8 @@ body {
               color .35s ease, border-color .35s ease;
 }
 /* the tail, reaching back down to the bird on its left */
-.trap-note::after {
+.trap-note::after,
+.quiz-bubble::after {
   content: "";
   position: absolute;
   left: 1.05em;
@@ -3707,12 +3887,18 @@ body {
   background: var(--board-bg);
   transform: rotate(-45deg);
 }
-.trap-note .type-wrap { display: block; }
-.trap-note .type-ghost { display: block; text-wrap: balance; }
-.trap-note .type { white-space: normal; text-align: center; text-wrap: balance; }
-.trap-note .caret { background: var(--heading); }
-.trap-note.ok  { --note-edge: var(--correct); color: var(--correct); }
-.trap-note.bad { --note-edge: var(--wrong);   color: var(--wrong); }
+.trap-note .type-wrap,
+.quiz-bubble .type-wrap { display: block; }
+.trap-note .type-ghost,
+.quiz-bubble .type-ghost { display: block; text-wrap: balance; }
+.trap-note .type,
+.quiz-bubble .type { white-space: normal; text-align: center; text-wrap: balance; }
+.trap-note .caret,
+.quiz-bubble .caret { background: var(--heading); }
+.trap-note.ok,
+.quiz-bubble.ok  { --note-edge: var(--correct); color: var(--correct); }
+.trap-note.bad,
+.quiz-bubble.bad { --note-edge: var(--wrong);   color: var(--wrong); }
 
 /* the fall off the bottom of the screen passes over the board's footer
    band, which comes after this section in the document */
@@ -3922,12 +4108,9 @@ body {
   stroke: var(--correct);
   stroke-width: 3;
 }
-.card.correct .card-box,
-.card.named .card-box { animation: dock-pop .5s cubic-bezier(.2, .9, .3, 1.4); }
 /* the right pick's whole answer: a glow round the green border, no popup */
 .card.correct .card-bg { filter: drop-shadow(0 0 6px var(--glow-correct)); }
 .card.correct { cursor: default; }
-.card.reject .card-box { animation: shake .42s cubic-bezier(.36, .07, .19, .97); }
 .card.reject .card-bg {
   fill: var(--tint-wrong);
   stroke: var(--wrong);
@@ -4265,7 +4448,7 @@ body {
   stroke-width: 4;
   filter: drop-shadow(0 0 3px var(--glow-base));
 }
-.rt-dims .d-group.lit.rt-len .d-label { fill: var(--base-hl); }
+.rt-dims .d-group.lit.rt-len .d-label { fill: var(--ink-base); }
 .rt-dims .d-group.lit.rt-hgt .d-arrow,
 .rt-dims .d-group.lit.rt-hgt .d-height,
 .rt-dims .d-group.lit.rt-hgt .d-head {
@@ -4273,7 +4456,7 @@ body {
   stroke-width: 4;
   filter: drop-shadow(0 0 3px var(--glow-height));
 }
-.rt-dims .d-group.lit.rt-hgt .d-label { fill: var(--height-hl); }
+.rt-dims .d-group.lit.rt-hgt .d-label { fill: var(--ink-height); }
 
 /* ---------- under the shape ----------
  * Swiftee hops down to the left of the working: what is being worked out,
@@ -4406,7 +4589,7 @@ body {
 .rtrap-stage .fig .d-label { stroke-width: 7; }
 .rtrap-stage .d-hgt .d-height { stroke: var(--height-hl); }
 .rtrap-stage .d-hgt .d-mark   { stroke: var(--height-hl); }
-.rtrap-stage .d-hgt .d-label  { fill: var(--height-hl); }
+.rtrap-stage .d-hgt .d-label  { fill: var(--ink-height); }
 /* a value that has been placed, or a step of the working that names it,
    lights the measurement it belongs to */
 .rtrap-stage .fig .d-group.lit.rt-len .d-arrow,
@@ -4415,7 +4598,7 @@ body {
   stroke-width: 4;
   filter: drop-shadow(0 0 3px var(--glow-base));
 }
-.rtrap-stage .fig .d-group.lit.rt-len .d-label { fill: var(--base-hl); }
+.rtrap-stage .fig .d-group.lit.rt-len .d-label { fill: var(--ink-base); }
 .rtrap-stage .fig .d-group.lit.d-hgt .d-height,
 .rtrap-stage .fig .d-group.lit.d-hgt .d-mark {
   stroke-width: 3.6;
@@ -4711,7 +4894,10 @@ body {
   line-height: 1.25;
 }
 .tn-formula > * { opacity: 0; }
-.tn-formula > .in { animation: wd-in .46s cubic-bezier(.2, .7, .3, 1) both; }
+/* the opacity is set here as well as held by the animation's fill: a piece
+   that later takes an animation of its own -- the live slot's pulse -- would
+   otherwise drop the `both` fill with it and vanish */
+.tn-formula > .in { opacity: 1; animation: wd-in .46s cubic-bezier(.2, .7, .3, 1) both; }
 
 /* ---------- the question is the box in the formula ----------
  * a, b and h are not letters with a drop-down parked under them: each letter
@@ -4740,6 +4926,48 @@ body {
   box-shadow: 0 0 0 5px var(--glow-board);
 }
 .tn-area .dd { display: inline-block; margin: 0 .15em; vertical-align: middle; }
+
+/* ---------- a, b and h are dragged in, not chosen from a list ----------
+ * The three boxes in the formula are drop slots and the three measurements
+ * sit in a tray under it: the learner reads a length off the drawing and
+ * carries it to the letter it belongs to, which is a truer action than
+ * picking it out of a menu. Only the box the question is about takes a
+ * drop, so the answer can never land in the wrong letter by accident. */
+.tn-formula .fslot {
+  min-width: 3.2em;
+  height: 1.55em;
+  font-size: .92em;
+}
+.tn-formula .fslot .hint { font-size: 1.08em; }
+.tn-formula .fslot.live {
+  border-style: solid;
+  border-color: var(--trap-border);
+  background: var(--tint-trap);
+  box-shadow: 0 0 0 5px var(--glow-board);
+}
+/* the box waiting for a drop breathes, so it is plain where the value goes */
+@keyframes slot-wait {
+  0%, 100% { box-shadow: 0 0 0 5px var(--glow-board); }
+  50%      { box-shadow: 0 0 0 9px var(--glow-board-soft); }
+}
+.tn-formula .fslot.live:not(.filled) { animation: slot-wait 1.5s ease-in-out infinite; }
+/* and a box already filled says nothing more */
+.tn-formula .fslot.filled { background: var(--drop-bg); }
+
+.tn-tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(8px, 1.2vw, 18px);
+  width: 100%;
+}
+.tn-tray .chip { cursor: grab; }
+.tn-tray .chip:active { cursor: grabbing; }
+.tn-tray .chip.reveal:hover,
+.tn-tray .chip.reveal:focus-visible { border-color: var(--trap-border); }
+/* an emptied tray gives its room back */
+.tn-tray:empty { display: none; }
 /* An open menu has to clear whatever is under it in the panel. The nudge's
    words each ease in, and an animated opacity makes every one of them a
    stacking context LATER in the tree than the box -- so without a z-index
@@ -4846,13 +5074,15 @@ body {
 .area-line,
 .say-text,
 .quiz-note,
+.quiz-bubble,
 .fact,
 .rtrap-text { white-space: nowrap; }
 .type-wrap .type-ghost,
 .type-wrap .type,
 .rtrap.wide .rtrap-text .type,
 .practice-say .say-text .type,
-.trap-note .type { white-space: pre; }
+.trap-note .type,
+.quiz-bubble .type { white-space: pre; }
 .practice-say .say-text { max-width: none; }
 /* the one exception: Swiftee's speech bubble on the landscape wraps its
    line inside the bubble's width, ghost and live text alike */
@@ -4895,6 +5125,7 @@ body {
 .practice-say > .mascot,
 .rtrap-say > .mascot,
 .trap-say > .mascot,
+.quiz-say > .mascot,
 .facts > .mascot { margin-right: calc(var(--mascot) * -.16); }
 /* the quiz sentence has the bird at its right end instead */
 .quiz-row { gap: clamp(2px, .4vw, 6px); }
@@ -5024,9 +5255,10 @@ body {
 
 /* ---------- measured sides ----------
  * A side's name sits on a dashed two-headed arrow just outside the side it
- * measures -- the warm-up's length, breadth, side, base and height -- and
- * the triangle lesson's dashed base and height lines carry the same heads.
- * Horizontal measures take the base hue, vertical ones the height hue. */
+ * measures -- the warm-up's length, breadth, side, base and height.
+ * Horizontal measures take the base hue, vertical ones the height hue.
+ * The triangle lesson's base and height are plain dashed lines: they are
+ * read off the label beside them, and the heads only crowded the drawing. */
 .wdim-line,
 .wdim-head {
   fill: none;
@@ -5038,20 +5270,8 @@ body {
 .wdim-line { stroke-dasharray: 8 7; }
 .wdim-h .wdim-line, .wdim-h .wdim-head { stroke: var(--base-hl); }
 .wdim-v .wdim-line, .wdim-v .wdim-head { stroke: var(--height-hl); }
-.wdim-h .shape-label { fill: var(--base-hl); }
-.wdim-v .shape-label { fill: var(--height-hl); }
-.dim-head {
-  opacity: 0;
-  fill: none;
-  stroke: var(--heading);
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: opacity .3s ease, stroke .4s ease, filter .4s ease;
-}
-.tri.marked .dim-head { opacity: 1; }
-.tri.lit-base .head-base { stroke: var(--base-hl); filter: drop-shadow(0 0 3px var(--glow-base)); }
-.tri.lit-height .head-height { stroke: var(--height-hl); filter: drop-shadow(0 0 3px var(--glow-height)); }
+.wdim-h .shape-label { fill: var(--ink-base); }
+.wdim-v .shape-label { fill: var(--ink-height); }
 /* in the warm-up the measures take the colour of the shape they belong to */
 .shape .wdim-line,
 .shape .wdim-head { stroke: var(--shape-border); }
@@ -5183,9 +5403,9 @@ body {
   --fs-label:   18px;
 }
 .prompt { font-size: var(--fs-heading); }
-.formula-box,
 .quiz-sentence,
 .quiz-note,
+.quiz-bubble,
 .trap-note,
 .say-text,
 .practice-say .say-text,
@@ -5200,6 +5420,9 @@ body {
 .tn-formula,
 .tn-hint,
 .rtrap-qs .q-line { font-size: var(--fs-body); }
+/* the area formula is what the whole section is building to: one step above
+   the body text, so it lands as the conclusion rather than another line */
+.formula-box { font-size: calc(var(--fs-body) * 1.3); }
 /* beside a shape the body size is kept within the column's width */
 .quad.wide .area-line,
 .para.wide .area-line,
@@ -5230,7 +5453,6 @@ body {
 .jump-btn, .jump-opt, .tool-btn { font-size: var(--fs-small); }
 /* the letters in the drawings */
 .shape[data-shape] .shape-label,
-.dim-label,
 .quad-shape .d-label,
 .para-shape .d-label,
 .rhom-shape .d-label,
@@ -5238,6 +5460,10 @@ body {
 .fig-row.stepped .fig .d-label,
 .rd-lbl,
 .ang-lbl { font-size: var(--fs-label); }
+/* Base and Height, written along a dashed measuring line: a step under the
+   rest of the lettering. They sit outside the drawing rather than in it, and
+   at the full label size they read louder than the shape they measure. */
+.dim-label { font-size: calc(var(--fs-label) * .86); }
 
 /* ---------- the console band goes with the warm-up ----------
  * Once the decks are gone the band's padding is all that is left of it, an
