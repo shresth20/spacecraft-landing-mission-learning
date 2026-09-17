@@ -267,9 +267,15 @@
             </defs>
             <!-- built by script.js from the scene's corners -->
             <g class="art"></g>
+            <!-- the rings the working denotes a part with: over the colours,
+                 under every line and name, so nothing is crossed out -->
+            <g class="qrings"></g>
             <!-- the learner's diagonal: left corner to right corner -->
             <line class="join-line" id="joinLine" x1="10" y1="151" x2="10" y2="151" />
             <g class="dims"></g>
+            <!-- each half's name, written clear of the shape, with a dashed
+                 curve looping in to the half it names -->
+            <g class="tnames"></g>
             <!-- the hint: a dotted line and a finger travelling left to right -->
             <g class="demo" id="demoJoin">
               <line class="demo-line" id="demoLine" x1="10" y1="151" x2="10" y2="151" />
@@ -503,15 +509,33 @@
         <!-- the practice questions' answers: chips built by script.js -->
         <div class="para-tray practice-tray" id="practiceTray"></div>
 
-        <!-- Swiftee hops down here to explain the answer to a question -->
-        <div class="practice-say" id="practiceSay">
-          <div class="mascot" id="practiceMascot" aria-hidden="true"></div>
-          <p class="say-text" id="practiceText" aria-live="polite">
-            <span class="type-wrap">
-              <span class="type-ghost"></span>
-              <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
-            </span>
-          </p>
+        <!-- the area of the rhombus, asked of one figure (page 21): the
+             board halves, the rhombus keeps the left of it and this panel
+             the right. Swiftee comes down into the panel instead of staying
+             up at the heading, so the question sits beside the answers for
+             as long as the learner is choosing and nothing is ever said over
+             the drawing. Under it the formula the question wants, the four
+             answers, a nudge that only shows after a wrong pick, and the
+             working the right answer solves itself into. Everything inside
+             is built by script.js, so a replay clears it. -->
+        <div class="rc-panel" id="rcPanel">
+          <div class="rc-say" id="rcSay">
+            <div class="mascot" id="rcMascot" aria-hidden="true"></div>
+            <p class="say-text rc-text" id="rcText" aria-live="polite">
+              <span class="type-wrap">
+                <span class="type-ghost"></span>
+                <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+              </span>
+            </p>
+          </div>
+          <!-- the formula, put up before the answers: the scaffold the
+               question is asked on, with no number anywhere in it -->
+          <div class="area-line rc-formula" id="rcFormula">
+            <span class="seg">Area = <span class="frac"><span class="num">1</span><span class="den">2</span></span> &#215; d&#8321; &#215; d&#8322;</span>
+          </div>
+          <div class="para-tray rc-tray" id="rcTray"></div>
+          <p class="tn-hint rc-hint" id="rcHint" aria-live="polite"></p>
+          <div class="area-lines rc-work" id="rcWork" aria-live="polite"></div>
         </div>
       </div>
     </section>
@@ -550,15 +574,10 @@
            name quiz of level 1, and the names to drag once the trapeziums
            have lined up -->
       <div class="trap-foot">
-        <!-- the name quiz: "This is a [ v ]", Swiftee beside it, its remark
-             in a banner under it -->
+        <!-- the name quiz: "This is a [ v ]" across the top, and well below
+             it the room Swiftee drops into to answer -- the bird on the
+             left, its remark in a box up and to its right -->
         <div class="quiz-block" id="trapQuiz">
-          <p class="quiz-note trap-note" id="trapNote" aria-live="polite">
-            <span class="type-wrap">
-              <span class="type-ghost"></span>
-              <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
-            </span>
-          </p>
           <div class="quiz-row">
             <div class="quiz-sentence">
               <span class="quiz-label">This is a</span>
@@ -578,6 +597,18 @@
                 </svg>
               </div>
             </div>
+          </div>
+          <!-- Swiftee's landing spot under the sentence. The row is laid out
+               from the first frame -- bird and box both invisible until they
+               are wanted -- so the arrival of either moves nothing. -->
+          <div class="trap-say">
+            <div class="mascot" id="trapMascot" aria-hidden="true"></div>
+            <p class="quiz-note trap-note" id="trapNote" aria-live="polite">
+              <span class="type-wrap">
+                <span class="type-ghost"></span>
+                <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+              </span>
+            </p>
           </div>
         </div>
 
@@ -673,6 +704,42 @@
           </div>
         </div>
         <div class="area-lines rtrap-qs" id="rtrapQs" aria-live="polite"></div>
+        <!-- the values scene (page 27): the trapezium keeps the left half of
+             the board and this panel the right. The formula is revealed a
+             piece at a time and its a, b and h ARE the drop-downs, so every
+             question is asked where its answer will be read; the area is
+             asked the same way on an "Area = [ v ]" line under it, which
+             then solves itself. A nudge under both only shows after a wrong
+             pick. Everything inside is built by script.js, so a replay
+             clears it. -->
+        <div class="tn-panel" id="tnPanel">
+          <div class="tn-formula" id="tnFormula" aria-live="polite"></div>
+          <div class="tn-ask" id="tnAsk"></div>
+          <div class="area-lines tn-work" id="tnWork" aria-live="polite"></div>
+          <p class="tn-hint" id="tnHint" aria-live="polite"></p>
+        </div>
+        <!-- page 31, the check for understanding: the board is halved the
+             way the values scene halves it -- the trapezium keeps the left
+             half -- but the bird comes with the panel rather than staying up
+             at the heading, so the question sits at the top of the right
+             half and stays there for as long as the learner is choosing.
+             Under it the four answers, a nudge that only shows after a wrong
+             pick, and the working the right answer solves itself into.
+             Everything inside is built by script.js, so a replay clears it. -->
+        <div class="tc-panel" id="tcPanel">
+          <div class="tc-say" id="tcSay">
+            <div class="mascot" id="tcMascot" aria-hidden="true"></div>
+            <p class="say-text tc-text" id="tcText" aria-live="polite">
+              <span class="type-wrap">
+                <span class="type-ghost"></span>
+                <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+              </span>
+            </p>
+          </div>
+          <div class="para-tray tc-tray" id="tcTray"></div>
+          <p class="tn-hint tc-hint" id="tcHint" aria-live="polite"></p>
+          <div class="area-lines tc-work" id="tcWork" aria-live="polite"></div>
+        </div>
         <div class="para-tray practice-tray" id="rtrapPTray"></div>
         <div class="practice-say" id="rtrapPSay">
           <div class="mascot" id="rtrapPMascot" aria-hidden="true"></div>
