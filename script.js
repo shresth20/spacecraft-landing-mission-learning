@@ -698,7 +698,8 @@
   const swiftee = (function () {
     const S = window.SWIFTEE;
     const nodes = ['mascot', 'welcomeMascot', 'introMascot', 'hopper',
-                   'quizMascot', 'sideMascot', 'factMascot', 'rhomMascot', 'rcMascot',
+                   'quizMascot', 'sideMascot', 'factMascot', 'paraMascot',
+                   'rhomMascot', 'rcMascot',
                    'trapMascot', 'rtrapMascot', 'rtrapPMascot', 'tcMascot', 'flyer']
       .map(id => document.getElementById(id))
       .filter(Boolean);
@@ -984,9 +985,18 @@
                    (flying && birdTrip.indexOf(bird) >= 0);
       return (txt && txt.childNodes.length) || here ? room.firstElementChild.offsetHeight : 0;
     }
-    let h = 0;
-    for (const child of room.children) if (roomShown(child)) h = Math.max(h, child.offsetHeight);
-    return h;
+    /* A foot may keep a row of its OWN above the cell the rest share --
+       Swiftee's box in the parallelogram's sides -- and then the room is that
+       row plus the cell plus the gap between them, not the taller of the two.
+       Every other foot has one cell and falls through to the max. */
+    let h = 0, top = 0;
+    for (const child of room.children) {
+      if (!roomShown(child)) continue;
+      if (child.classList.contains('room-row')) top = Math.max(top, child.offsetHeight);
+      else h = Math.max(h, child.offsetHeight);
+    }
+    if (!top) return h;
+    return h ? top + h + (parseFloat(getComputedStyle(room).rowGap) || 0) : top;
   }
   /* A room opens the moment it has something to show and closes on a short
      delay. Every close is a half-second transition of the board's whole
@@ -3432,7 +3442,7 @@
     /* a clean slate: no split, no lights, no lines, one column -- neither
        the quiz's half-and-half nor the working's two fifths */
     quadShape.className = 'quad-shape';
-    quad.classList.remove('wide', 'ask');
+    quad.classList.remove('wide', 'ask', 'own');
     setLine(joinLine, A, A);
     joinLine.classList.remove('live', 'bad', 'done');
     demoG.classList.remove('on');
@@ -4241,9 +4251,14 @@
     };
   }
 
-  /* Both boxes are live at once, and between them they must hold the two
-     parts named -- in either order. A part already in one box is turned down
-     by the other.
+  /* Both boxes are live at once, but each one is bound to the part it is
+     asking for: `need` is read in the boxes' own order -- the base in the
+     box hinted "base", the triangle's height in the one hinted "height" --
+     so an answer that belongs in the other box is turned down here like any
+     other wrong one (user, 2026-09-18). They used to be interchangeable,
+     which let h₁ or h₂ be dropped into the box asking for the base and stand
+     there green; the box names what belongs in it, so it now holds nothing
+     else.
 
      A right answer also points at what it names: the moment the box closes
      green, a ring sweeps round that side on the drawing -- the base along
@@ -4254,12 +4269,9 @@
      drawing is left alone. */
   const PART_ANSWER = { base: 'base', 'h-green': 'h-green', 'h-purple': 'h-purple' };
   async function askFormula(f, need) {
-    const taken = new Set();
-    const ok = v => need.indexOf(v) !== -1 && !taken.has(v);
     lockInput(false);
-    await Promise.all(f.dds.map(d => d.ask(ok,
+    await Promise.all(f.dds.map((d, i) => d.ask(v => v === need[i],
       v => {
-        taken.add(v);
         feedback(FEEDBACK.right);
         if (PART_ANSWER[v]) onAreaWord(PART_ANSWER[v]);
       },
@@ -4618,6 +4630,11 @@
     sceneStart(sectionFive);
 
     await nextQuad(SPEC_C);
+    /* this scene's board is half and half (user, 2026-09-18): the shape is
+       what the three questions are about, so it keeps as much of the width
+       as they do. Set before the move, so layoutWide measures the column the
+       shape is actually easing into. buildQuad above has just cleared it. */
+    quad.classList.add('own');
     await heading(FIVE.turn);
     await wait(300);
     await showSplit(['L', 'R'], SPEC_C);
@@ -4734,8 +4751,11 @@
   const paraDims   = document.getElementById('paraDims');
   const paraTray   = document.getElementById('paraTray');
   const paraChips  = Array.from(paraTray.querySelectorAll('.chip'));
-  const paraNote   = document.getElementById('paraNote');
-  const paraNoteTxt = paraNote.querySelector('.txt');
+  const paraSay    = document.getElementById('paraSay');
+  const paraMascot = document.getElementById('paraMascot');
+  const paraText   = document.getElementById('paraText');
+  const paraTxt    = paraText.querySelector('.txt');
+  const paraCaret  = paraText.querySelector('.caret');
   const areaTray   = document.getElementById('areaTray');
   const areaChips  = Array.from(areaTray.querySelectorAll('.chip'));
   const paraLines  = document.getElementById('paraLines');
@@ -4991,7 +5011,6 @@
    * in together, so the learner reads one sentence rather than watching it
    * arrive -- the same voice the trapezium's quiz answers in. The same box
    * holds every try, and the ghost carries the line from the first frame. */
-  paraNote.querySelector('.type-ghost').textContent = PARA.hint;
 
   /* And each fact's box is its whole line from the first frame. The live
      text is laid over its ghost rather than in the flow, so without this the
@@ -5001,13 +5020,25 @@
     factEls[k].querySelector('.type-ghost').textContent =
       PARA.facts[k].map(seg => seg.t).join('');
   });
-  function showParaNote(text) {
-    paraNote.querySelector('.caret').hidden = true;
-    wordSpans(paraNoteTxt, text).forEach(w => w.el.classList.add('in'));
-    paraNote.classList.add('show');
-    return wordsSettle();
+  /* Every line of this scene, said from Swiftee's own box at the top of the
+     right half rather than from the board's heading (user, 2026-09-18): the
+     question, the reason a wrong name is wrong, the answer, and the lines
+     about the sides. `wrong` puts the line in the wrong hue -- the reason a
+     name was turned down is said here now, not under the chips. */
+  async function sayPara(text, wrong) {
+    feedbackGen++;
+    paraText.classList.toggle('wrong', !!wrong);
+    swiftee.hold('talking');
+    await typeSegments(paraTxt, paraCaret, [{ t: text }], TYPE_MS, 320, null);
+    swiftee.release();
   }
-  const hideParaNote = () => paraNote.classList.remove('show');
+  /* a replay finds the row as the last run left it: empty, and up */
+  function clearParaSay() {
+    paraSay.classList.remove('off', 'quiet');
+    paraText.classList.remove('wrong');
+    paraTxt.textContent = '';
+    paraCaret.hidden = true;
+  }
 
   /* the chips fade up one after another */
   async function dealChips(chips) {
@@ -5083,12 +5114,12 @@
   /* Swiftee hops down beside the list and states a fact: the line types out
      beside it, its key words lighting up in the pair's hue, and the ring
      fills with a tick once it has landed */
+  /* Swiftee does not hop down to the list any more (user, 2026-09-18): it is
+     already standing in its box at the top of this half, and the fact types
+     itself out in the cell underneath. */
   async function stateFact(k) {
     const el = factEls[k];
     feedbackGen++;
-    promptTxt.textContent = '';
-    caret.hidden = true;
-    await hopBetween(boardMascot, factMascot);
     await wait(200);
     el.classList.add('show');
     await wait(REDUCED ? 160 : 420);
@@ -5107,6 +5138,7 @@
        replay can find the last run's columns still on it: the shape is
        revealed in the middle of the board and moves aside afterwards */
     para.classList.remove('sides', 'wide');
+    clearParaSay();
 
     /* 1. the aside ends: the bubble pops away and Swiftee drops out of the
           frame, as it did before the board first arrived */
@@ -5120,7 +5152,7 @@
        it while it is still invisible, and the heading's ghost takes the
        longest line of this scene while there is nothing on the board to move */
     board.classList.add('sec4');
-    promptReserve(longest([PARA.ask, PARA.right, PARA.look1, PARA.never, PARA.look2, PARA.measure, PARA.fit1, PARA.fit2]
+    promptReserve(longest([PARA.look1, PARA.never, PARA.look2, PARA.measure, PARA.fit1, PARA.fit2]
       .concat(Object.keys(PARA2).map(k => PARA2[k]), PARA3.turn)));
     buildPara();
     await wait(200);
@@ -5142,18 +5174,25 @@
     await layoutWide(para, paraSvg, true, 'sides');
     await wait(300);
 
-    /* 3. Swiftee jumps up from behind the board to the heading; the two
-          names appear, and the question is asked. A wrong name is turned
-          down with the reason, written under the chips. */
+    /* 3. Swiftee jumps up into its box at the top of the right half and
+          stays there for the rest of the scene: the question, the reason a
+          wrong name is wrong and the answer are all said from the one spot.
+          The ghost is cut to the longest line the box will ever hold, so the
+          box is its full size from the first frame and nothing under it
+          moves as the lines change over. */
+    lineSpans(paraText.querySelector('.type-ghost'),
+      [{ t: longest([PARA.ask, PARA.hint, PARA.right, PARA.look1, PARA.never,
+                     PARA.look2, PARA.measure, PARA.fit1, PARA.fit2]) }]);
+    await mascotJumpIn(paraMascot);
+    await wait(REDUCED ? 80 : 260);
+    await sayPara(PARA.ask);
     await dealChips(paraChips);
     await wait(200);
-    await heading(PARA.ask);           /* the bird comes up with this line */
-    await askChips(paraChips, PARA_ANSWER, () => showParaNote(PARA.hint));
-    hideParaNote();
-    await heading(PARA.right);
+    await askChips(paraChips, PARA_ANSWER, () => sayPara(PARA.hint, true));
+    await sayPara(PARA.right);
     await wait(1500);
 
-    /* 4. the names go; the fact list stands ready beside the shape */
+    /* 4. the names go and the fact list takes the cell under the box */
     paraTray.classList.add('off');
     await wait(460);
     facts.classList.add('show');
@@ -5161,15 +5200,15 @@
 
     /* 5. parallel: the top and bottom light up as Swiftee points at them,
           are carried on and never meet; then the left and right */
-    let said = heading(PARA.look1);
+    let said = sayPara(PARA.look1);
     await lightPair('a');
     await said;
     await wait(500);
-    said = heading(PARA.never);
+    said = sayPara(PARA.never);
     await extendPair('a');
     await said;
     await wait(900);
-    said = heading(PARA.look2);
+    said = sayPara(PARA.look2);
     await lightPair('b');
     await extendPair('b');
     await said;
@@ -5182,20 +5221,18 @@
           its parallel marks alone. Two seconds of that -- long enough to read
           the marking as the marking, not as a passing highlight -- and the
           equal marks arrive beside them, a copy of each first side laid over
-          its partner. The bird travels back up to the heading inside those
-          two seconds, so they belong to the marks rather than to the hop. */
+          its partner. The bird has not moved, so the two seconds belong to
+          the marks alone. */
     quietPair('a');
     quietPair('b');
-    const backUp = hopBetween(factMascot, boardMascot);
     await wait(2000);
-    await backUp;
-    let measured = heading(PARA.measure);
+    let measured = sayPara(PARA.measure);
     await measurePair('a');
     await measured;
-    await heading(PARA.fit1);
+    await sayPara(PARA.fit1);
     await wait(700);
     await measurePair('b');
-    await heading(PARA.fit2);
+    await sayPara(PARA.fit2);
     await wait(700);
 
     /* Swiftee hops down and states the second fact, and is proud of it */
@@ -5205,8 +5242,11 @@
     sfx('confetti', .7);
     await wait(2200);
 
-    /* 7. back to the heading, and on */
-    await hopBetween(factMascot, boardMascot);
+    /* 7. and Next. Swiftee stays in its box with the last thing it said,
+          beside the two facts it has just made: the trip back up to the
+          heading belongs to the next scene, which is where the shape comes
+          back to the middle of the board (user, 2026-09-18), so nothing
+          moves while the learner is reading and deciding to go on. */
     await wait(300);
     await showNext();
     await paraArea();
@@ -5328,9 +5368,19 @@
     ensurePara(false);
     paraEx.classList.add('gone');
     facts.classList.remove('show');
+    paraSay.classList.add('quiet');
     await wait(560);
-    /* the facts have gone from the right half: the shape comes back to the
-       middle of the board, where the base and the height are drawn on it */
+
+    /* Next has been pressed (user, 2026-09-18): Swiftee jumps out of its box
+       in the right half and up to the heading, and the shape comes back to
+       the middle of the board it is about to be measured on. The hop goes
+       first -- the box is still standing, so the bird has somewhere to leave
+       from -- and only then is the row taken down with the column.
+         A replay or a jump lands here with the bird behind the board and the
+       box already down, and then there is nothing to hop: it comes up to the
+       heading with the first line, as it does everywhere else. */
+    if (paraMascot.classList.contains('in')) await hopBetween(paraMascot, boardMascot);
+    clearParaSay();
     if (para.classList.contains('sides')) await layoutWide(para, paraSvg, false, 'sides');
     await heading(PARA2.here);
     await wait(1000);
@@ -6155,7 +6205,9 @@
   /* the diagonal, or a height, grows along its line and takes its name */
   async function drawDiag(cls, label, ms) {
     await growLine(areaEl(cls), ms || 700);
-    areaEl(label).classList.add('on');
+    /* `label` is optional: the numbers scene draws its diagonals bare, since
+       the measurements name them there */
+    if (label) areaEl(label).classList.add('on');
     sfx('click', .35);
     await wait(REDUCED ? 160 : 480);
   }
@@ -6380,11 +6432,19 @@
     await morphTo(txt, RHOM_STEPS[3], false, true);
     await wait(REDUCED ? 300 : 1100);
 
-    /* 4. the rule the whole section was built for, boxed where it stands --
-          an outline, so the line it closes round does not move */
+    /* 4. the rule the whole section was built for. It stands bare (user,
+          2026-09-18): no box, as the trapezium's rule has none either. The
+          line has been carrying the break its FIRST step needed -- "= Area
+          of Orange Triangle + Area of Purple Triangle" did not fit its
+          column, so the "=" dropped to a second row -- and the rule is far
+          shorter than that. The ghost is re-cut to what the line now says
+          and re-fitted, so the break goes and the rule closes up onto one
+          row; .rule holds it there. */
     await heading(RHOM2.rule);
     await wait(REDUCED ? 150 : 350);
-    sum.classList.add('ruled');
+    lineSpans(sum.querySelector('.type-ghost'), RHOM_STEPS[3]);
+    fitEq(sum);
+    sum.classList.add('rule');
     sfx('click', .4);
     feedback(FEEDBACK.done);
     swiftee.play('proud', 1);
@@ -6691,19 +6751,22 @@
     rhomLines.textContent = '';
     rhomLines.classList.remove('off');
 
-    /* 2. the halves and their heights leave; d2 comes back, so the shape
-          stands plain with both diagonals and the right angle between them */
+    /* 2. the halves and their heights leave, and d₁'s and d₂'s names go with
+          them (user, 2026-09-18): this page measures the diagonals, and the
+          two lengths that arrive in a moment name them better than the
+          letters do -- the letters are left to the pages that reason about
+          them. d2 comes back, so the shape stands plain with both diagonals
+          and the right angle between them. */
     rhomShape.classList.remove('fill-green', 'quiet-green', 'fill-purple', 'lit-d1', 'lit-d2', 'lit-quad');
     ['rd-h1', 'rd-h2'].forEach(c => { areaEl(c).style.opacity = ''; });
-    ['lbl-h1', 'lbl-h2', 'mark-down'].forEach(c => areaEl(c).classList.remove('on'));
+    ['lbl-h1', 'lbl-h2', 'lbl-d1', 'lbl-d2', 'mark-down'].forEach(c => areaEl(c).classList.remove('on'));
     await wait(600);
     /* the rule scene hands d2 over already drawn -- the two heights became
        it -- so it is only redrawn when it is not there to begin with */
     if (rebuilt || +areaEl('rd-d2').style.opacity === 1) {
       areaEl('rd-d2').style.opacity = 1;
-      areaEl('lbl-d2').classList.add('on');
     } else {
-      await drawDiag('rd-d2', 'lbl-d2', 620);
+      await drawDiag('rd-d2', null, 620);
     }
     areaEl('mark-up').classList.add('on');
     await wait(400);
@@ -8991,6 +9054,7 @@
     rtrapLines.classList.remove('rule');
     buildRtrap(kind);
     rtrapShape.classList.remove('away');
+    rtrap.classList.add('deriv');            /* the derivation's board again */
     if (!wasOn) {
       await wait(REDUCED ? 150 : 480);
       rtrap.classList.add('on');
@@ -9079,6 +9143,13 @@
     caret.hidden = true;
     board.classList.add('sec7');
     rtrap.classList.add('on');
+    /* the derivation's own board: its drawing is the widest thing in the
+       mission -- the pair of trapeziums is two and a half times as wide as
+       it is tall -- so it takes half the width rather than the working
+       layout's two fifths (see `.rtrap.wide.deriv`). The practice scenes
+       share `.wide` and clear this again: their working runs to the longest
+       lines in the section and keeps the wider column. */
+    rtrap.classList.add('deriv');
     rtrap.setAttribute('aria-hidden', 'false');
     if (rk !== kind || !rtArt.firstChild || !rtCopy.classList.contains('show')) rtWhole(kind);
     rtrapLines.textContent = '';
@@ -9226,8 +9297,15 @@
     let over =
       figMeasure('d-top rt-len', { x: P.TL.x, y: yT }, { x: P.TR.x, y: yT }, labels.a, [], false) +
       figMeasure('d-bot rt-len', { x: P.BL.x, y: yB }, { x: P.BR.x, y: yB }, labels.b, [], false);
-    /* the height: from `from` straight to the other parallel side */
-    const from = P[hgt.from], foot = { x: from.x, y: hgt.from.charAt(0) === 'T' ? P.BL.y : P.TL.y };
+    /* The height: straight down from the parallel side `hgt.from` sits on
+       to the other one. It starts at that corner, unless `hgt.x` names a
+       point along the side to start from instead -- on a trapezium whose
+       slanted side leans only a little, a height dropped from the corner
+       runs alongside that side the whole way down and the two read as one
+       line, so it is set in far enough to be plainly its own. */
+    const corner = P[hgt.from];
+    const from = { x: hgt.x == null ? corner.x : hgt.x, y: corner.y };
+    const foot = { x: from.x, y: hgt.from.charAt(0) === 'T' ? P.BL.y : P.TL.y };
     const M = 11, up = foot.y > from.y ? -1 : 1, side = hgt.side;
     over += '<g class="d-group d-hgt">' +
       figLine('d-height', from, foot) +
@@ -9245,7 +9323,13 @@
     /* 13, 20 and 10, drawn to one scale: the bottom is 300 units for 20 cm
        and the height 150 for 10, so the 13 cm top is 195 units */
     p:  { P: { TL: { x: 50, y: 40 }, TR: { x: 245, y: 40 }, BR: { x: 330, y: 190 }, BL: { x: 30, y: 190 } },
-          labels: { a: '13 cm', b: '20 cm', h: '10 cm' }, hgt: { from: 'TL', side: 1 } },
+          labels: { a: '13 cm', b: '20 cm', h: '10 cm' },
+          /* its left side leans only 20 units over the whole drop, so the
+             height is set in from the corner (user, 2026-09-18): dropped
+             from the corner itself the two lines start at the same point
+             and stay a hair apart all the way down, and a learner reads
+             them as one */
+          hgt: { from: 'TL', side: 1, x: 100 } },
     /* the check for understanding: 30 on top, 40 below, 15 high, its right
        side square, so the height is plainly the distance between the two
        parallel sides and not one of the slanted ones */
@@ -9321,7 +9405,7 @@
     rtrapLines.classList.remove('rule', 'steps');
     /* the halved board of the values scene or of the check, if the last
        question left one of them standing */
-    rtrap.classList.remove('solve', 'cfu');
+    rtrap.classList.remove('deriv', 'solve', 'cfu');
     tnClear();
     tcClear();
     const clearing = rtClear();
@@ -9646,7 +9730,7 @@
     rtrapFormula.classList.remove('show');
     rtrapQs.classList.remove('show');
     rtrapPTray.classList.add('off');
-    rtrap.classList.remove('wide', 'solve', 'cfu');
+    rtrap.classList.remove('wide', 'deriv', 'solve', 'cfu');
     await clearFigures(rtFigRow);
     await wait(REDUCED ? 100 : 260);
 
@@ -9795,7 +9879,7 @@
     rtrapPTray.classList.add('off');
     /* the halved board of the values scene or of the check goes; the
        working layout is next */
-    rtrap.classList.remove('solve', 'cfu');
+    rtrap.classList.remove('deriv', 'solve', 'cfu');
     tnClear();
     tcClear();
     tpEnsureFig('n');
@@ -9981,7 +10065,7 @@
     rtrapQs.classList.remove('show');
     rtrapQs.textContent = '';
     rtrapPTray.classList.add('off');
-    rtrap.classList.remove('wide', 'solve', 'cfu');
+    rtrap.classList.remove('wide', 'deriv', 'solve', 'cfu');
     await clearFigures(rtFigRow);
     await wait(REDUCED ? 100 : 260);
 
@@ -10097,7 +10181,7 @@
     rtrapQs.classList.remove('show');
     rtrapQs.textContent = '';
     rtrapPTray.classList.add('off');
-    rtrap.classList.remove('wide', 'cfu');
+    rtrap.classList.remove('wide', 'deriv', 'cfu');
     tcClear();
     /* the bird is behind the board at the end of page 29; down in the
        check's panel -- a jump back from page 31 -- and it goes there now */
@@ -10308,7 +10392,7 @@
     rtrapQs.classList.remove('show');
     rtrapQs.textContent = '';
     rtrapPTray.classList.add('off');
-    rtrap.classList.remove('wide', 'solve', 'cfu');
+    rtrap.classList.remove('wide', 'deriv', 'solve', 'cfu');
     await clearFigures(rtFigRow);
     await wait(REDUCED ? 100 : 260);
 

@@ -1270,16 +1270,18 @@ body {
   letter-spacing: .1px;
   opacity: 0;
   transform: translateY(10px) scale(.86);
-  /* the box a rule gets at the end of a derivation is an outline, not a
-     border: it closes round the line without taking any room, so the line
-     it is drawn on does not shift by a pixel as it arrives */
-  outline: 2px solid transparent;
-  outline-offset: clamp(6px, 1.1vh, 11px);
   border-radius: 12px;
-  transition: opacity .3s ease, transform .48s cubic-bezier(.2, .9, .3, 1.4), font-size .5s ease, outline-color .55s ease;
+  transition: opacity .3s ease, transform .48s cubic-bezier(.2, .9, .3, 1.4), font-size .5s ease;
 }
 .area-line.show { opacity: 1; transform: none; }
-.area-line.ruled { outline-color: var(--heading); }
+/* the rule a derivation ends on: nothing is drawn round it (user,
+   2026-09-18), and it is short enough to stand on one row -- script.js
+   re-cuts its ghost and re-fits it as the rule lands, and this holds it
+   whole even in the columns where a working line may break */
+.area-line.rule,
+.area-line.rule .type,
+.area-line.rule .type-ghost { white-space: nowrap; }
+.area-line.rule .rhs { display: inline; }
 /* no lead-in margin here: a typed line must start flush with the formula
    lines above it, which have no wrapper of their own */
 .area-line .type-wrap { display: inline-block; vertical-align: top; margin-left: 0; }
@@ -1344,6 +1346,19 @@ body {
    questions are long sentences with a drop-down on the end. */
 .para.wide,
 .rhom.wide { grid-template-columns: minmax(0, 1fr) minmax(min-content, 1fr); }
+/* ...and section 5, the learner's own go, is half and half for the same
+   reason (user, 2026-09-18): its questions are short label-and-box lines,
+   not a derivation, and the shape they ask about is read alongside every
+   one of them, so the two halves of the board are equal. The lines' font is
+   capped in the column's own width (cqw, further down), so they close up to
+   fit the narrower half instead of pushing the shape back. */
+.quad.wide.own { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+/* and the foot's own track is the half, not the widest line in it: an auto
+   track takes the max-content width of a block that asks for max-content
+   and hands it back as the width a percentage cap resolves against, so the
+   questions were measured against themselves and stood a few pixels wider
+   than their column. */
+.quad.wide.own .quad-foot { grid-template-columns: minmax(0, 1fr); }
 .quad.wide .quiz-block,
 .quad.wide .say-row,
 .para.wide .para-ask,
@@ -1400,23 +1415,35 @@ body {
  * and is not wanted until two scenes later, is taken out of the flow so it
  * cannot set the column's width. */
 .para.sides {
-  /* the shape takes the larger share -- it is the thing being talked about,
-     and the lines beside it are read in one glance */
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  /* half and half (user, 2026-09-18): the right half carries Swiftee's box
+     as well as the lines under it, and every line in it stands on one row */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   gap: clamp(12px, 2.4vw, 34px);
 }
-.para.sides .para-foot { align-self: center; justify-items: center; min-width: 0; }
+/* the bird's box across the top, and under it the one cell the names and
+   the facts take turns in -- so the box never moves as they change over */
+.para.sides .para-foot {
+  align-self: center;
+  justify-items: center;
+  min-width: 0;
+  row-gap: clamp(18px, 5vh, 64px);
+}
+.para.sides .para-foot > * { grid-area: 2 / 1; }
+.para.sides .para-foot > .para-say { grid-area: 1 / 1; align-self: start; }
+/* the bird stands in its own box here, so the fact list has none beside it */
+.para.sides .facts > .mascot { display: none; }
+.para.sides .facts { justify-content: start; }
 .para.sides .area-tray { display: none; }
-/* a fact is longer than half a board, so here -- as in the working's column,
-   and only here -- it may break at a word, ghost and live text alike. Held on
-   one line it would either run off the board or drag its column out past the
-   shape's. */
-.para.sides .fact { white-space: normal; text-align: left; }
+/* every line in this half stands on one row (user, 2026-09-18): a fact is
+   capped in the column's own width, so it shrinks to fit the half rather
+   than breaking at a word. */
+.para.sides .fact { white-space: nowrap; text-align: left; }
+.para.sides .fact,
 .para.sides .fact .type,
-.para.sides .fact .type-ghost { white-space: pre-wrap; text-wrap: balance; }
-.para.sides .fact .type-wrap { max-width: 100%; }
+.para.sides .fact .type-ghost { white-space: nowrap; }
+.para.sides .fact { font-size: min(clamp(16.5px, 3vh, 28.6px), 5.6cqw); }
 
 /* the working leaves before the shape comes back to the middle */
 .area-lines { transition: opacity .4s ease; }
@@ -1754,29 +1781,43 @@ body {
   pointer-events: none;
 }
 
-/* ---------- why the wrong name is wrong ----------
- * Shaking the chip off says only that it was wrong. The line under the chips
- * says what to look at instead. It hangs below the tray rather than sitting
- * in it, so the room it takes is the board's own empty half and the chips,
- * the shape and the facts all stay exactly where they were. */
 .para-ask { position: relative; display: grid; justify-items: center; }
-.para-note {
-  position: absolute;
-  top: calc(100% + clamp(10px, 2.4vh, 26px));
-  left: 50%;
-  color: var(--wrong);
+/* ---------- Swiftee's box, at the top of the right half ----------
+ * It exists only while the board is halved: in the middle of the board the
+ * bird is at the heading, as it is everywhere else in the mission.
+ * The line in it never wraps (user, 2026-09-18) -- its size is capped in the
+ * column's own width (cqw), so a long line shrinks to fit the half instead
+ * of breaking across two rows and moving the names under it. */
+.para-say { display: none; }
+.para.sides .para-say {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(2px, .4vw, 6px);
+  width: 100%;
+  min-width: 0;
+}
+.para-say > .mascot { margin-right: calc(var(--mascot) * -.16); }
+.para-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: min(clamp(15.4px, 2.6vh, 24.2px), 4.4cqw);
+  text-align: center;
+}
+.para-text .type-wrap { display: inline-block; }
+.para-text,
+.para-text .type,
+.para-text .type-ghost { white-space: nowrap; }
+/* the wrong name's reason, said in the same box */
+.para-text.wrong { color: var(--wrong); }
+/* the line goes while the bird is still standing there, so it has somewhere
+   to hop from; the row itself follows once the hop is done */
+.para-say.quiet .say-text { opacity: 0; }
+.para.sides .para-say.off {
   opacity: 0;
   visibility: hidden;
-  transform: translateX(-50%) translateY(9px);
-  transition: opacity .28s ease, transform .28s ease, visibility 0s linear .28s;
+  transition: opacity .4s ease, visibility 0s linear .4s;
 }
-.para-note.show {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(-50%);
-  transition: opacity .22s ease, transform .42s cubic-bezier(.2, .9, .3, 1.45);
-}
-
 /* ---------- the facts ----------
  * Swiftee stands to the left of the list and states each fact in turn: the
  * line types itself out beside it, and its ring fills with a tick once it
@@ -3835,6 +3876,11 @@ body {
   /* the room the sentence above asked for */
   margin-top: clamp(16px, 4.2vh, 46px);
 }
+/* ...except that both name quizzes stand the bird ABOVE their sentence, so
+   the room goes under it instead: a little gap between the remark and the
+   drop-down it is about (user, 2026-09-18). The quadrilateral's own copy of
+   this is up with the rest of its layout. */
+.quiz-block .trap-say { margin: 0 0 clamp(10px, 2.6vh, 28px); }
 /* scoped to the block so it outranks the banner transition every .quiz-note
    shares: this one is a box that opens and shuts, not a line that fades */
 .quiz-block .trap-note,
@@ -4511,6 +4557,16 @@ body {
   align-items: stretch;
   gap: clamp(12px, 2.4vw, 34px);
 }
+/* ...except the derivation (user, 2026-09-18: the figure was too small).
+   The pair of trapeziums with its names is two and a half times as wide as
+   it is tall, so it is the column's WIDTH that sets its size -- it already
+   filled the two fifths it had and left two thirds of the column's height
+   empty. Half and half is as much as the board can give it without the
+   working's own column costing more than it gains: the lines there are
+   capped in that column's width (cqw, further down), so they close up to
+   fit rather than wrapping. Measured at 1600x900: the drawing went from
+   533px wide to 666px. */
+.rtrap.wide.deriv { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .rtrap.wide .rtrap-foot {
   align-self: center;
   justify-items: start;
@@ -5145,6 +5201,10 @@ body {
 .rhom-foot,
 .trap-foot,
 .rtrap-foot { grid-template-rows: 100%; }
+/* except the parallelogram's sides, whose foot is a row for Swiftee's box
+   and a row for everything else (the rule just above still holds for the
+   second row: its occupants all share the one cell) */
+.para.sides .para-foot { grid-template-rows: auto minmax(0, 1fr); }
 
 /* ---------- the working fits the room the shape leaves ----------
  * In the two-column layouts the shape keeps its size, so the working's
@@ -5153,6 +5213,7 @@ body {
  * running off the board or squeezing the shape. */
 .quad.wide .quad-foot,
 .para.wide .para-foot,
+.para.sides .para-foot,
 .rhom.wide .rhom-foot,
 .rtrap.wide .rtrap-foot { container-type: inline-size; }
 .rtrap.solve .rtrap-foot { container-type: inline-size; }
@@ -5430,6 +5491,11 @@ body {
 .quad.wide .area-line,
 .para.wide .area-line,
 .rhom.wide .area-line { font-size: min(var(--fs-body), 3.6cqw); }
+/* half the board is a little less room than three fifths, and a question
+   here is a sentence with a box on its end: a notch smaller in the column's
+   own width, so the longest of them still stands on one row instead of
+   folding its last word under itself. */
+.quad.wide.own .q-line { font-size: min(var(--fs-body), 3.4cqw); }
 /* A line in the middle of a derivation is brought forward a step: it grows
    by a tenth while it is being worked on and goes back to the size of the
    lines above it once it is done (script.js adds and drops the class, and
@@ -5442,6 +5508,18 @@ body {
 .rtrap.wide .rtrap-lines { font-size: min(var(--fs-body), 3.5cqw); }
 .rtrap.solve .tn-formula { font-size: min(var(--fs-body), 5.4cqw); }
 .rtrap.solve .tn-hint    { font-size: min(var(--fs-body), 4.2cqw); }
+/* The check for understanding reads at the body size, not under it: half
+   the board is the panel's, the question, the four answers and the nudge
+   are all it holds, and this is the one page whose text a learner reads
+   while they decide rather than after. The column's own width still caps
+   each of them, so nothing grows into its neighbour. */
+.rtrap.cfu .tc-text       { font-size: min(var(--fs-body) * 1.2, 2.8vw, 6cqw); }
+.rtrap.cfu .tc-tray .chip { font-size: min(var(--fs-chip) * 1.35, 5.6cqw); }
+.rtrap.cfu .tc-hint       { font-size: min(var(--fs-body), 4.8cqw); }
+/* the answer the question is finally worked out to reads at the size of the
+   question itself: it is the line the page ends on, and a line smaller than
+   the chips above it would arrive as a footnote */
+.rtrap.cfu .tc-work .area-line { font-size: min(var(--fs-body) * 1.2, 5.6cqw); }
 .chip,
 .chip.formula,
 .slot .chip,

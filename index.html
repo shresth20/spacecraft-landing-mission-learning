@@ -374,23 +374,36 @@
         </div>
       </div>
 
-      <!-- two occupants of one cell, so the shape above never moves -->
+      <!-- Swiftee's own row across the top, and under it one cell the rest
+           take turns in, so the shape beside them never moves -->
       <div class="para-foot">
-        <!-- the name quiz: two chips, tap the right one, with the reason a
-             wrong one is wrong written under them. The note is taken out of
-             the flow, so the room it uses is the empty half of the board
-             below the chips and nothing above it ever moves. -->
-        <div class="para-ask" id="paraAsk">
-          <div class="para-tray" id="paraTray">
-            <button class="chip" type="button" data-answer="parallelogram"><span>Parallelogram</span></button>
-            <button class="chip" type="button" data-answer="trapezium"><span>Trapezium</span></button>
-          </div>
-          <p class="quiz-note para-note" id="paraNote" aria-live="polite">
+        <!-- Swiftee and everything it says, in a box of its own at the top of
+             the right half (user, 2026-09-18). The bird comes up here once
+             the shape has moved aside and stays for the whole scene: the
+             question, the reason a wrong name is wrong, the answer and the
+             three lines about the sides are all said from this one spot, so
+             the board's heading is never used and the parallelogram keeps
+             the full height of the left half. The row is laid out from the
+             first frame, empty, so the arrival moves nothing under it. -->
+        <div class="para-say room-row" id="paraSay">
+          <div class="mascot" id="paraMascot" aria-hidden="true"></div>
+          <p class="say-text para-text" id="paraText" aria-live="polite">
             <span class="type-wrap">
               <span class="type-ghost"></span>
               <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
             </span>
           </p>
+        </div>
+
+        <!-- the name quiz: two chips, tap the right one. The reason a wrong
+             one is wrong is not written under them any more (user,
+             2026-09-18): it is said in the box above, where every other line
+             of this scene is said. -->
+        <div class="para-ask" id="paraAsk">
+          <div class="para-tray" id="paraTray">
+            <button class="chip" type="button" data-answer="parallelogram"><span>Parallelogram</span></button>
+            <button class="chip" type="button" data-answer="trapezium"><span>Trapezium</span></button>
+          </div>
         </div>
 
         <!-- the area quiz: three formulas, tap the right one -->
@@ -594,10 +607,23 @@
            name quiz of level 1, and the names to drag once the trapeziums
            have lined up -->
       <div class="trap-foot">
-        <!-- the name quiz: "This is a [ v ]" across the top, and well below
-             it the room Swiftee drops into to answer -- the bird on the
-             left, its remark in a box up and to its right -->
+        <!-- the name quiz: the room Swiftee drops into to answer across the
+             top -- the bird on the left, its remark in a box up and to its
+             right -- and under it the sentence, "This is a [ v ]". The bird
+             is above the sentence (user, 2026-09-18), as the quadrilateral's
+             own name quiz has it: the remark is read before the choice it is
+             about is made again, and the drop-down's menu opens into free
+             board rather than over the bird's box. -->
         <div class="quiz-block" id="trapQuiz">
+          <div class="trap-say">
+            <div class="mascot" id="trapMascot" aria-hidden="true"></div>
+            <p class="quiz-note trap-note" id="trapNote" aria-live="polite">
+              <span class="type-wrap">
+                <span class="type-ghost"></span>
+                <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+              </span>
+            </p>
+          </div>
           <div class="quiz-row">
             <div class="quiz-sentence">
               <span class="quiz-label">This is a</span>
@@ -617,18 +643,6 @@
                 </svg>
               </div>
             </div>
-          </div>
-          <!-- Swiftee's landing spot under the sentence. The row is laid out
-               from the first frame -- bird and box both invisible until they
-               are wanted -- so the arrival of either moves nothing. -->
-          <div class="trap-say">
-            <div class="mascot" id="trapMascot" aria-hidden="true"></div>
-            <p class="quiz-note trap-note" id="trapNote" aria-live="polite">
-              <span class="type-wrap">
-                <span class="type-ghost"></span>
-                <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
-              </span>
-            </p>
           </div>
         </div>
 
