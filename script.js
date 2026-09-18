@@ -133,7 +133,7 @@
  *      said, and Next
  *  10. practice, a Next between each: "Choose the correct area." of the
  *      same rhombus; a rhombus of 240 sq. cm with one diagonal 30 cm --
- *      "Find the other diagonal."; one rhombus 24 cm by 10 cm, which draws
+ *      "Find the other diagonal."; one rhombus 24 cm by 15 cm, which draws
  *      itself on an empty board and takes its diagonals and its lengths
  *      before the board halves and Swiftee asks "What is the area of the
  *      rhombus?" from a panel beside it -- four answers under the formula,
@@ -249,7 +249,7 @@
     if (e.button !== undefined && e.button !== 0) return;
     const btn = e.target.closest && e.target.closest('button');
     if (!btn || btn.disabled) return;
-    Motion.pressFeedback(btn);
+    Motion.press(btn);
   }, { passive: true });
 
   /* ---------- the two answers ----------
@@ -263,8 +263,8 @@
    *   `part` is the piece that actually moves when the class goes on
    * something larger than the thing the eye follows: a card's box, a figure's
    * art, a drop-down's button. */
-  const markRight = (el, part) => { el.classList.add('correct'); Motion.correctPulse(part || el); };
-  const markWrong = (el, part) => { el.classList.add('reject');  Motion.wrongShake(part || el); };
+  const markRight = (el, part) => { el.classList.add('correct'); Motion.correct(part || el); };
+  const markWrong = (el, part) => { el.classList.add('reject');  Motion.incorrect(part || el); };
 
   /* A motion.js timeline, waited on the way every other beat of the game is
      waited on. Not `await tl` directly: a timeline killed by a replay never
@@ -275,6 +275,15 @@
      which time the timeline was built at no length anyway. */
   const played = tl => wait(tl ? tl.totalDuration() * 1000 : 0);
 
+  /* How a card, a chip or a slot arrives, from the catalog: it fades up,
+     rises the last twelve pixels and grows the last two per cent. Named once
+     here so every group in the game arrives the same way. */
+  const CARD_IN = {
+    from: { opacity: 0, y: 12, scale: .98 },
+    duration: Motion.NORMAL,
+    stagger: Motion.STAGGER_UI
+  };
+
   /* A group arriving in reading order: the state class goes on at once (it is
      what makes them visible and touchable), and motion.js walks them in.
      `revealing` stands the stylesheet's own transition of the same two
@@ -283,7 +292,7 @@
   async function revealGroup(els, opts) {
     if (!els.length) return;
     els.forEach(el => el.classList.add('revealing', 'reveal'));
-    await played(Motion.revealSequence(els, opts));
+    await played(Motion.enter(els, opts));
     els.forEach(el => el.classList.remove('revealing'));
   }
 
@@ -298,7 +307,7 @@
    * cannot afford the work. A transform is composited, and costs neither.
    *   Nothing is eased while the finger is down -- a drag that lags its own
    * finger feels broken, not smooth. Only the release is animated. */
-  const GHOST_LIFT = 1.05;                  /* the copy rides just above the board */
+  const GHOST_LIFT = 1.03;                  /* the catalog's lift: felt, not shown */
   const ghostTransform = (dx, dy) =>
     'translate3d(' + dx + 'px, ' + dy + 'px, 0) scale(' + GHOST_LIFT + ')';
 
@@ -320,6 +329,11 @@
       transform: ghostTransform(0, 0),
       willChange: 'transform'                /* for the length of the drag only */
     });
+    /* In the hand from the first frame it exists. The scale is baked into the
+       transform the drag rewrites every pointermove rather than tweened, or
+       the tween and the drag would be writing the same property at once; the
+       class carries the deeper shadow that says it is off the board. */
+    ghost.classList.add('mo-lifted');
     document.body.appendChild(ghost);
     return {
       el: chip, ghost: ghost, box: rect,
@@ -354,7 +368,10 @@
       g.remove();
       if (done) done();
     };
-    const tl = Motion.snapTo(g, dx, dy);
+    /* Caught by a slot, or handed back to where it came from. The two are
+       deliberately different: SNAP is something taking it, OUT is it going
+       back of its own accord. */
+    const tl = Motion.liftEnd(g, slot ? { x: dx, y: dy } : null);
     if (tl) tl.eventCallback('onComplete', land); else land();
     /* a scene torn down mid-flight: the tween is killed and never completes,
        so the landing is taken at the teardown's own pace instead */
@@ -1055,6 +1072,9 @@
   /* Effects play off clones so overlapping hits never cut each other short. */
   function sfx(key, volume) {
     if (fastForward) return;         /* a skip races past; it does not chime */
+    /* muted, or this same cue already sounded a breath ago -- two chips
+       docking together should chime once, not twice as loudly */
+    if (!Motion.mayPlay(key)) return;
     const src = bank[key];
     if (!src) return;
     try {
@@ -1143,6 +1163,7 @@
   const backBtn   = document.getElementById('backBtn');
   const skipBtn   = document.getElementById('skipBtn');
   const resetBtn  = document.getElementById('resetBtn');
+  const muteBtn   = document.getElementById('muteBtn');
   const jump      = document.getElementById('jump');
   const jumpBtn   = document.getElementById('jumpBtn');
   const jumpMenu  = document.getElementById('jumpMenu');
@@ -1221,7 +1242,27 @@
      scene alone. Taking the snapshot at the door is exact for all of them. */
   const sceneHistory = [];
 
-  const TOOLS = [backBtn, skipBtn, resetBtn];
+  const TOOLS = [backBtn, skipBtn, muteBtn, resetBtn];
+
+  /* ---------- sound off ----------
+   * motion.js holds the state and remembers it between sittings; this is only
+   * the switch. It is never disabled with the other tools -- a learner who
+   * wants the sound off wants it off now, including in the middle of a scene
+   * that has taken the board away from them. */
+  function showMute() {
+    const off = Motion.isMuted();
+    muteBtn.classList.toggle('muted', off);
+    muteBtn.setAttribute('aria-pressed', off ? 'true' : 'false');
+    const label = off ? 'Sound on' : 'Sound off';
+    muteBtn.setAttribute('aria-label', label);
+    muteBtn.setAttribute('title', label);
+  }
+  muteBtn.addEventListener('click', function () {
+    Motion.toggleMuted();
+    showMute();
+    sfx('click', .4);        /* silent when it has just been turned off */
+  });
+  showMute();
 
   function showTools() {
     TOOLS.forEach(function (b) {
@@ -1237,6 +1278,7 @@
   function armTools() {
     resetBtn.disabled = !sceneAgain;
     backBtn.disabled = sceneHistory.length < 2;
+    muteBtn.disabled = false;         /* always available, see showMute above */
   }
 
   /* The tools stay up from the first scene to the last, the hand-offs
@@ -1587,6 +1629,7 @@
   async function enterScene(entry, stage) {
     replaying = true;
     TOOLS.forEach(function (b) { b.disabled = true; });
+    muteBtn.disabled = false;         /* the sound switch is never taken away */
     fastForward = false;
     lockInput(true);
 
@@ -1727,6 +1770,7 @@
     jumpBtn.disabled = true;
     jumpBtn.classList.add('working');
     TOOLS.forEach(function (b) { b.disabled = true; });
+    muteBtn.disabled = false;         /* the sound switch is never taken away */
 
     const guard = performance.now() + 180000;
     let quiet = 0;
@@ -1993,8 +2037,8 @@
        clock of their own -- a skip raced past the wait below and then stood
        and watched the chips trickle in afterwards, at full speed, over a
        scene that had already moved on. */
-    await revealGroup(roundSlots, { y: 12, scale: .95 });
-    await revealGroup(roundChips, { y: 16, scale: .9 });
+    await revealGroup(roundSlots, CARD_IN);
+    await revealGroup(roundChips, CARD_IN);
 
     await briefing(ROUNDS[n]);
 
@@ -2425,7 +2469,7 @@
 
   function setProgress(v) {
     const pct = Math.max(0, Math.min(100, v));
-    loadFill.style.setProperty('--fill', (pct / 100).toFixed(4));
+    Motion.progress(loadFill, pct);
     loadPct.textContent = Math.round(pct) + '%';
     loadTrack.setAttribute('aria-valuenow', String(Math.round(pct)));
   }
@@ -3386,11 +3430,8 @@
     ORDER.forEach(k => { CORNERS[k] = P[k]; });
 
     /* a clean slate: no split, no lights, no lines, one column -- neither
-       the quiz's half-and-half nor the working's two fifths. `measured` says
-       the parts are labelled with their lengths rather than renamed b, h1,
-       h2 -- the diagonal's number is then written in its own colour (see
-       .quad-shape.measured .lbl-base in style.css). */
-    quadShape.className = 'quad-shape' + (spec.short ? '' : ' measured');
+       the quiz's half-and-half nor the working's two fifths */
+    quadShape.className = 'quad-shape';
     quad.classList.remove('wide', 'ask');
     setLine(joinLine, A, A);
     joinLine.classList.remove('live', 'bad', 'done');
@@ -6076,34 +6117,26 @@
      names, a right angle in the upper-right corner of the crossing and one in
      the lower-right, and the two heights with theirs. The halves of the
      shape go into the art, under the outline.
-     d₁ is written in the MIDDLE of its own diagonal (user, 2026-09-17), which
-     is where the upright lines cross it: they are drawn through a mask that
-     leaves a hole the size of the name, so whichever of them is up at the
-     time is parted round it rather than running through it -- the same
-     answer `arrowDash` gives a length written on its arrow. */
-  const D1_DROP = 30, D1_GAP = { w: 34, h: 26 };   /* how far under the diagonal d₁ sits, and its room */
+     d₁ is written OVER the left half of its own diagonal (user, 2026-09-17),
+     clear of the crossing: the upright lines run through the middle of d₁,
+     and a name sitting there had to be cut out of them to be read. Out to
+     the left it is on empty board, so the three lines are drawn whole; above
+     the diagonal rather than below it, it reads off the purple half the way
+     d₂ reads off its own. */
+  const D1_AT = { x: -62, y: -18 };  /* where d₁'s name sits, from the crossing */
   function buildRhomArea() {
     const P = rhomPts();
     const O = P.O, M = 12;
     const ln = (cls, a, b) => '<line class="' + cls + '" x1="' + fmt(a.x) + '" y1="' + fmt(a.y) + '" x2="' + fmt(b.x) + '" y2="' + fmt(b.y) + '" />';
     const lbl = (cls, x, y, anchor, text) => '<text class="rd-lbl ' + cls + '" x="' + fmt(x) + '" y="' + fmt(y) + '" font-size="17" text-anchor="' + anchor + '" dominant-baseline="middle">' + text + '</text>';
-    const halfD2 = Math.abs(O.y - P.TL.y);
-    const gap =
-      '<defs><mask id="rhomD1Gap" maskUnits="userSpaceOnUse" x="-40" y="-40" width="520" height="380">' +
-        '<rect x="-40" y="-40" width="520" height="380" fill="#fff" />' +
-        '<rect x="' + fmt(O.x - D1_GAP.w / 2) + '" y="' + fmt(O.y + D1_DROP - D1_GAP.h / 2) + '" ' +
-          'width="' + fmt(D1_GAP.w) + '" height="' + fmt(D1_GAP.h) + '" rx="7" fill="#000" />' +
-      '</mask></defs>';
-    rhomArea.innerHTML = gap +
+    rhomArea.innerHTML =
       ln('rd rd-d1', P.BL, P.TR) +
-      '<g mask="url(#rhomD1Gap)">' +
-        ln('rd rd-d2', P.BR, P.TL) +
-        ln('rd rd-h rd-h1', O, P.BR) +
-        ln('rd rd-h rd-h2', O, P.TL) +
-      '</g>' +
+      ln('rd rd-d2', P.BR, P.TL) +
+      ln('rd rd-h rd-h1', O, P.BR) +
+      ln('rd rd-h rd-h2', O, P.TL) +
       '<path class="rmark mark-up" d="M' + fmt(O.x) + ' ' + fmt(O.y - M) + ' H' + fmt(O.x + M) + ' V' + fmt(O.y) + '" />' +
       '<path class="rmark mark-down" d="M' + fmt(O.x) + ' ' + fmt(O.y + M) + ' H' + fmt(O.x + M) + ' V' + fmt(O.y) + '" />' +
-      lbl('lbl-d1', O.x, O.y + D1_DROP, 'middle', 'd₁') +
+      lbl('lbl-d1', O.x + D1_AT.x, O.y + D1_AT.y, 'middle', 'd₁') +
       lbl('lbl-d2', O.x + 14, (O.y + P.TL.y) / 2, 'start', 'd₂') +
       lbl('lbl-h lbl-h1', O.x + 14, (O.y + P.BR.y) / 2, 'start', 'h₁') +
       lbl('lbl-h lbl-h2', O.x + 14, (O.y + P.TL.y) / 2, 'start', 'h₂');
@@ -7051,17 +7084,17 @@
    * until the learner has given one. */
   const RC = {
     ask:  'What is the area of the rhombus?',
-    opts: [{ v: '120', t: '120 sq. cm' }, { v: '240', t: '240 sq. cm' },
-           { v: '180', t: '180 sq. cm' }, { v: '360', t: '360 sq. cm' }],
-    right: '120',
+    opts: [{ v: '180', t: '180 sq. cm' }, { v: '360', t: '360 sq. cm' },
+           { v: '90', t: '90 sq. cm' }, { v: '39', t: '39 sq. cm' }],
+    right: '180',
     /* the halving first, then the multiplying: the two steps the formula is,
        in the order it is read in */
-    work: ['Area = ½ × 24 × 10', 'Area = 12 × 10', 'Area = 120 sq. cm'],
+    work: ['Area = ½ × 24 × 15', 'Area = 12 × 15', 'Area = 180 sq. cm'],
     /* the first miss puts the formula up -- in words, not in letters -- and
        the second the lengths it wants, pointed at on the figure as well.
        Neither is the arithmetic: a nudge that worked it out would answer
        the question. */
-    hint: 'The diagonals are 24 cm and 10 cm.'
+    hint: 'The diagonals are 24 cm and 15 cm.'
   };
   function rcHint(text) { showHint(rcHintEl, text); }
 
@@ -7083,9 +7116,9 @@
   /* The question's own rhombus, in a box of its own: wider and shallower
      than the paired figures use, so the shape fills the half of the board it
      is given. Each diagonal is drawn as two halves anchored at the crossing,
-     which is what lets it appear as dots running outwards from the middle
-     rather than sweeping in from one corner. */
-  const RC_D1 = 288, RC_D2 = 120, RC_CX = 190, RC_CY = 88, RC_H = 190;
+     which is what lets its dashes run outwards from the middle rather than
+     sweeping in from one corner. */
+  const RC_D1 = 288, RC_D2 = 180, RC_CX = 190, RC_CY = 104, RC_H = 230;
   function rcFig() {
     const L = { x: RC_CX - RC_D1 / 2, y: RC_CY }, R = { x: RC_CX + RC_D1 / 2, y: RC_CY };
     const T = { x: RC_CX, y: RC_CY - RC_D2 / 2 }, B = { x: RC_CX, y: RC_CY + RC_D2 / 2 };
@@ -7101,7 +7134,7 @@
     over += figMeasure('d-d1', { x: L.x, y: y }, { x: R.x, y: y }, '24 cm',
       [{ from: L, to: { x: L.x, y: y } }, { from: R, to: { x: R.x, y: y } }], false);
     const x = L.x - 22;
-    over += figMeasure('d-d2', { x: x, y: T.y }, { x: x, y: B.y }, '10 cm',
+    over += figMeasure('d-d2', { x: x, y: T.y }, { x: x, y: B.y }, '15 cm',
       [{ from: T, to: { x: x, y: T.y } }, { from: B, to: { x: x, y: B.y } }], true);
     return figShell('q', '', art, over, RC_H);
   }
@@ -7194,16 +7227,16 @@
    *   1. the rhombus draws itself in the middle of an empty board, slowly,
    *      with no instruction anywhere: there is nothing to read but the
    *      shape, and Swiftee waits behind the board
-   *   2. its two diagonals run out from the crossing as dotted lines, one
+   *   2. its two diagonals run out from the crossing as dashed lines, one
    *      after the other, and the right angle between them squares off
-   *   3. 24 cm arrives under it and then 10 cm beside it, each on its own
+   *   3. 24 cm arrives under it and then 15 cm beside it, each on its own
    *      arrow, its diagonal pulsing once as the number lands
    *   4. only now does the board halve: the figure glides into the left of
    *      it and the panel takes the right, Swiftee jumps up into the panel
    *      and asks, and the formula the question wants appears under it
    *   5. four answers. A wrong one shakes and steps back under a nudge that
    *      goes a step further every time it is needed -- the second one
-   *      pointing at 24 cm and then at 10 cm on the figure -- and the right
+   *      pointing at 24 cm and then at 15 cm on the figure -- and the right
    *      one lights both diagonals before the working solves itself out
    */
   async function rhombusPractice3() {
@@ -7315,7 +7348,7 @@
     await wait(REDUCED ? 140 : 720);
 
     /* and only now the working, which solves itself: half of 24 is 12, and
-       12 tens are 120 sq. cm. The glow that settles round the rhombus and
+       12 fifteens are 180 sq. cm. The glow that settles round the rhombus and
        the one that swells out of the line both point at the result. */
     await showSolveLine(rcWork, RC.work);
     rcWork.classList.add('win');
