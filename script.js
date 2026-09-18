@@ -249,6 +249,11 @@
     if (e.button !== undefined && e.button !== 0) return;
     const btn = e.target.closest && e.target.closest('button');
     if (!btn || btn.disabled) return;
+    /* A 3D button brings its own give -- it sinks onto its wall -- and the two
+       must not both run: this one scales, which means GSAP takes the element's
+       transform over, and taking transform over clears `translate`, which is
+       the very property the sink rides on. One give per button. */
+    if (btn.classList.contains('is-3d')) return;
     Motion.press(btn);
   }, { passive: true });
 
@@ -311,10 +316,21 @@
   const ghostTransform = (dx, dy) =>
     'translate3d(' + dx + 'px, ' + dy + 'px, 0) scale(' + GHOST_LIFT + ')';
 
+  /* A clone inherits whatever Motion.button3d() last wrote on the chip, and
+     those inline values outrank the .ghost rule that zeroes them. So every
+     copy that goes into the air is flattened: nothing off the page stands on
+     a wall, and nothing in the hand is still half pressed. */
+  function flattenGhost(ghost) {
+    ghost.classList.remove('is-3d');
+    ghost.style.removeProperty('--edge');
+    ghost.style.removeProperty('--sink');
+    return ghost;
+  }
+
   /* the copy, and the numbers the move and the release both need */
   function liftGhost(chip, e, z) {
     const rect = chip.getBoundingClientRect();
-    const ghost = chip.cloneNode(true);
+    const ghost = flattenGhost(chip.cloneNode(true));
     ghost.classList.add('ghost');
     ghost.disabled = true;
     Object.assign(ghost.style, {
@@ -618,6 +634,14 @@
   const shapes   = Array.from(document.querySelectorAll('.shape'));
   const allSlots = Array.from(document.querySelectorAll('.slot'));
   const allChips = Array.from(document.querySelectorAll('.chip'));
+
+  /* Every chip presses like the Start button: the wall under it collapses as
+     its face comes down, and it springs back to its own height on release.
+     Bound once, up front -- button3d writes --edge and --sink and nothing
+     else, so it can be in place long before a chip has been revealed, and it
+     never touches the transform the reveal, the hover lift and the picked
+     state are all already using. */
+  allChips.forEach(chip => Motion.button3d(chip, { edge: 4 }));
   const trays    = { 1: document.getElementById('tray'), 2: document.getElementById('tray2') };
 
   const ROUNDS = {
@@ -976,6 +1000,13 @@
          row for the length of its jump and shut it again on landing -- the
          board's whole contents dropping and rising under the bird in the air.
          So the room is held only for a trip this row is part of. */
+      /* A scene may keep the row for its whole length whatever is standing in
+         it. The warm-up does: its heading arrives after the shapes are drawn
+         and clears again as the sides are named, and letting the row open and
+         fold around that took the shapes 122px down the board and back up
+         again (user, 2026-09-18). Held, the bay is its final size from the
+         first frame and nothing in the scene ever moves. */
+      if (board.classList.contains('head-held')) return room.firstElementChild.offsetHeight;
       const txt = room.querySelector('.txt');
       const hop = document.getElementById('hopper');   /* declared further down: looked up, not closed over */
       const fly = document.getElementById('flyer');
@@ -1916,7 +1947,7 @@
       const to   = slot.getBoundingClientRect();
       if (!from.width || !to.width) return;
 
-      const ghost = chip.cloneNode(true);
+      const ghost = flattenGhost(chip.cloneNode(true));
       ghost.className = 'chip demo-ghost' + (chip.classList.contains('formula') ? ' formula' : '');
       ghost.disabled = true;
       Object.assign(ghost.style, {
@@ -2089,13 +2120,12 @@
 
   /* ---------- round 2 coaching ---------- */
 
-  /* first wrong drop: name the sides of every shape. The heading gives way
-     to them -- its line goes and Swiftee hops back behind the board -- so
-     the row closes and the labelled shapes take the room. */
+  /* first wrong drop: name the sides of every shape. The heading gives way to
+     them -- its line goes and Swiftee hops back behind the board -- but the
+     row keeps its room for the rest of the warm-up, and the band the names
+     land in was reserved from the first frame (see .shape-stage), so the
+     names simply fade up and nothing on the board moves. */
   function showLabels() {
-    /* the stage has been holding the names' band back from the slots; giving
-       it up here is what opens the room they need (see .shape-stage) */
-    bay.classList.add('labelled');
     shapes.forEach((s, i) => setTimeout(() => s.classList.add('labelled'), i * 130));
     feedbackGen++;
     promptTxt.textContent = '';
@@ -2135,7 +2165,7 @@
         return resolve();
       }
 
-      const ghost = chip.cloneNode(true);
+      const ghost = flattenGhost(chip.cloneNode(true));
       ghost.className = 'chip ghost' + (chip.classList.contains('formula') ? ' formula' : '');
       ghost.disabled = true;
       Object.assign(ghost.style, {
@@ -2532,6 +2562,8 @@
     startBtn.classList.add('in');
     startBtn.focus({ preventScroll: true });
 
+    Motion.button3d(startBtn);
+
     /* Swiftee waves the learner in once the sheets are actually decoded */
     swiftee.show(true);
     swiftee.play('waving', 2);
@@ -2559,7 +2591,6 @@
   const bubbleType  = document.getElementById('bubbleType');
   const bubbleTxt   = bubbleType.querySelector('.txt');
   const bubbleCaret = bubbleType.querySelector('.caret');
-  const bay         = document.getElementById('bay');
   const boardMascot = document.getElementById('mascot');
   const hopper      = document.getElementById('hopper');
 
@@ -3012,6 +3043,11 @@
 
   async function sectionTwo() {
     lockInput(true);
+    /* the warm-up's hold on the heading row ends with the warm-up: from here
+       the row opens and folds with whatever the section puts in it. Dropped
+       before the stage is noted, so a replay of this scene does not come back
+       to a board still holding it. */
+    board.classList.remove('head-held');
     sceneStart(sectionTwo);
 
     /* 1. Swiftee ducks back behind the board, and the warm-up clears away
@@ -5020,14 +5056,18 @@
     factEls[k].querySelector('.type-ghost').textContent =
       PARA.facts[k].map(seg => seg.t).join('');
   });
-  /* Every line of this scene, said from Swiftee's own box at the top of the
+  /* Every line of this scene, said from Swiftee's own spot at the top of the
      right half rather than from the board's heading (user, 2026-09-18): the
      question, the reason a wrong name is wrong, the answer, and the lines
-     about the sides. `wrong` puts the line in the wrong hue -- the reason a
-     name was turned down is said here now, not under the chips. */
-  async function sayPara(text, wrong) {
+     about the sides.
+     `tone` is the verdict on a choice, and it is what draws the message box:
+     a question or a remark is simply the words, and only 'ok' or 'bad' puts
+     the line in a box -- green or red -- the way every other spot where the
+     bird stands beside its line does (user, 2026-09-18). */
+  async function sayPara(text, tone) {
     feedbackGen++;
-    paraText.classList.toggle('wrong', !!wrong);
+    paraText.classList.remove('ok', 'bad');
+    if (tone) paraText.classList.add(tone);
     swiftee.hold('talking');
     await typeSegments(paraTxt, paraCaret, [{ t: text }], TYPE_MS, 320, null);
     swiftee.release();
@@ -5035,7 +5075,7 @@
   /* a replay finds the row as the last run left it: empty, and up */
   function clearParaSay() {
     paraSay.classList.remove('off', 'quiet');
-    paraText.classList.remove('wrong');
+    paraText.classList.remove('ok', 'bad');
     paraTxt.textContent = '';
     paraCaret.hidden = true;
   }
@@ -5188,8 +5228,8 @@
     await sayPara(PARA.ask);
     await dealChips(paraChips);
     await wait(200);
-    await askChips(paraChips, PARA_ANSWER, () => sayPara(PARA.hint, true));
-    await sayPara(PARA.right);
+    await askChips(paraChips, PARA_ANSWER, () => sayPara(PARA.hint, 'bad'));
+    await sayPara(PARA.right, 'ok');
     await wait(1500);
 
     /* 4. the names go and the fact list takes the cell under the box */
@@ -6928,10 +6968,34 @@
 
   /* the figures are put up in place of the rhombus and draw themselves,
      one a beat after the other; then each takes its marks */
+  /* Each figure is drawn in a 360-wide box that is taller than some of them
+     need. The box is the drawing's room, and with the drawing standing at the
+     top of its room (--art-gap in style.css) an unused band inside the viewBox
+     would open under the heading just as a centred drawing used to. So the
+     viewBox is fitted once, as the figures go up, to what the svg actually
+     holds -- the marks that are shown later are already in the DOM, hidden, so
+     they are measured too. The width, and with it the scale every figure in
+     the row shares, is left exactly as built. */
+  function fitFigArt(row) {
+    row.querySelectorAll('.fig-art > svg').forEach(svg => {
+      const vb = (svg.getAttribute('viewBox') || '').split(' ').filter(Boolean).map(Number);
+      if (vb.length !== 4) return;
+      let bb;
+      try { bb = svg.getBBox(); } catch (e) { return; }
+      if (!bb || !bb.height) return;
+      const M = 7;                                  /* a hair, for the strokes */
+      const top = Math.max(vb[1], Math.floor(bb.y - M));
+      const bot = Math.min(vb[1] + vb[3], Math.ceil(bb.y + bb.height + M));
+      if (bot - top >= vb[3] || bot - top < 40) return;
+      svg.setAttribute('viewBox', vb[0] + ' ' + top + ' ' + vb[2] + ' ' + (bot - top));
+    });
+  }
+
   async function showFigures(html, row, host) {
     row = row || figRow;
     host = host || rhomPractice;
     row.innerHTML = html;
+    fitFigArt(row);
     row.classList.remove('off');
     row.classList.toggle('single', row.children.length === 1);
     host.classList.add('on');
@@ -7318,6 +7382,7 @@
 
     /* ---- 1. the rhombus, drawn slowly on an empty board ---- */
     figRow.innerHTML = rcFig();
+    fitFigArt(figRow);
     figRow.classList.remove('off', 'stepped', 'working');
     figRow.classList.add('single');
     const f = figEl('q');
@@ -9344,6 +9409,7 @@
   function tpEnsureFig(key, html) {
     if (tpFigEl(key)) return false;
     rtFigRow.innerHTML = html || tpFig(key);
+    fitFigArt(rtFigRow);
     rtFigRow.classList.remove('off', 'stepped', 'working');
     rtFigRow.classList.add('single');
     rtrapPractice.classList.add('on');
@@ -9736,6 +9802,7 @@
 
     /* ---- 1. the trapezium draws itself, slowly, and says nothing ---- */
     rtFigRow.innerHTML = tnFig();
+    fitFigArt(rtFigRow);
     rtFigRow.classList.remove('off', 'stepped', 'working');
     rtFigRow.classList.add('single');
     rtrapPractice.classList.add('on');
@@ -10071,6 +10138,7 @@
 
     /* ---- 1. the trapezium draws itself, slowly, and says nothing ---- */
     rtFigRow.innerHTML = tvFig();
+    fitFigArt(rtFigRow);
     rtFigRow.classList.remove('off', 'stepped', 'working');
     rtFigRow.classList.add('single');
     rtrapPractice.classList.add('on');
@@ -10398,6 +10466,7 @@
 
     /* ---- 1. the trapezium draws itself, slowly, and says nothing ---- */
     rtFigRow.innerHTML = tcFig();
+    fitFigArt(rtFigRow);
     rtFigRow.classList.remove('off', 'stepped', 'working');
     rtFigRow.classList.add('single');
     rtrapPractice.classList.add('on');
@@ -10543,9 +10612,13 @@
     await introExit();
     intro.classList.remove('on');
 
-    /* the board arrives. Swiftee stays behind it: the shapes draw themselves
+    /* The board arrives. Swiftee stays behind it: the shapes draw themselves
        on an empty board, and the bird comes up with the line that names them
-       (sceneWarmUp), not four seconds ahead of it. */
+       (sceneWarmUp), not four seconds ahead of it. The heading's room is
+       reserved before the board is seen -- the warm-up holds it either way,
+       and taking it a moment later would open it under the first shape as it
+       was being drawn. */
+    board.classList.add('head-held');
     await showBoard();
     await wait(160);
   }
@@ -10584,9 +10657,12 @@
      are, and round 1 opens. */
   async function sceneWarmUp() {
     lockInput(true);
-    /* a replay comes back to shapes that may still carry their side names:
-       the band closes again and the slots come back up under them */
-    bay.classList.remove('labelled');
+    /* The heading's room is the scene's, from before the first shape is drawn
+       until section 2 takes the board over: held open, so the bay is its final
+       size for the whole warm-up and the shapes neither move nor resize when
+       the line arrives or clears (see roomHeight). */
+    board.classList.add('head-held');
+    /* a replay comes back to shapes that may still carry their side names */
     shapes.forEach(s => s.classList.remove('labelled'));
 
     for (const shape of shapes) {

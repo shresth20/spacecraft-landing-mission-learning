@@ -4,7 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Spacecraft Mission Learning</title>
+<!-- The typeface is a single variable file every line of the board is set in,
+     so it is fetched alongside the stylesheet rather than after it. -->
+<link rel="preload" href="assets/fonts/baloo_2/baloo2-variablefont_wght.ttf" as="font" type="font/ttf" crossorigin />
 <link rel="stylesheet" href="style.css" />
+<!-- Loaded after the stylesheet: it only re-states tokens and rules from it,
+     and does nothing at all at 16:9. See the head of the file. -->
+<link rel="stylesheet" href="responsive.css" />
 </head>
 <body>
   <!-- ---------- icons ----------
@@ -22,15 +28,24 @@
       <!-- the rim, set a little low so it reads as the thickness of a disc -->
       <circle cx="50" cy="51.5" r="45" fill="var(--next-rim)" />
       <circle cx="50" cy="50" r="41.5" fill="url(#icoNextFace)" />
-      <!-- the gloss: a soft streak up the top left, and the small catch-light
-           opposite it -->
-      <ellipse cx="38" cy="26.5" rx="17.5" ry="7.5" transform="rotate(-27 38 26.5)" fill="var(--next-gloss)" opacity=".4" />
-      <circle cx="70.5" cy="32" r="5.2" fill="var(--next-gloss)" opacity=".28" />
       <!-- the arrow: drawn small and grown back by a round stroke, which is
-           what rounds every corner of it evenly -->
-      <path d="M35 44.5 H52 V35 L72 50 L52 65 V55.5 H35 Z"
-            fill="var(--next-arrow)" stroke="var(--next-arrow)" stroke-width="7"
+           what rounds every corner of it evenly. It is the only mark on the
+           face, so it is drawn large -- near the rim on every side. -->
+      <path d="M31.25 43.125 H52.5 V31.25 L77.5 50 L52.5 68.75 V56.875 H31.25 Z"
+            fill="var(--next-arrow)" stroke="var(--next-arrow)" stroke-width="8.75"
             stroke-linejoin="round" stroke-linecap="round" />
+    </symbol>
+
+    <!-- the speech bubble's tail: filled first so it covers the box's border
+         where it joins, then stroked on its two free edges only. The edge
+         takes the colour of whatever box it hangs off, which is what lets a
+         verdict turn the whole box green or red. -->
+    <symbol id="ico-tail" viewBox="0 0 44 42">
+      <path d="M4 0 H42 V8 C36 20 24 30 2 42 C8 32 8 20 4 8 Z" fill="var(--board-bg)" />
+      <path d="M42 8 C36 20 24 30 2 42 C8 32 8 20 4 8" fill="none"
+            stroke="var(--note-edge)" stroke-width="4"
+            stroke-linecap="round" stroke-linejoin="round"
+            vector-effect="non-scaling-stroke" />
     </symbol>
   </svg>
   <!-- Swiftee's stand-in for the half of its jump that happens behind the
@@ -163,7 +178,7 @@
         <!-- acute (isosceles): the height stands inside it -->
         <div class="tri-cell">
           <div class="tri" data-tri="acute" role="img" aria-label="An acute triangle">
-            <svg viewBox="0 0 240 210" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <svg viewBox="0 13 240 197" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
               <defs>
                 <clipPath id="wipeTriA"><rect class="wipe" x="0" y="0" width="240" height="210" /></clipPath>
               </defs>
@@ -186,7 +201,7 @@
         <!-- right-angled (scalene): the height is one of its own sides -->
         <div class="tri-cell">
           <div class="tri" data-tri="right" role="img" aria-label="A right-angled scalene triangle">
-            <svg viewBox="0 0 240 210" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <svg viewBox="0 13 240 197" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
               <defs>
                 <clipPath id="wipeTriB"><rect class="wipe" x="0" y="0" width="240" height="210" /></clipPath>
               </defs>
@@ -209,7 +224,7 @@
         <!-- obtuse: the height falls outside it, onto the base extended -->
         <div class="tri-cell">
           <div class="tri" data-tri="obtuse" role="img" aria-label="An obtuse triangle">
-            <svg viewBox="0 0 240 210" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <svg viewBox="0 13 240 197" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
               <defs>
                 <clipPath id="wipeTriC"><rect class="wipe" x="0" y="0" width="240" height="210" /></clipPath>
               </defs>
@@ -297,11 +312,12 @@
                anything. -->
           <div class="quiz-say">
             <div class="mascot" id="quizMascot" aria-hidden="true"></div>
-            <p class="quiz-bubble" id="quizNote" aria-live="polite">
+            <p class="quiz-bubble msg" id="quizNote" aria-live="polite">
               <span class="type-wrap">
                 <span class="type-ghost" id="noteGhost"></span>
                 <span class="type" id="noteType"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
               </span>
+              <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true"><use href="#ico-tail" /></svg>
             </p>
           </div>
           <div class="quiz-row">
@@ -387,11 +403,12 @@
              first frame, empty, so the arrival moves nothing under it. -->
         <div class="para-say room-row" id="paraSay">
           <div class="mascot" id="paraMascot" aria-hidden="true"></div>
-          <p class="say-text para-text" id="paraText" aria-live="polite">
+          <p class="say-text para-text msg" id="paraText" aria-live="polite">
             <span class="type-wrap">
               <span class="type-ghost"></span>
               <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
             </span>
+            <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true"><use href="#ico-tail" /></svg>
           </p>
         </div>
 
@@ -463,7 +480,7 @@
           <div class="fig-row" id="figRow"></div>
         </div>
         <div class="rhom-shape" id="rhomShape" role="img" aria-label="A parallelogram that becomes a rhombus">
-          <svg class="rhom-svg" id="rhomSvg" viewBox="0 14 440 268" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <svg class="rhom-svg" id="rhomSvg" viewBox="0 32 440 250" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
             <defs>
               <clipPath id="wipeRhom"><rect class="wipe" x="0" y="14" width="440" height="268" /></clipPath>
             </defs>
@@ -617,11 +634,12 @@
         <div class="quiz-block" id="trapQuiz">
           <div class="trap-say">
             <div class="mascot" id="trapMascot" aria-hidden="true"></div>
-            <p class="quiz-note trap-note" id="trapNote" aria-live="polite">
+            <p class="quiz-note trap-note msg" id="trapNote" aria-live="polite">
               <span class="type-wrap">
                 <span class="type-ghost"></span>
                 <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
               </span>
+              <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true"><use href="#ico-tail" /></svg>
             </p>
           </div>
           <div class="quiz-row">
@@ -862,12 +880,7 @@
       <svg class="bubble-mark mark-right" viewBox="0 0 40 60" aria-hidden="true">
         <path d="M32 12 L10 24" /><path d="M32 48 L10 36" />
       </svg>
-      <!-- tail: filled first so it covers the bubble's border where it joins,
-           then stroked on its two free edges only -->
-      <svg class="bubble-tail" viewBox="0 -8 44 42" aria-hidden="true">
-        <path class="tail-fill"   d="M4 -8 H42 V0 C36 12 24 22 2 34 C8 24 8 12 4 0 Z" />
-        <path class="tail-stroke" d="M42 0 C36 12 24 22 2 34 C8 24 8 12 4 0" />
-      </svg>
+      <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true"><use href="#ico-tail" /></svg>
     </div>
   </div>
 

@@ -292,6 +292,94 @@
     });
   }
 
+  /* A 3D button -- a press that sinks rather than shrinks.
+     The stylesheet draws the button standing on a side wall: a solid
+     `0 var(--edge) 0` layer of its own box-shadow, with the ambient shadow
+     spelled off --edge as well. This walks the top surface down by exactly
+     the height of that wall while the wall collapses underneath it, so the
+     base of the button stays planted on the page and only the surface the
+     finger is on travels. Let go and it comes back up to its own height.
+
+     The two halves have to move by the same amount in opposite directions or
+     the button drifts, so `edge` here is the same number the CSS declares.
+
+     It moves the surface with --sink rather than with a transform, and the
+     stylesheet spells that into `translate`. That is the whole reason this
+     works on a chip: a chip already uses transform for its reveal, its hover
+     lift and its picked state, and an inline transform from here would take
+     all three away. `translate` is its own property, composed before
+     transform, so the two never meet. The caller's only job is to spell
+     --edge into box-shadow and --sink into translate, and to keep box-shadow
+     out of the element's transition -- a transition there would smear the
+     wall as it collapses. The `is-3d` class added here is that rule's hook.
+
+     INSTANT down, because a press is felt under the finger rather than
+     watched, and SLOW with POP coming back, because the button returning to
+     its full height is the one beat in it that is meant to read as physical:
+     POP's overshoot lifts it a shade past its own height on the way back,
+     wall and surface together, the way a key does.
+
+     Bound once per element and safe to call again -- the second call is a
+     no-op. Returns the function that unbinds it. */
+  function button3d(el, opts) {
+    if (!el || el.__button3d) return null;
+    var o = opts || {};
+    var edge = o.edge == null ? 5 : o.edge;      /* px -- the CSS --edge */
+    var win = el.ownerDocument.defaultView || global;
+    var down = false;
+
+    el.__button3d = true;
+    el.classList.add('is-3d');
+
+    function push() {
+      if (down || el.disabled) return;
+      down = true;
+      to(el, {
+        '--sink': edge + 'px', '--edge': '0px',
+        duration: dur(INSTANT), ease: OUT, overwrite: 'auto'
+      });
+    }
+    function lift() {
+      if (!down) return;
+      down = false;
+      to(el, {
+        '--sink': '0px', '--edge': edge + 'px',
+        duration: dur(SLOW), ease: POP, overwrite: 'auto',
+        /* Land back on the stylesheet's own values rather than on a copy of
+           them. A chip that has been docked, or cloned into a drag ghost, is
+           told by CSS that it has no wall left to stand on, and an inline
+           --edge sitting here would outrank that for good. */
+        onComplete: function () {
+          el.style.removeProperty('--sink');
+          el.style.removeProperty('--edge');
+        }
+      });
+    }
+    function onKeyDown(e) { if (e.key === ' ' || e.key === 'Enter') push(); }
+    function onKeyUp(e)   { if (e.key === ' ' || e.key === 'Enter') lift(); }
+
+    el.addEventListener('pointerdown', push);
+    el.addEventListener('pointerleave', lift);
+    el.addEventListener('blur', lift);
+    el.addEventListener('keydown', onKeyDown);
+    el.addEventListener('keyup', onKeyUp);
+    /* on the window, so a finger that slides off the button still lets it up */
+    win.addEventListener('pointerup', lift);
+
+    return function unbind() {
+      el.removeEventListener('pointerdown', push);
+      el.removeEventListener('pointerleave', lift);
+      el.removeEventListener('blur', lift);
+      el.removeEventListener('keydown', onKeyDown);
+      el.removeEventListener('keyup', onKeyUp);
+      win.removeEventListener('pointerup', lift);
+      el.classList.remove('is-3d');
+      el.style.removeProperty('--sink');
+      el.style.removeProperty('--edge');
+      el.__button3d = false;
+    };
+  }
+
   /* A control coming live. The border shift is the element's own class; this
      is the fade that says it is now yours to press. */
   function enable(el, vars) {
@@ -942,7 +1030,7 @@
     timeline: timeline, to: to, from: from, fromTo: fromTo, set: set,
     willChange: willChange,
     /* ---- 1. buttons and controls ---- */
-    enter: enter, exit: exit, press: press, enable: enable,
+    enter: enter, exit: exit, press: press, button3d: button3d, enable: enable,
     slideIndicator: slideIndicator,
     /* ---- 2. text and numbers ---- */
     revealLines: revealLines, countTo: countTo, swapTerm: swapTerm,
