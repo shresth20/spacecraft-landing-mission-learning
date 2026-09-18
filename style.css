@@ -98,13 +98,13 @@
   --quad-purple-dark: var(--square-border);
   --quad-green:       var(--tri-fill);
   --quad-green-dark:  var(--tri-border);
-  /* Where the diagonal carries a length rather than the name b, that number
-     is written ON the orange half, and the base highlight's orange all but
-     disappears into it. It is set in the deep shade of the quadrilateral's
-     own aqua instead -- the colour of the diagonal it measures, dark enough
-     to read on either half. Only the measured quadrilaterals use it: where
-     the base is renamed b, the name stays orange so the b on the drawing
-     and the b in the working are the same colour. */
+  /* The base's name is written ON one of the two halves, and the base
+     highlight's orange all but disappears into the peach one. It is set in
+     the deep shade of the quadrilateral's own aqua instead -- the colour of
+     the diagonal it names, dark enough to read on either half. Every
+     quadrilateral uses it, b and measured lengths alike (user, 2026-09-17):
+     the tie between the b on the drawing and the b in the working is left
+     to the glow, which is still the base's orange. */
   --quad-base-lbl:    var(--rect-chip-text);
 
   /* Section 4 -- the parallelogram is the palette's pink, and
@@ -138,18 +138,6 @@
      always reads against whichever fill it crosses. */
   --base-hl:   #F0932B;
   --height-hl: #2E86DE;
-  /* ---- ink for a letter or a length DRAWN ON A SHAPE ----
-     The hues above name a base and a height on the lines themselves, where
-     they read against the board. As the fill of a letter they do not: b was
-     drawn in the base orange on the peach triangle, a contrast of 1.2, and
-     was simply not there (and h1, h2, d1 and d2 were little better on their
-     own fills). These are the same four hues taken dark enough to read on
-     every fill the game uses -- 4.2 : 1 at worst, 11 : 1 on the board -- so
-     the bright line and the dark number still say the same thing. */
-  --ink-base:   #5A2F04;
-  --ink-height: #0E3355;
-  --ink-purple: #3B1580;
-  --ink-peach:  #7A3305;
 
   /* The neutral shape accent: what a slot or a chip borrows to show it is
      being dragged over, hovered or picked. Deliberately not one of the three
@@ -188,6 +176,13 @@
   --correct: #2EBF7A;
   --wrong: #E5304B;
 
+  /* ---- accent ----
+   * What the motion system emphasises with: the sweep behind a highlighted
+   * term, a number while it counts, the ring under a tap. Drawn from the
+   * palette rather than added to it -- it is the heading's own colour, which
+   * is already what the game emphasises with everywhere else. */
+  --accent: #85345E;
+
   /* ---- translucent derivations ----
    * rgb() of the token named in each comment. Kept here rather than inlined
    * so the palette stays the one place colour is defined. */
@@ -206,6 +201,7 @@
   --tint-correct:    rgba(46, 191, 122, .20);   /* --correct       */
   --glow-wrong:      rgba(229, 48, 75, .5);     /* --wrong         */
   --tint-wrong:      rgba(229, 48, 75, .28);    /* --wrong         */
+  --tint-accent:     rgba(133, 52, 94, .18);    /* --accent        */
   --glow-base:       rgba(240, 147, 43, .55);   /* --base-hl       */
   --glow-height:     rgba(46, 134, 222, .55);   /* --height-hl     */
   --glow-green:      rgba(224, 99, 42, .5);     /* --tri-border    */
@@ -714,8 +710,8 @@ body {
   paint-order: stroke;
   transition: opacity .45s ease .1s, filter .4s ease;
 }
-.lbl-base   { fill: var(--ink-base); }
-.lbl-height { fill: var(--ink-height); }
+.lbl-base   { fill: var(--base-hl); }
+.lbl-height { fill: var(--height-hl); }
 .tri.lit-base .lbl-base,
 .tri.lit-height .lbl-height { opacity: 1; }
 
@@ -939,11 +935,11 @@ body {
 .tname.done .tname-head { opacity: 1; }
 .quad-shape.marked-green  .mark-green,
 .quad-shape.marked-purple .mark-purple { opacity: 1; }
-.lbl-green  { fill: var(--ink-peach); }
-.lbl-purple { fill: var(--ink-purple); }
-/* the diagonal's letter and its length, in the deep aqua of the line they
-   measure rather than the base highlight's orange, which sat orange on the
-   peach triangle. From the first frame, not only once it is measured. */
+.lbl-green  { fill: var(--quad-green-dark); }
+.lbl-purple { fill: var(--quad-purple-dark); }
+/* the base's name -- b, or the length where the shape is measured -- in the
+   deep aqua of the diagonal it belongs to rather than the base highlight's
+   orange, which sat orange-on-orange on the peach half */
 .quad-shape .lbl-base { fill: var(--quad-base-lbl); }
 .quad-shape.lit-base   .lbl-base,
 .quad-shape.lit-green  .lbl-green,
@@ -1579,7 +1575,7 @@ body {
 .par-mark .halo,
 .eq-mark  .halo { stroke: var(--board-highlight); stroke-width: 10; }
 .par-mark .ink,
-.eq-mark  .ink  { stroke: var(--pair); stroke-width: 4.2; }
+.eq-mark  .ink  { stroke: var(--pair); stroke-width: 2.4; }
 .pair.show-par .par-mark,
 .pair.show-eq  .eq-mark { opacity: 1; transform: none; }
 
@@ -1629,7 +1625,7 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--heading);
-  stroke-width: 3;
+  stroke-width: 2.4;
   stroke-linecap: round;
   transition: stroke .4s ease, stroke-width .4s ease, filter .4s ease;
 }
@@ -1637,7 +1633,7 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--heading);
-  stroke-width: 3;
+  stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
   transition: opacity .3s ease, stroke .4s ease;
@@ -1691,13 +1687,13 @@ body {
   stroke-width: 4;
   filter: drop-shadow(0 0 3px var(--glow-base));
 }
-.para-shape.lit-b .d-base .d-label { fill: var(--ink-base); }
+.para-shape.lit-b .d-base .d-label { fill: var(--base-hl); }
 .para-shape.lit-h .d-h .d-height {
   stroke: var(--height-hl);
   stroke-width: 2.4;
   filter: drop-shadow(0 0 3px var(--glow-height));
 }
-.para-shape.lit-h .d-h .d-label { fill: var(--ink-height); }
+.para-shape.lit-h .d-h .d-label { fill: var(--height-hl); }
 
 /* ---- one half at a time ----
  * The same step-back the quadrilateral does while a triangle's area is
@@ -2103,9 +2099,9 @@ body {
   transition: opacity .45s ease, fill .4s ease, filter .4s ease;
 }
 .rd-lbl.on { opacity: 1; }
-.rd-lbl.lbl-d1 { fill: var(--ink-base); }
+.rd-lbl.lbl-d1 { fill: var(--base-hl); }
 .rd-lbl.lbl-d2,
-.rd-lbl.lbl-h  { fill: var(--ink-height); }
+.rd-lbl.lbl-h  { fill: var(--height-hl); }
 .rmark {
   opacity: 0;
   fill: none;
@@ -2149,14 +2145,14 @@ body {
 }
 .rhom-stage .d-d1 .d-arrow,
 .rhom-stage .d-d1 .d-head { stroke: var(--base-hl); }
-.rhom-stage .d-d1 .d-label { fill: var(--ink-base); }
+.rhom-stage .d-d1 .d-label { fill: var(--base-hl); }
 .rhom-stage .d-d2 .d-arrow,
 .rhom-stage .d-d2 .d-head { stroke: var(--height-hl); }
-.rhom-stage .d-d2 .d-label { fill: var(--ink-height); }
+.rhom-stage .d-d2 .d-label { fill: var(--height-hl); }
 /* a height on a practice figure: dashed, in the height hue */
 .rhom-stage .d-hgt .d-height { stroke: var(--height-hl); }
 .rhom-stage .d-hgt .d-mark { stroke: var(--height-hl); }
-.rhom-stage .d-hgt .d-label { fill: var(--ink-height); }
+.rhom-stage .d-hgt .d-label { fill: var(--height-hl); }
 /* the length sits on its own arrow, so the halo is wide enough to part it */
 .rhom-stage .d-label { stroke-width: 7; }
 /* a diagonal whose length is asked for */
@@ -2297,9 +2293,12 @@ body {
 }
 
 /* ---------- the figure this question is asked of ----------
- * The diagonals are drawn as dotted lines (script.js grows them from the
- * centre out, so the dots land one by one), and each is pulsed once as its
- * length arrives beside it. */
+ * The diagonals are drawn as dashed lines (script.js grows them from the
+ * centre out, so the dashes land one by one), and each is pulsed once as its
+ * length arrives beside it. The diagonals, the two measured lengths and the
+ * right angle are all drawn at the drawing's own line weight -- the same
+ * 2.4 the outline carries -- and a pulse or a lit length is said with a
+ * glow rather than by swelling (user, 2026-09-17). */
 /* the shape takes whatever room it is in -- the whole board while it is
    drawing itself, half of one once the question is asked -- and eases from
    the one to the other as the board splits (script.js plays the move) */
@@ -2307,30 +2306,28 @@ body {
 .rc-fig .fig-art { align-items: center; height: 100%; }
 .rc-fig .fig-art svg { max-height: 100%; }
 
-.rc-fig .rd { stroke-dasharray: .01 11; stroke-width: 4.5; }
+.rc-fig .rd { stroke-dasharray: 9 14; stroke-width: 2.4; }
 .rc-fig .rd-d1.flash { animation: rc-flash-d1 .9s ease-in-out both; }
 .rc-fig .rd-d2.flash { animation: rc-flash-d2 .9s ease-in-out both; }
 @keyframes rc-flash-d1 {
-  0%, 100% { stroke-width: 4.5; filter: none; }
-  45%      { stroke-width: 7; filter: drop-shadow(0 0 6px var(--glow-base)); }
+  0%, 100% { filter: none; }
+  45%      { filter: drop-shadow(0 0 6px var(--glow-base)); }
 }
 @keyframes rc-flash-d2 {
-  0%, 100% { stroke-width: 4.5; filter: none; }
-  45%      { stroke-width: 7; filter: drop-shadow(0 0 6px var(--glow-height)); }
+  0%, 100% { filter: none; }
+  45%      { filter: drop-shadow(0 0 6px var(--glow-height)); }
 }
 /* a diagonal named by the working, or pointed at by a nudge, stays lit for
    as long as it is being talked about */
-.rc-fig .rd-d1.lit { stroke-width: 6.5; filter: drop-shadow(0 0 4px var(--glow-base)); }
-.rc-fig .rd-d2.lit { stroke-width: 6.5; filter: drop-shadow(0 0 4px var(--glow-height)); }
+.rc-fig .rd-d1.lit { filter: drop-shadow(0 0 4px var(--glow-base)); }
+.rc-fig .rd-d2.lit { filter: drop-shadow(0 0 4px var(--glow-height)); }
 .rhom-stage .rc-fig .d-group.lit.d-d1 .d-arrow,
 .rhom-stage .rc-fig .d-group.lit.d-d1 .d-head {
-  stroke-width: 4;
   filter: drop-shadow(0 0 3px var(--glow-base));
 }
 .rhom-stage .rc-fig .d-group.lit.d-d1 .d-label { filter: drop-shadow(0 0 4px var(--glow-base)); }
 .rhom-stage .rc-fig .d-group.lit.d-d2 .d-arrow,
 .rhom-stage .rc-fig .d-group.lit.d-d2 .d-head {
-  stroke-width: 4;
   filter: drop-shadow(0 0 3px var(--glow-height));
 }
 .rhom-stage .rc-fig .d-group.lit.d-d2 .d-label { filter: drop-shadow(0 0 4px var(--glow-height)); }
@@ -2828,6 +2825,10 @@ body {
               background .16s ease;
 }
 .tool-btn[hidden] { display: none; }
+/* one icon at a time: which one is the mute button's state, not a DOM change */
+#muteBtn .tool-icon-off { display: none; }
+#muteBtn.muted .tool-icon-on { display: none; }
+#muteBtn.muted .tool-icon-off { display: block; }
 .tool-btn.in { opacity: .75; transform: none; }
 
 .tool-btn.in:hover,
@@ -3791,7 +3792,7 @@ body {
 }
 .par-mark path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .par-mark .halo { stroke: var(--board-highlight); stroke-width: 10; }
-.par-mark .ink  { stroke: var(--height-hl); stroke-width: 4; }
+.par-mark .ink  { stroke: var(--height-hl); stroke-width: 2.4; }
 .trap-shape.marked .par-mark { opacity: 1; transform: none; }
 .trap-shape.marked .par-mark:nth-child(2) { transition-delay: .12s; }
 
@@ -4448,7 +4449,7 @@ body {
   stroke-width: 4;
   filter: drop-shadow(0 0 3px var(--glow-base));
 }
-.rt-dims .d-group.lit.rt-len .d-label { fill: var(--ink-base); }
+.rt-dims .d-group.lit.rt-len .d-label { fill: var(--base-hl); }
 .rt-dims .d-group.lit.rt-hgt .d-arrow,
 .rt-dims .d-group.lit.rt-hgt .d-height,
 .rt-dims .d-group.lit.rt-hgt .d-head {
@@ -4456,7 +4457,7 @@ body {
   stroke-width: 4;
   filter: drop-shadow(0 0 3px var(--glow-height));
 }
-.rt-dims .d-group.lit.rt-hgt .d-label { fill: var(--ink-height); }
+.rt-dims .d-group.lit.rt-hgt .d-label { fill: var(--height-hl); }
 
 /* ---------- under the shape ----------
  * Swiftee hops down to the left of the working: what is being worked out,
@@ -4589,7 +4590,7 @@ body {
 .rtrap-stage .fig .d-label { stroke-width: 7; }
 .rtrap-stage .d-hgt .d-height { stroke: var(--height-hl); }
 .rtrap-stage .d-hgt .d-mark   { stroke: var(--height-hl); }
-.rtrap-stage .d-hgt .d-label  { fill: var(--ink-height); }
+.rtrap-stage .d-hgt .d-label  { fill: var(--height-hl); }
 /* a value that has been placed, or a step of the working that names it,
    lights the measurement it belongs to */
 .rtrap-stage .fig .d-group.lit.rt-len .d-arrow,
@@ -4598,7 +4599,7 @@ body {
   stroke-width: 4;
   filter: drop-shadow(0 0 3px var(--glow-base));
 }
-.rtrap-stage .fig .d-group.lit.rt-len .d-label { fill: var(--ink-base); }
+.rtrap-stage .fig .d-group.lit.rt-len .d-label { fill: var(--base-hl); }
 .rtrap-stage .fig .d-group.lit.d-hgt .d-height,
 .rtrap-stage .fig .d-group.lit.d-hgt .d-mark {
   stroke-width: 3.6;
@@ -5270,8 +5271,8 @@ body {
 .wdim-line { stroke-dasharray: 8 7; }
 .wdim-h .wdim-line, .wdim-h .wdim-head { stroke: var(--base-hl); }
 .wdim-v .wdim-line, .wdim-v .wdim-head { stroke: var(--height-hl); }
-.wdim-h .shape-label { fill: var(--ink-base); }
-.wdim-v .shape-label { fill: var(--ink-height); }
+.wdim-h .shape-label { fill: var(--base-hl); }
+.wdim-v .shape-label { fill: var(--height-hl); }
 /* in the warm-up the measures take the colour of the shape they belong to */
 .shape .wdim-line,
 .shape .wdim-head { stroke: var(--shape-border); }
@@ -5361,6 +5362,8 @@ body {
 .rtrap-stage .fig .d-group.lit.rt-len .d-arrow,
 .rtrap-stage .fig .d-group.lit.rt-len .d-head { stroke-width: 2.4; }
 .rt-dims .d-group.lit.rt-hgt .d-height { stroke-width: 2.4; }
+.rtrap-stage .fig .d-group.lit.d-hgt .d-height,
+.rtrap-stage .fig .d-group.lit.d-hgt .d-mark { stroke-width: 2.4; }
 .quad-shape.live .corner.armed .dot { stroke-width: 2.4; }
 .ghost-side { stroke-width: 4; }
 @keyframes ghost-land {
@@ -5470,3 +5473,72 @@ body {
  * empty strip along the foot of the board; it closes too (transitioned), so
  * the stage above runs to the bottom and the shapes take the room. */
 .board.sec2 .tray-area { padding-top: 0; padding-bottom: 0; }
+
+
+/* ==========================================================================
+ * the motion system's own furniture
+ * --------------------------------------------------------------------------
+ * js/motion.js builds a few elements of its own -- the band behind a
+ * highlighted term, the ring under a tap -- and toggles a few states that are
+ * a colour rather than a movement. Their shape lives here, because a
+ * stylesheet is where shape belongs; their timing lives there, because
+ * motion.js is where timing belongs. Every class in this block is prefixed
+ * mo- so it is obvious at a glance which file drives it.
+ * ========================================================================== */
+
+/* The band that sweeps in behind an emphasised term. Behind the text, scaled
+   from its left edge by Motion.highlight(), so the sweep is a transform and
+   the words above it never move. Its parent needs a position for the inset to
+   resolve against; every caller in the game marks one. */
+.mo-highlight {
+  position: absolute;
+  inset: -.12em -.28em;
+  z-index: -1;
+  border-radius: .3em;
+  background: var(--tint-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+/* the term a derivation step has just changed, held lit for a beat */
+.mo-changed { color: var(--accent); }
+/* a number while it is counting to its new value */
+.mo-counting { color: var(--accent); }
+
+/* The ring that goes out from a tap on a diagram. Fixed to the viewport and
+   centred on the point, so the two coordinates it is given are the point
+   itself rather than a corner. */
+.mo-ripple {
+  position: fixed;
+  z-index: 1000;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* a thing in the hand: it sits above the board, so its shadow says so */
+.mo-lifted { box-shadow: 0 10px 22px var(--shadow-soft); }
+
+/* a bar that has reached the end brightens rather than announcing itself */
+.mo-full { filter: brightness(1.12); }
+
+/* the bloom behind a finished lesson: a slow, faint wash, never a flash */
+.mo-bloom {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% 45%, var(--accent), transparent 62%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* a placeholder waiting on its content */
+.mo-shimmer { opacity: .45; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mo-highlight { transform: none; }
+}

@@ -909,6 +909,25 @@
         <path d="M14 5l7 7-7 7" />
       </svg>
     </button>
+    <!-- Sound off. The catalog asks for one global mute, remembered between
+         sittings; it sits with the other tools because it is the same kind of
+         thing: a way around what the game is doing, not part of it. The two
+         icons are both in the markup and the class decides which shows, so
+         toggling it never touches the DOM. -->
+    <button class="tool-btn" id="muteBtn" type="button" hidden
+            aria-label="Sound off" title="Sound off" aria-pressed="false">
+      <svg class="tool-icon tool-icon-on" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 9v6h4l5 4V5L8 9H4z" />
+        <path d="M16.5 8.5a5 5 0 0 1 0 7" />
+        <path d="M19 6a8.5 8.5 0 0 1 0 12" />
+      </svg>
+      <svg class="tool-icon tool-icon-off" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 9v6h4l5 4V5L8 9H4z" />
+        <path d="M17 9.5l4 5" />
+        <path d="M21 9.5l-4 5" />
+      </svg>
+      <span>Sound</span>
+    </button>
     <button class="tool-btn" id="resetBtn" type="button" hidden
             aria-label="Replay this section" title="Replay this section">
       <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
