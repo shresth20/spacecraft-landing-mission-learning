@@ -14,14 +14,11 @@
    ============================================================ */
 
 /* ---------- the board's own size, restated ----------
- * style.css sizes the board `min(1500px, 96vw)` by `min(780px, 90vh)`.
- * Naming those here lets the type below be measured against the room it
- * actually has rather than against the viewport, which is what the
- * height-only scale was doing. Keep these two in step with .board. */
-:root {
-  --board-w: min(1500px, 96vw);
-  --board-h: min(780px, 90vh);
-}
+ * style.css sizes the board `min(1500px, 96vw)` wide. Naming that here lets
+ * the type below be measured against the room it actually has rather than
+ * against the viewport, which is what the height-only scale was doing.
+ * Keep it in step with .board's own width. */
+:root { --board-w: min(1500px, 96vw); }
 
 /* ---------- the board's column may not be pushed wider than the board ----
  * .board is a grid with rows but no columns, so its single column is an
@@ -114,3 +111,19 @@
   font-size: max(var(--fs-min),
                  min(var(--fs-body) * 1.2, 2.8vw, 6cqw, calc(var(--board-w) * 0.0205)));
 }
+
+/* ---------- the shared floor comes down with the board ----------
+ * --fs-min is the one size none of the lesson's text may read smaller than.
+ * It was put there so the sizes close up together on a SHORT screen instead
+ * of fanning out, and as a height measure that is exactly right. On a narrow
+ * one it works against itself: a dozen rules are written
+ * `max(var(--fs-min), min(..., Ncqw))`, and the floor simply overrides the
+ * width cap the rule was given -- which is why the trapezium's "Our trapezium
+ * is exactly half of this parallelogram." sat at 19.8px and hung 25px past
+ * the board at 1024x768 with its cap doing nothing.
+ *
+ * So the floor is itself measured against the board's width, on the same
+ * 19.8/1500 proportion it already has at the design size. At 16:9 it is
+ * either the same value or below a size that was not binding anyway, so no
+ * line there moves; on a narrow board it steps back and lets the caps work. */
+:root { --fs-min: min(19.8px, calc(var(--board-w) * 0.0132)); }
