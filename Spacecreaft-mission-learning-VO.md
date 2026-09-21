@@ -33,18 +33,35 @@ typographic `’` used in the source.
 
 ### Audio already in the project
 
-| File | Used by |
-|---|---|
-| `assets/audio/Drag each block to the matching shape.mp3` | Page 2 round 1, and page 24's follow-on match step |
-| `assets/audio/Drag each area to the matching shape.mp3` | Page 2 round 2 |
-| `assets/audio/Select the correct formula of parallelogram.mp3` | **unused** — close to P11-01 but not wired up |
-| `assets/audio/Tap the correct name for the shape.mp3` | **unused** — no matching line in the current script |
+Every line below has been cut from the master recording (`voice.mp3`) into a
+clip of its own under **`assets/VO/`**, named `<ID>-<first words>.mp3` — for
+example `P04-06-lets-try-and-find-its-area.mp3`. 114 clips in all, mono,
+128 kbps, ~6.4 MB together.
 
-Two mismatches to settle before recording: the round 1 clip is named "Drag each
-**block**…" while the on-screen line reads "Drag each **name** to the matching
-shape.", and the round 2 clip is named "Drag each area…" while the line reads
-"Great! Now let’s recall their area formulas." Either re-record to match the
-text or change the text.
+The four hand-made clips that used to sit in `assets/audio/` have been
+replaced by these and removed; that folder now holds only the four sound
+effects (`correct-answer.ogg`, `incorrect-answer.ogg`, `confetti-sound.ogg`,
+`button-click.ogg`). The two naming mismatches noted here before — "Drag each
+**block**…" against an on-screen "Drag each **name**…", and "Drag each
+area…" against "Great! Now let’s recall their area formulas." — are settled:
+each line now has a clip of the words actually on the screen.
+
+### How a clip reaches its line
+
+Nothing in the mission names an audio file. `script.js` holds one registry,
+`VO_FILE`, keyed by **the line itself**, and every typewriter asks it before
+it types. So a line said on six pages ("That’s Correct!") finds its clip
+wherever it appears, a line built at run time ("Try again! Join the *left* and
+*right* corners.") finds its own, and a line with no clip simply types at its
+own pace in silence. Each line is typed across ~82% of its clip, so the last
+word lands a little before the voice finishes the sentence.
+
+### Not on the master recording
+
+| ID | Line | Why |
+|---|---|---|
+| P30-03 | The parallel sides are 30 cm and 40 cm, and the height is 15 cm. | **reachable in the game** (page 30, second wrong try) — needs recording |
+| X-01 … X-06 | the appendix lines below | those scenes are not in the running order |
 
 ### Global feedback bank (used on almost every page)
 

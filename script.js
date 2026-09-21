@@ -644,15 +644,11 @@
   allChips.forEach(chip => Motion.button3d(chip, { edge: 4 }));
   const trays    = { 1: document.getElementById('tray'), 2: document.getElementById('tray2') };
 
+  /* The two warm-up briefings. Neither names a clip: the voice-over
+     registry finds one by the line, as it does everywhere else. */
   const ROUNDS = {
-    1: {
-      text: 'Drag each name to the matching shape.',
-      src:  'assets/audio/Drag each block to the matching shape.mp3'
-    },
-    2: {
-      text: 'Great! Now let’s recall their area formulas.',
-      src:  'assets/audio/Drag each area to the matching shape.mp3'
-    }
+    1: { text: 'Drag each name to the matching shape.' },
+    2: { text: 'Great! Now let’s recall their area formulas.' }
   };
   const LAST_ROUND = 2;
 
@@ -1103,13 +1099,6 @@
     a.preload = 'auto';
     bank[key] = a;
   });
-  /* one dedicated element per briefing, so each keeps its own duration */
-  Object.keys(ROUNDS).forEach(n => {
-    const a = new Audio(ROUNDS[n].src);
-    a.preload = 'auto';
-    ROUNDS[n].audio = a;
-  });
-
   /* Effects play off clones so overlapping hits never cut each other short. */
   function sfx(key, volume) {
     if (fastForward) return;         /* a skip races past; it does not chime */
@@ -1155,6 +1144,414 @@
     });
   }
 
+  /* ---------- voice-over ----------
+   * Every spoken line in the mission has a clip of its own under assets/VO,
+   * cut from the one master recording and named for the page it belongs to
+   * (P04-06-lets-try-and-find-its-area.mp3).
+   *
+   * The clips are keyed by THE LINE ITSELF rather than by the call site, and
+   * that is the whole of the wiring:
+   *   - a line said on six pages -- "That's Correct!" -- finds its clip
+   *     wherever it is typed, without six bindings,
+   *   - a line built at run time -- "Try again! Join the left and right
+   *     corners.", "...fit together to make a parallelogram!" -- finds its
+   *     own the same way, because the built string is what is looked up,
+   *   - and a scene never names a file. It types its line exactly as it
+   *     always did; the voice comes with it.
+   * Every box that shows a line goes through one of the typewriters below,
+   * and each of those asks here first. A line with no clip types at its own
+   * pace, silently, as it did before there was a recording.
+   */
+  const VO_DIR = 'assets/VO/';
+
+  /* The line as it is written on screen, lower-cased with its typographic
+     quotes flattened -- so the map can be read against the source, and a
+     line that only differs by a curly apostrophe still finds its clip. */
+  function voKey(text) {
+    return String(text)
+      .replace(/ /g, ' ')
+      .replace(/[‘’]/g, '\'')
+      .replace(/[“”]/g, '"')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  const VO_FILE = {
+    'hey there!':
+      'P01-01-hey-there',
+    'let\'s start with a quick warm-up!':
+      'P01-02-lets-start-with-a-quick-warm-up',
+    'here are a few common shapes.':
+      'P02-01-here-are-a-few-common-shapes',
+    'drag each name to the matching shape.':
+      'P02-02-drag-each-name-to-the-matching-shape',
+    'great! now let\'s recall their area formulas.':
+      'P02-03-great-now-lets-recall-their-area-formulas',
+    'that\'s correct':
+      'FB-01-thats-correct',
+    'try again':
+      'FB-02-try-again',
+    'well done!':
+      'FB-03-well-done',
+    'triangles can look different, but their area depends on the base and height.':
+      'P03-01-triangles-can-look-different-but-their-area-depends',
+    'let\'s observe their base and height.':
+      'P03-02-lets-observe-their-base-and-height',
+    'what shape is this?':
+      'P04-01-what-shape-is-this',
+    'incorrect. a triangle has 3 sides.':
+      'P04-02-incorrect-a-triangle-has-3-sides',
+    'incorrect. a pentagon has 5 sides.':
+      'P04-03-incorrect-a-pentagon-has-5-sides',
+    'correct. a quadrilateral has 4 sides.':
+      'P04-04-correct-a-quadrilateral-has-4-sides',
+    'this is a general quadrilateral.':
+      'P04-05-this-is-a-general-quadrilateral',
+    'let\'s try and find its area!':
+      'P04-06-lets-try-and-find-its-area',
+    'join the corners to divide the quadrilateral into two parts.':
+      'P04-07-join-the-corners-to-divide-the-quadrilateral-into',
+    'try again! join the left and right corners.':
+      'P04-08-try-again-join-the-left-and-right-corners',
+    'the quadrilateral is divided into two triangles.':
+      'P04-09-the-quadrilateral-is-divided-into-two-triangles',
+    'let\'s put in each triangle\'s area.':
+      'P04-10-lets-put-in-each-triangles-area',
+    'both triangles share the same base b.':
+      'P04-11-both-triangles-share-the-same-base-b',
+    'so this is the area of the quadrilateral!':
+      'P04-12-so-this-is-the-area-of-the-quadrilateral',
+    'let\'s try a different way!':
+      'P05-01-lets-try-a-different-way',
+    'try again! join the top and bottom corners.':
+      'P05-02-try-again-join-the-top-and-bottom-corners',
+    'two new triangles! let\'s find their areas.':
+      'P05-03-two-new-triangles-lets-find-their-areas',
+    'here is a different quadrilateral.':
+      'P06-01-here-is-a-different-quadrilateral',
+    'let\'s look at its base and heights.':
+      'P06-02-lets-look-at-its-base-and-heights',
+    'choose the base and height for each triangle.':
+      'P06-03-choose-the-base-and-height-for-each-triangle',
+    'now it\'s your turn! find the area of this quadrilateral.':
+      'P07-01-now-its-your-turn-find-the-area-of',
+    'we know how to find the area of a general quadrilateral.':
+      'P08-01-we-know-how-to-find-the-area-of',
+    'now, let\'s find the area of some special quadrilaterals!':
+      'P08-02-now-lets-find-the-area-of-some-special',
+    'that\'s correct! this is a parallelogram.':
+      'P09-02-thats-correct-this-is-a-parallelogram',
+    'check it has two parallel sides.':
+      'P09-03-check-it-has-two-parallel-sides',
+    'look at the top and bottom sides.':
+      'P09-04-look-at-the-top-and-bottom-sides',
+    'they run side by side and never meet.':
+      'P09-05-they-run-side-by-side-and-never-meet',
+    'the left and right sides do the same!':
+      'P09-06-the-left-and-right-sides-do-the-same',
+    'now let\'s compare their lengths.':
+      'P09-07-now-lets-compare-their-lengths',
+    'the top side fits the bottom side exactly!':
+      'P09-08-the-top-side-fits-the-bottom-side-exactly',
+    'and the left side fits the right side too!':
+      'P09-09-and-the-left-side-fits-the-right-side',
+    'opposite sides are parallel to each other.':
+      'P09-10-opposite-sides-are-parallel-to-each-other',
+    'opposite sides are equal in length.':
+      'P09-11-opposite-sides-are-equal-in-length',
+    'here is a parallelogram.':
+      'P10-01-here-is-a-parallelogram',
+    'this is the base of the parallelogram.':
+      'P10-02-this-is-the-base-of-the-parallelogram',
+    'here comes the height!':
+      'P10-03-here-comes-the-height',
+    'let us divide this into two triangles.':
+      'P10-04-let-us-divide-this-into-two-triangles',
+    'which of these is the area of the parallelogram?':
+      'P11-01-which-of-these-is-the-area-of-the',
+    'that\'s correct! area of a parallelogram = base × height.':
+      'P11-02-thats-correct-area-of-a-parallelogram-base-x',
+    'now it\'s your turn! find the area of this parallelogram.':
+      'P12-01-now-its-your-turn-find-the-area-of',
+    'we now know how to find the area of a parallelogram.':
+      'P13-01-we-now-know-how-to-find-the-area',
+    'let us now try finding the area of a special parallelogram.':
+      'P13-02-let-us-now-try-finding-the-area-of',
+    'drag the points to make each angle 90 degrees.':
+      'P14-01-drag-the-points-to-make-each-angle-90',
+    'all four sides are equal in length!':
+      'P14-02-all-four-sides-are-equal-in-length',
+    'and the diagonals meet at a right angle (90°).':
+      'P14-03-and-the-diagonals-meet-at-a-right-angle',
+    'a parallelogram with these properties is called a rhombus.':
+      'P14-04-a-parallelogram-with-these-properties-is-called-a',
+    'this is the special parallelogram called rhombus.':
+      'P14-05-this-is-the-special-parallelogram-called-rhombus',
+    'here, is a rhombus.':
+      'P15-01-here-is-a-rhombus',
+    'choose the correct area of the orange triangle.':
+      'P15-02-choose-the-correct-area-of-the-orange-triangle',
+    'that\'s correct!':
+      'P15-03-thats-correct',
+    'choose the correct area of the purple triangle.':
+      'P15-04-choose-the-correct-area-of-the-purple-triangle',
+    'let\'s find the area of the whole rhombus.':
+      'P16-01-lets-find-the-area-of-the-whole-rhombus',
+    'put in what each triangle\'s area is.':
+      'P16-02-put-in-what-each-triangles-area-is',
+    'both parts have ½ × d₁ in them, so take it out.':
+      'P16-03-both-parts-have-half-x-d1-in-them',
+    'and h₁ and h₂ together make the whole of d₂.':
+      'P16-04-and-h1-and-h2-together-make-the-whole',
+    'so the area of a rhombus is ½ × d₁ × d₂.':
+      'P16-05-so-the-area-of-a-rhombus-is-half',
+    'drag the two lengths into the formula.':
+      'P17-01-drag-the-two-lengths-into-the-formula',
+    'choose the correct area.':
+      'P18-01-choose-the-correct-area',
+    'this rhombus has an area of 240 sq. cm. find the other diagonal.':
+      'P19-01-this-rhombus-has-an-area-of-240-sq',
+    'that\'s correct! ½ × 30 × d₂ = 240, so d₂ is 16 cm.':
+      'P19-02-thats-correct-half-x-30-x-d2-240',
+    'what is the area of the rhombus?':
+      'P20-01-what-is-the-area-of-the-rhombus',
+    'the diagonals are 24 cm and 15 cm.':
+      'P20-02-the-diagonals-are-24-cm-and-15-cm',
+    'which formula can you use here?':
+      'P21-01-which-formula-can-you-use-here',
+    'that\'s correct! no diagonals are given, so use base × height.':
+      'P21-02-thats-correct-no-diagonals-are-given-so-use',
+    'we found the area of a rhombus!':
+      'P22-01-we-found-the-area-of-a-rhombus',
+    'ready for the next challenge?':
+      'P22-02-ready-for-the-next-challenge',
+    'let\'s find the area of another special quadrilateral!':
+      'P22-03-lets-find-the-area-of-another-special-quadrilateral',
+    'almost! a kite has two pairs of equal sides next to each other. check the shape carefully.':
+      'P23-01-almost-a-kite-has-two-pairs-of-equal',
+    'almost! a parallelogram has two pairs of parallel sides. check the shape carefully.':
+      'P23-02-almost-a-parallelogram-has-two-pairs-of-parallel',
+    'correct! look at the shape — it has only one pair of parallel sides.':
+      'P23-03-correct-look-at-the-shape-it-has-only',
+    'select all the trapeziums.':
+      'P24-01-select-all-the-trapeziums',
+    'let us try to find the area of this trapezium.':
+      'P25-01-let-us-try-to-find-the-area-of',
+    'its parallel sides are a and b, and its height is h.':
+      'P25-02-its-parallel-sides-are-a-and-b-and',
+    'let us slide it across, to make room beside it.':
+      'P25-03-let-us-slide-it-across-to-make-room',
+    'now let us take a copy of it.':
+      'P25-04-now-let-us-take-a-copy-of-it',
+    'the copy slides over and flips upside down.':
+      'P25-05-the-copy-slides-over-and-flips-upside-down',
+    'side a of the copy is equal to side a.':
+      'P25-06-side-a-of-the-copy-is-equal-to',
+    'and side b of the copy is equal to side b.':
+      'P25-07-and-side-b-of-the-copy-is-equal',
+    'its height is the same h too.':
+      'P25-08-its-height-is-the-same-h-too',
+    'the two trapeziums fit together to make a parallelogram!':
+      'P25-09-the-two-trapeziums-fit-together-to-make-a',
+    'so the parallelogram has base a + b and height h.':
+      'P25-10-so-the-parallelogram-has-base-a-b-and',
+    'the area of the whole parallelogram is:':
+      'P26-01-the-area-of-the-whole-parallelogram-is',
+    'our trapezium is exactly half of this parallelogram.':
+      'P26-02-our-trapezium-is-exactly-half-of-this-parallelogram',
+    'so, the area of the trapezium is:':
+      'P26-03-so-the-area-of-the-trapezium-is',
+    'this works for every trapezium!':
+      'P26-04-this-works-for-every-trapezium',
+    'let\'s find the area of this trapezium.':
+      'P27-01-lets-find-the-area-of-this-trapezium',
+    'which measurement is a, the shorter parallel side?':
+      'P27-02-which-measurement-is-a-the-shorter-parallel-side',
+    'look at the shorter parallel side.':
+      'P27-03-look-at-the-shorter-parallel-side',
+    'which measurement is b, the longer parallel side?':
+      'P27-04-which-measurement-is-b-the-longer-parallel-side',
+    'look at the longer parallel side.':
+      'P27-05-look-at-the-longer-parallel-side',
+    'what is the height?':
+      'P27-06-what-is-the-height',
+    'look at the perpendicular height.':
+      'P27-07-look-at-the-perpendicular-height',
+    'what is the area of the trapezium?':
+      'P27-08-what-is-the-area-of-the-trapezium',
+    'add the two parallel sides: 8 cm + 14 cm.':
+      'P27-09-add-the-two-parallel-sides-8-cm-14',
+    'let\'s simplify it, step by step.':
+      'P27-10-lets-simplify-it-step-by-step',
+    'look at the trapezium and choose the correct values.':
+      'P28-01-look-at-the-trapezium-and-choose-the-correct',
+    'add the two parallel sides: 13 + 20.':
+      'P28-02-add-the-two-parallel-sides-13-20',
+    'the parallel sides are 13 cm and 20 cm — add them.':
+      'P28-03-the-parallel-sides-are-13-cm-and-20',
+    '13 + 20 = 33, so the sum of the parallel sides is 33 cm.':
+      'P28-04-13-20-33-so-the-sum-of-the',
+    'look at the dotted perpendicular line.':
+      'P28-05-look-at-the-dotted-perpendicular-line',
+    'the dotted line runs straight from the top parallel side down to the bottom one.':
+      'P28-06-the-dotted-line-runs-straight-from-the-top',
+    'the dotted perpendicular height is the one marked 10 cm.':
+      'P28-07-the-dotted-perpendicular-height-is-the-one-marked',
+    'use ½ × sum of parallel sides × height.':
+      'P29-02-use-half-x-sum-of-parallel-sides-x',
+    'work out ½ × 33 × 10.':
+      'P29-03-work-out-half-x-33-x-10',
+    'half of 10 is 5, and 33 × 5 = 165 sq. cm.':
+      'P29-04-half-of-10-is-5-and-33-x',
+    'use ½ × (sum of the parallel sides) × height.':
+      'P30-02-use-half-x-sum-of-the-parallel-sides',
+  };
+
+  /* Built on first use and kept: a line said again -- on this page or six
+     pages later -- plays the element it played the first time. */
+  const voBank = Object.create(null);
+  let voNow = null;                    /* the one clip that may be sounding */
+
+  function voFor(text) {
+    const key = voKey(text);
+    const stem = VO_FILE[key];
+    if (!stem) return null;
+    let a = voBank[key];
+    if (!a) {
+      a = new Audio(VO_DIR + stem + '.mp3');
+      a.preload = 'auto';
+      voBank[key] = a;
+    }
+    return a;
+  }
+
+  /* Nothing is playing: the typewriter keeps the pace it was given. */
+  const VO_SILENT = { audio: null, playing: false, length: 0 };
+
+  /* Start the clip for a line, if this line has one and this is a moment to
+     play it. Resolves to what the typewriter needs to pace itself against.
+     Silence is never a failure -- muted, skipped, missing, blocked, or the
+     scene torn down while the metadata was being read -- and the caller
+     simply falls back to its own pace. */
+  async function voSay(text) {
+    if (fastForward || Motion.isMuted() || typeof text !== 'string') return VO_SILENT;
+    const a = voFor(text);
+    if (!a) return VO_SILENT;
+    const mine = runToken;
+    const length = await durationOf(a);
+    /* a replay or a jump took the scene down while the header was read: this
+       line is nobody's now, and it must not be heard over the new scene */
+    if (mine !== runToken || fastForward || Motion.isMuted()) return VO_SILENT;
+
+    silenceNow();                      /* one voice at a time */
+    try {
+      a.currentTime = 0;
+      await a.play();
+    } catch (e) {
+      /* the browser is holding sound back until it has been asked for once:
+         put the tap up, and carry on either way */
+      if (!voGesture) return VO_SILENT;
+      const got = await voGesture();
+      if (mine !== runToken) return VO_SILENT;
+      if (!got) return VO_SILENT;
+      try { a.currentTime = 0; await a.play(); }
+      catch (e2) { return VO_SILENT; }
+    }
+    voNow = a;
+    return { audio: a, playing: true, length: length };
+  }
+
+  /* How long the line should take to type: across ~82% of the clip, so the
+     last word lands a moment before the narrator finishes the sentence, and
+     at the box's own pace when there is no clip to land against. */
+  function voPace(state, fallbackMs) {
+    return (state.playing && state.length > 0.5) ? state.length * 1000 * 0.82 : fallbackMs;
+  }
+
+  /* Hold the beat until the clip has finished, so the next line never talks
+     over this one. A skip or a teardown releases it like any other wait. */
+  function voHold(state) {
+    const a = state.audio;
+    if (!state.playing || !a || a.ended || a.paused) return Promise.resolve();
+    return waitOrSkip(function (done) {
+      const end = function () {
+        a.removeEventListener('ended', end);
+        a.removeEventListener('pause', end);
+        done();
+      };
+      a.addEventListener('ended', end);
+      /* A verdict or a nudge takes the voice over mid-sentence -- stopVoice()
+         pauses this one. The beat that was waiting on it has to be let go
+         here, or it would sit out the whole of the timeout below. */
+      a.addEventListener('pause', end);
+      setTimeout(end, 15000);          /* never hang on a stalled clip */
+    });
+  }
+
+  /* A line that is shown all at once rather than typed -- a banner, a nudge,
+     a verdict -- still gets its voice. It is not paced against anything, so
+     unlike a typed line it can afford to wait its turn, and it does: a wrong
+     answer says "Try again" and THEN the nudge, rather than both at once.
+     (A typed line still barges in: its clip has to start when its first word
+     does, or the two would not be the same sentence any more.)
+     The hold comes back, so the caller may wait for the line to be said or
+     let it run on under whatever happens next. */
+  let voQueue = Promise.resolve();
+  let voRound = 0;                     /* bumped when the queue is emptied */
+  function voAlone(text) {
+    const mine = voRound;
+    voQueue = voQueue.catch(() => {}).then(function () {
+      /* the scene went down, or was skipped, while this line waited its
+         turn: it belongs to nobody now and is simply dropped */
+      if (mine !== voRound) return;
+      return voSay(text).then(voHold, () => {});
+    });
+    return voQueue;
+  }
+
+  /* The clips the mission opens with: the greeting, the shapes and the two
+     warm-up briefings. These four the loading bar waits for, so the first
+     line is never typed against a clip that has not arrived. */
+  const VO_OPENING = [
+    'Hey there!', 'Let’s start with a quick warm-up!',
+    'Here are a few common shapes.', 'Drag each name to the matching shape.'
+  ];
+
+  /* The rest are fetched behind the mission once it is running -- a few at a
+     time, so a hundred requests never queue in front of the one clip the
+     scene on screen is waiting for. A clip that has not arrived by the time
+     its line is typed is not a problem: durationOf() reports nothing, and
+     the line types at its own pace instead. */
+  function warmVoices() {
+    const rest = Object.keys(VO_FILE)
+      .filter(k => VO_OPENING.every(t => voKey(t) !== k));
+    let at = 0;
+    (function next() {
+      if (at >= rest.length) return;
+      const batch = rest.slice(at, at + 4).map(k => voFor(k));
+      at += 4;
+      Promise.all(batch.map(preloadAudio)).then(next);
+    })();
+  }
+
+  /* ---------- the one gesture the browser wants ----------
+   * A page that has not been touched yet is not allowed to make a sound, so
+   * the first clip that is refused puts up the tap and waits for it. It is
+   * asked for once: if the learner does not take it, the mission plays on in
+   * silence rather than standing there. */
+  let voAsked = false;
+  function voGesture() {
+    if (voAsked) return Promise.resolve(false);
+    voAsked = true;
+    tapStart.hidden = false;
+    return new Promise(function (resolve) {
+      tapStart.querySelector('.tap-start-btn')
+        .addEventListener('click', function () { tapStart.hidden = true; resolve(true); }, { once: true });
+    });
+  }
+
+
   /* ---------- hold the layout still ----------
    * Nothing that appears or disappears may move the shapes, so every box that
    * could otherwise resize is pinned:
@@ -1183,9 +1580,14 @@
   /* ---------- input lock ---------- */
   let interactive = false;
 
-  function lockInput(on) {
+  function lockInput(on, keep) {
     interactive = !on;
     inputLock.classList.toggle('on', !!on);
+    /* Unlocking is the hand-over: Swiftee has finished saying its piece and
+       the board is the learner's now, so the heading stands down (see
+       headingAside). `keep` is for the one unlock that is not a question --
+       the Next button. */
+    if (!on && !keep) headingAside();
   }
   lockInput(true);
 
@@ -1301,6 +1703,10 @@
   muteBtn.addEventListener('click', function () {
     Motion.toggleMuted();
     showMute();
+    /* A learner who turns the sound off wants THIS sentence to stop, not the
+       next one: the line being spoken is cut where it stands, and the beat
+       waiting on it is let go by the pause (see voHold). */
+    if (Motion.isMuted()) stopVoice();
     sfx('click', .4);        /* silent when it has just been turned off */
   });
   showMute();
@@ -1398,11 +1804,22 @@
     });
   }
 
+  /* Stop the line that is sounding, and nothing else: this is one line
+     handing the voice to the next, not the end of the talking. */
+  function silenceNow() {
+    if (voNow) {
+      try { voNow.pause(); voNow.currentTime = 0; } catch (e) { /* nothing to stop */ }
+      voNow = null;
+    }
+  }
+
+  /* ...and this is the end of it: a skip, a jump, a replay or the sound
+     being switched off. What is sounding stops, and the lines that were
+     waiting their turn behind it are dropped rather than said later, over a
+     scene that has moved on. */
   function stopVoice() {
-    Object.keys(ROUNDS).forEach(function (n) {
-      const a = ROUNDS[n].audio;
-      try { a.pause(); a.currentTime = 0; } catch (e) { /* nothing to stop */ }
-    });
+    voRound++;
+    silenceNow();
   }
 
   /* A scene waiting on the learner for something other than a round -- a
@@ -1896,12 +2313,17 @@
    * Paced against a wall clock rather than a chain of timeouts, so a slow
    * frame costs nothing: the line always lands on time. */
   async function typeInto(txt, blink, text, totalMs) {
+    /* the clip starts as the first word lands, and the line is typed across
+       it: see voSay/voPace/voHold */
+    const said = await voSay(text);
     blink.hidden = true;
     const words = wordSpans(txt, text);
-    const end = await revealWords(words, performance.now(), totalMs / Math.max(1, text.length));
+    const perChar = voPace(said, totalMs) / Math.max(1, text.length);
+    const end = await revealWords(words, performance.now(), perChar);
     const left = end - performance.now();
     if (left > 0) await wait(left);
     await wordsSettle();
+    await voHold(said);
   }
   const typewrite = (text, totalMs) => { promptLine(text); return typeInto(promptTxt, caret, text, totalMs); };
 
@@ -1934,6 +2356,9 @@
     feedbackGen++;
     caret.hidden = true;
     quip.textContent = text;          /* announced, never shown */
+    /* ...and spoken. Not waited for: the next chip may be on its way
+       already, and a verdict that held the board up would be in the way. */
+    voAlone(text).catch(() => {});
   }
 
   /* ---------- the ghost chip that demonstrates the drag ---------- */
@@ -1997,61 +2422,24 @@
    * The prompt is the board's heading and it is never taken away: it is wiped
    * back to empty, typed out again for the new round, and then left alone. */
   async function briefing(spec) {
-    const vo = spec.audio;
-    const mine = runToken;
-
     feedbackGen++;                  /* a feedback line still typing stops here */
     promptTxt.textContent = '';
     caret.hidden = true;
     prompt.classList.add('show');
     await wait(320);
 
-    let length = await durationOf(vo);
-    retired(mine);
-    let playing = false;
-
-    /* A skip leaves the clip unplayed rather than starting it only to cut it
-       off a frame later. `playing` stays false, so the typewriter falls back to
-       its fixed pace -- which a collapsed wait() makes instant anyway. */
-    if (!fastForward) {
-      try {
-        vo.currentTime = 0;
-        await vo.play();
-        playing = true;
-      } catch (e) {
-        /* the browser blocked autoplay -- ask for the one gesture it wants */
-        tapStart.hidden = false;
-        await new Promise(res =>
-          tapStart.querySelector('.tap-start-btn').addEventListener('click', res, { once: true })
-        );
-        tapStart.hidden = true;
-        try { await vo.play(); playing = true; } catch (e2) { /* give up on sound */ }
-        if (!length) length = await durationOf(vo);
-      }
-    }
-    retired(mine);                  /* the clip's promises are the browser's, not this scene's */
-
     /* Swiftee talks along with the narrator and stops when it does -- and
        comes up from behind the board first if it is not standing there yet */
     await mascotWithLine(spec.text);
     swiftee.hold('talking');
 
-    /* Type across ~82% of the clip so the last character lands a moment
-       before the narrator finishes the sentence. */
-    const typeMs = (playing && length > 0.5) ? length * 1000 * 0.82 : 2400;
-
     const signal = { done: false, anim: null };
     const demo = demoDrag(signal);
 
-    await typewrite(spec.text, typeMs);
-
-    if (playing && !vo.ended) {
-      await waitOrSkip(function (done) {
-        const end = function () { vo.removeEventListener('ended', end); done(); };
-        vo.addEventListener('ended', end);
-        setTimeout(end, 12000);           /* never hang on a stalled clip */
-      });
-    }
+    /* The clip, the pace and the hold at the end of it all belong to the
+       typewriter now: 2400ms is only the pace to keep when this line has no
+       recording to keep. */
+    await typewrite(spec.text, 2400);
 
     swiftee.release();
 
@@ -2523,7 +2911,7 @@
   function runLoader() {
     const jobs = ART.map(preloadImage).concat(swiftee.preload())
       .concat(Object.keys(bank).map(k => preloadAudio(bank[k])))
-      .concat(Object.keys(ROUNDS).map(n => preloadAudio(ROUNDS[n].audio)));
+      .concat(VO_OPENING.map(voFor).filter(Boolean).map(preloadAudio));
     if (document.fonts && document.fonts.ready) {
       jobs.push(document.fonts.ready.catch(() => {}));
     }
@@ -2553,6 +2941,8 @@
 
   async function welcomeScreen() {
     await runLoader();
+    /* the mission's own voice can start arriving now: the bar is done with */
+    warmVoices();
     await wait(280);
 
     /* the button takes the loader's own grid cell, so nothing shifts */
@@ -2882,7 +3272,10 @@
       b.hidden = false;
       void b.offsetHeight;
       b.classList.add('in');
-      lockInput(false);
+      /* the heading stays: the scene is over, the transition that follows
+         takes the bird down anyway, and folding the row for the second
+         before it would only make the board jump twice */
+      lockInput(false, true);
       b.focus({ preventScroll: true });
       pendingNext = b;
 
@@ -3501,13 +3894,17 @@
     let gen = 0;
     return async function (text) {
       const g = ++gen;
+      const said = await voSay(text);
+      if (g !== gen) return;
       blink.hidden = true;
       const words = wordSpans(txt, text);
-      const end = await revealWords(words, performance.now(), perChar, () => g === gen);
+      const pace = voPace(said, perChar * Math.max(1, text.length)) / Math.max(1, text.length);
+      const end = await revealWords(words, performance.now(), pace, () => g === gen);
       if (g !== gen) return;
       const left = end - performance.now();
       if (left > 0) await wait(left);
       await wordsSettle();
+      await voHold(said);
     };
   }
   const aside = typer(sayTxt, sayCaret, TYPE_MS);     /* Swiftee's line beside itself */
@@ -3527,7 +3924,11 @@
     noteCaret.hidden = true;
     wordSpans(noteTxt, text).forEach(w => w.el.classList.add('in'));
     quizBubble.classList.add('show');
-    return wordsSettle();
+    /* the words are all there at once, so the voice is not paced against
+       them -- it is simply said over them, and the beat lasts as long as it
+       takes to say */
+    const said = voAlone(text);
+    return wordsSettle().then(() => said);
   }
 
   /* ---------- the bird arrives with its line ----------
@@ -3553,16 +3954,61 @@
     /* somebody is already on the board -- at the heading, or down at a banner
        the scene has deliberately sent the bird to -- or the bird is already in
        the air between two spots; either way it does not jump again for this
-       line */
-    if (board.querySelector('.mascot.in') ||
-        hopper.classList.contains('on') ||
-        flyer.classList.contains('on')) return Promise.resolve();
+       line. A bird on its way BACK behind the board is the exception: that
+       trip was the hand-over to the learner, and it has been answered. */
+    if (!mascotLeaving &&
+        (board.querySelector('.mascot.in') ||
+         hopper.classList.contains('on') ||
+         flyer.classList.contains('on'))) return Promise.resolve();
     if (typeof text === 'string') promptLine(text);
     mascotArriving = (async () => {
-      try { await mascotJumpIn(); await wait(MASCOT_LEAD); }
-      finally { mascotArriving = null; }
+      try {
+        /* An answer given while the bird was still dropping out of sight:
+           let it land before calling it back up, or the jump in would start
+           from a sprite that is halfway through leaving -- and the line
+           would type with nobody beside it. */
+        if (mascotLeaving) await mascotLeaving;
+        if (board.querySelector('.mascot.in')) return;
+        await mascotJumpIn();
+        await wait(MASCOT_LEAD);
+      } finally { mascotArriving = null; }
     })();
     return mascotArriving;
+  }
+
+  /* ---------- the heading stands down ----------
+   * Swiftee explains from the heading; when it has finished and the board
+   * becomes the learner's, the bird jumps back behind the board and takes
+   * its line with it, so the row folds and the shape has the whole of the
+   * board to itself while the learner works (user, 2026-09-21).
+   *
+   * Only at the hand-over, never between two lines of the same explanation:
+   * the trapezium's derivation says ten lines from the heading one after
+   * another, and a hop out and back between each would pump the board the
+   * length of the page. The hand-over is lockInput(false) -- the one moment
+   * the mission says "your turn" -- and by then the line's clip has already
+   * finished, because every heading line is awaited through voHold.
+   *
+   * The row folding is roomHeight()'s doing, not this function's: with the
+   * line gone and the bird away, the room measures zero and fitRooms closes
+   * it. The close is delayed, so an answer given straight away never moves
+   * the board at all.
+   */
+  let mascotLeaving = null;
+  let leaveSeq = 0;
+  function headingAside() {
+    /* the warm-up holds its row open whatever is standing in it, so there is
+       no room to win back there and nothing to take away */
+    if (board.classList.contains('head-held')) return;
+    if (!boardMascot.classList.contains('in')) return;   /* not ours to move */
+    feedbackGen++;                     /* a feedback line still typing stops */
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    promptGhost.textContent = '';
+    const mine = ++leaveSeq;
+    mascotLeaving = mascotJumpOut().catch(() => {}).then(() => {
+      if (mine === leaveSeq) mascotLeaving = null;   /* the latest trip landed */
+    });
   }
 
   /* Between scenes the bird STAYS where it is: a rebuild that sent it behind
@@ -3581,6 +4027,16 @@
   /* the formula typewriter, generalised: a line in segments, with a pause
      and a callback each time a key word completes */
   async function typeSegments(txt, blink, segs, perChar, pause, onWord) {
+    /* the whole line, as it will read on screen, is what the clip is found
+       by -- a line in pieces is still one sentence to the ear */
+    const whole = segs.map(sg => sg.t).join('');
+    const said = await voSay(whole);
+    if (said.playing) {
+      /* the clip has to cover the pauses between the key words as well as
+         the words themselves, or the voice runs out before the line does */
+      const holds = pause * segs.filter(sg => sg.w).length;
+      perChar = Math.max(1, voPace(said, perChar * whole.length) - holds) / Math.max(1, whole.length);
+    }
     blink.hidden = true;
     /* every word of every segment is in place before the first shows */
     const parts = lineSpans(txt, segs);
@@ -3598,6 +4054,7 @@
     const left = due - performance.now();
     if (left > 0) await wait(left);
     await wordsSettle();
+    await voHold(said);
   }
 
   /* an eased 0 -> 1 over ms, driven by the frame clock; a skip lands it at 1.
@@ -3653,6 +4110,13 @@
    * parabola on a linear clock -- the way a real jump moves -- with the
    * height of the spring scaled to how far it has to go. */
   async function hopBetween(fromEl, toEl) {
+    /* The bird is not standing where the hop was meant to start: the board
+       was handed over to the learner and it went home behind the board (see
+       headingAside). A hop from an empty spot would run the whole
+       choreography on an invisible sprite and then pop the bird in at the
+       far end, so it comes up from behind the board instead -- which is
+       where it actually is. */
+    if (!fromEl.classList.contains('in')) return mascotJumpIn(toEl);
     const a = fromEl.getBoundingClientRect();
     const b = toEl.getBoundingClientRect();
     if (!a.width || !b.width || REDUCED) {
@@ -7597,7 +8061,8 @@
   function trapSay(text) {
     trapNoteCaret.hidden = true;
     wordSpans(trapNoteTxt, text).forEach(w => w.el.classList.add('in'));
-    return wordsSettle();
+    const said = voAlone(text);
+    return wordsSettle().then(() => said);
   }
   const trapQuizDD = ddController(trapDD);
 
@@ -7721,29 +8186,11 @@
     trapChips.forEach(c => { trapTray.appendChild(c); c.disabled = false; });
   }
 
-  /* Swiftee says a line from its place by the heading, with a voice-over
-     when there is one for it: the line types across the clip, as a briefing
-     does, and falls back to the usual pace when the clip will not play. */
-  async function voiced(text, vo) {
-    feedbackGen++;
-    await mascotWithLine(text);          /* up with the line, never before it */
-    let length = 0, playing = false;
-    const mine = runToken;
-    if (vo && !fastForward) {
-      length = await durationOf(vo);
-      try { vo.currentTime = 0; await vo.play(); playing = true; } catch (e) { /* no sound, then */ }
-      retired(mine);                /* the clip's promises are the browser's, not this scene's */
-    }
-    swiftee.hold('talking');
-    await typewrite(text, (playing && length > .5) ? length * 1000 * .82 : text.length * TYPE_MS);
-    if (playing && !vo.ended) {
-      await waitOrSkip(done => {
-        const end = () => { vo.removeEventListener('ended', end); done(); };
-        vo.addEventListener('ended', end);
-        setTimeout(end, 12000);            /* never hang on a stalled clip */
-      });
-    }
-    swiftee.release();
+  /* Swiftee says a line from its place by the heading. This is heading()
+     under another name now that the typewriter carries the voice itself; it
+     is kept because the scene reads better for it. */
+  async function voiced(text) {
+    await heading(text);
   }
 
   /* ---- level 1: name the shape ---- */
@@ -8578,7 +9025,7 @@
 
     /* 4. Swiftee jumps up from behind the board and says what to do, with
           the warm-up's voice-over for the same line */
-    await voiced(TRAP.match, ROUNDS[1].audio);
+    await voiced(TRAP.match);
 
     /* 5. the names go onto the shapes */
     await dragMatch(deck, slots,
@@ -9736,6 +10183,7 @@
   const hintOuts = new WeakMap();
   function showHint(el, text) {
     clearTimeout(hintOuts.get(el));
+    if (text) voAlone(text).catch(() => {});   /* spoken under the choosing */
     if (!text) {
       el.classList.remove('show');
       hintOuts.set(el, setTimeout(() => {
