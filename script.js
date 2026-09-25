@@ -894,7 +894,7 @@
 
   /* section 2: Swiftee's two lines in the triangle lesson */
   const LESSON = {
-    types: 'Triangles can look different, But their area depends on the base and height.',
+    types: 'Triangles can look different. But their area depends on the base and height.',
     dims:  'Let’s observe their base and height.'
   };
 
@@ -6105,8 +6105,13 @@
       /* side: which way the mark and the label sit, +1 to the right */
       const M = 12, up = foot.y > top.y ? -1 : 1;    /* the mark stands off the foot, toward the top */
       const mark = 'M' + fmt(foot.x) + ' ' + fmt(foot.y + up * M) + ' H' + fmt(foot.x + side * M) + ' V' + fmt(foot.y);
+      /* a two-headed arrow too, like the base: the tip sits exactly at each
+         end, its wings drawn back along the (always upright) line */
+      const s = -up;
       return '<g class="d-group d-h ' + cls + '">' +
         ln('d-height', top, foot) +
+        '<path class="d-head" d="M' + fmt(top.x - HEAD * .65) + ' ' + fmt(top.y + s * HEAD) + ' L' + fmt(top.x) + ' ' + fmt(top.y) + ' L' + fmt(top.x + HEAD * .65) + ' ' + fmt(top.y + s * HEAD) + '" />' +
+        '<path class="d-head" d="M' + fmt(foot.x - HEAD * .65) + ' ' + fmt(foot.y - s * HEAD) + ' L' + fmt(foot.x) + ' ' + fmt(foot.y) + ' L' + fmt(foot.x + HEAD * .65) + ' ' + fmt(foot.y - s * HEAD) + '" />' +
         '<path class="d-mark" d="' + mark + '" />' +
         '<text class="d-label" x="' + fmt(foot.x + side * 9) + '" y="' + fmt((top.y + foot.y) / 2) + '" font-size="' + (sym ? 17 : 14) + '" text-anchor="' + (side > 0 ? 'start' : 'end') + '" dominant-baseline="middle">' +
           label + (sym ? '<tspan class="d-sym">' + sym + '</tspan>' : '') + '</text>' +
@@ -6513,7 +6518,8 @@
     await wait(REDUCED ? 160 : 520);
   }
 
-  /* the dotted height drops from the corner, then the mark and the label */
+  /* the dotted height drops from the corner, then the heads, the mark and
+     the label */
   async function drawHeight(cls) {
     const g = dimGroup(cls);
     await growLine(g.querySelector('.d-height'), 640);
@@ -8143,9 +8149,9 @@
       over += '<g class="eq-mark"><path class="halo" d="' + d + '" /><path class="ink" d="' + d + '" /></g>';
     });
     /* the height, dropped from the top-left corner onto the base */
-    const M = 11;
+    const M = 11, hv = rhUnit(F, TL);
     over += '<g class="d-group d-hgt">' +
-      figLine('d-height', TL, F) +
+      figLine('d-height', TL, F) + figHead(TL, -hv.x, -hv.y) + figHead(F, hv.x, hv.y) +
       '<path class="d-mark" d="M' + fmt(F.x) + ' ' + fmt(F.y - M) + ' H' + fmt(F.x + M) + ' V' + fmt(F.y) + '" />' +
       '<text class="d-label" x="' + fmt(F.x + 10) + '" y="' + fmt((TL.y + F.y) / 2) + '" font-size="17" text-anchor="start" dominant-baseline="middle">6 cm</text>' +
     '</g>';
@@ -10546,9 +10552,9 @@
     const corner = P[hgt.from];
     const from = { x: hgt.x == null ? corner.x : hgt.x, y: corner.y };
     const foot = { x: from.x, y: hgt.from.charAt(0) === 'T' ? P.BL.y : P.TL.y };
-    const M = 11, up = foot.y > from.y ? -1 : 1, side = hgt.side;
+    const M = 11, up = foot.y > from.y ? -1 : 1, side = hgt.side, hv = rhUnit(foot, from);
     over += '<g class="d-group d-hgt">' +
-      figLine('d-height', from, foot) +
+      figLine('d-height', from, foot) + figHead(from, -hv.x, -hv.y) + figHead(foot, hv.x, hv.y) +
       '<path class="d-mark" d="M' + fmt(foot.x) + ' ' + fmt(foot.y + up * M) + ' H' + fmt(foot.x + side * M) + ' V' + fmt(foot.y) + '" />' +
       '<text class="d-label" x="' + fmt(foot.x + side * 10) + '" y="' + fmt((from.y + foot.y) / 2) + '" font-size="17" text-anchor="' + (side > 0 ? 'start' : 'end') + '" dominant-baseline="middle">' + labels.h + '</text>' +
     '</g>';

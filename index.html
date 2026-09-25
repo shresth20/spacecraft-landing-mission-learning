@@ -14,10 +14,10 @@
 </head>
 <body>
   <!-- ---------- arrowheads for the measuring lines ----------
-       One marker per colour a triangle's base or height can be drawn in; the
-       stylesheet picks one. Sized in the drawing's own units, so they stay a
-       dash long whatever the line's width. Not display:none, which would stop
-       the markers painting. -->
+       One marker per colour a triangle's base or height (or a quadrilateral's
+       height) can be drawn in; the stylesheet picks one. Sized in the
+       drawing's own units, so they stay a dash long whatever the line's
+       width. Not display:none, which would stop the markers painting. -->
   <svg id="dimArrows" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
     <defs>
       <marker id="dimArrow" class="dim-arrow" viewBox="0 0 6 6" refX="5" refY="3"
@@ -29,6 +29,14 @@
         <path d="M1.2 .8 L5 3 L1.2 5.2" />
       </marker>
       <marker id="dimArrowHeight" class="dim-arrow" viewBox="0 0 6 6" refX="5" refY="3"
+              markerWidth="6" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+        <path d="M1.2 .8 L5 3 L1.2 5.2" />
+      </marker>
+      <marker id="dimArrowPurple" class="dim-arrow" viewBox="0 0 6 6" refX="5" refY="3"
+              markerWidth="6" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+        <path d="M1.2 .8 L5 3 L1.2 5.2" />
+      </marker>
+      <marker id="dimArrowGreen" class="dim-arrow" viewBox="0 0 6 6" refX="5" refY="3"
               markerWidth="6" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
         <path d="M1.2 .8 L5 3 L1.2 5.2" />
       </marker>

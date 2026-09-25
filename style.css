@@ -771,6 +771,13 @@ body {
 .tri .dim-height { marker-start: url(#dimArrow); marker-end: url(#dimArrow); }
 .tri.lit-base .dim-base     { marker-start: url(#dimArrowBase);   marker-end: url(#dimArrowBase); }
 .tri.lit-height .dim-height { marker-start: url(#dimArrowHeight); marker-end: url(#dimArrowHeight); }
+/* the quadrilateral's two heights reuse the same dashed line and, now, the
+   same small arrowheads -- swapping to the triangle it belongs to once that
+   triangle is lit, exactly as the triangle lesson's own lines do */
+.quad-shape .h-purple,
+.quad-shape .h-green { marker-start: url(#dimArrow); marker-end: url(#dimArrow); }
+.quad-shape.lit-purple .h-purple { marker-start: url(#dimArrowPurple); marker-end: url(#dimArrowPurple); }
+.quad-shape.lit-green  .h-green  { marker-start: url(#dimArrowGreen);  marker-end: url(#dimArrowGreen); }
 .dim-arrow path {
   fill: none;
   stroke-width: 1.5;
@@ -781,6 +788,8 @@ body {
 #dimArrow path       { stroke: var(--heading); }
 #dimArrowBase path   { stroke: var(--base-hl); }
 #dimArrowHeight path { stroke: var(--tri-height-hl); }
+#dimArrowPurple path { stroke: var(--quad-purple-dark); }
+#dimArrowGreen path  { stroke: var(--quad-green-dark); }
 .dim-mark {
   opacity: 0;
   fill: none;
@@ -1759,7 +1768,7 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--pair);
-  stroke-width: 2.4;
+  stroke-width: 1.8;
   stroke-dasharray: 8 7;
   stroke-linecap: round;
   transition: opacity .4s ease;
@@ -1832,7 +1841,8 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--heading);
-  stroke-width: 2.4;
+  /* thinner than the shape it measures, so it reads as a helper, not an edge */
+  stroke-width: 1.8;
   stroke-linecap: round;
   transition: stroke .4s ease, stroke-width .4s ease, filter .4s ease;
 }
@@ -1840,7 +1850,7 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--heading);
-  stroke-width: 2.4;
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
   transition: opacity .3s ease, stroke .4s ease;
@@ -1850,7 +1860,7 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--heading);
-  stroke-width: 2.4;
+  stroke-width: 1.8;
   stroke-dasharray: 8 7;
   stroke-linecap: round;
   transition: stroke .4s ease, stroke-width .4s ease, filter .4s ease;
@@ -1897,7 +1907,7 @@ body {
 .para-shape.lit-b .d-base .d-label { fill: var(--base-hl); }
 .para-shape.lit-h .d-h .d-height {
   stroke: var(--height-hl);
-  stroke-width: 2.4;
+  stroke-width: 1.8;
   filter: drop-shadow(0 0 3px var(--glow-height));
 }
 .para-shape.lit-h .d-h .d-label { fill: var(--height-hl); }
@@ -2315,7 +2325,7 @@ body {
 .rd-d2 { stroke: var(--height-hl); }
 .rd-h {
   stroke: var(--height-hl);
-  stroke-width: 2.4;
+  stroke-width: 1.8;
   stroke-dasharray: 8 7;
 }
 .rd-lbl {
@@ -2370,7 +2380,7 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--heading);
-  stroke-width: 2.4;
+  stroke-width: 1.8;
   stroke-dasharray: 6 5;
   stroke-linecap: round;
 }
@@ -4906,9 +4916,10 @@ body {
  * names in the lesson's two hues. */
 .rt-dims .d-group { transition: opacity .45s ease; }
 .rt-dims .d-group.gone { opacity: 0; }
-/* the names are drawn at the same weight as the shapes they measure */
+/* the names are drawn thinner than the shapes they measure, so they read as
+   helpers rather than an edge */
 .rt-dims .d-arrow,
-.rt-dims .d-head { stroke-width: 2.4; }
+.rt-dims .d-head { stroke-width: 1.8; }
 /* the copy's dotted height waits for its name to land on it: until then the
    name's group is still over on the trapezium, and the dotted line would
    fall outside the drawing altogether */
@@ -5072,7 +5083,7 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--heading);
-  stroke-width: 2.4;
+  stroke-width: 1.8;
   stroke-dasharray: 6 5;
   stroke-linecap: round;
 }
@@ -5837,8 +5848,8 @@ body {
 
 /* ---------- highlights stay thin ----------
  * A side or a length being pointed at changes hue and glows; it does not
- * swell. Every highlighted stroke is held near the drawing's line weight.
- * Later than the rules it overrides. */
+ * swell. Every highlighted stroke is held near the dimension lines' own
+ * (thinner-than-the-shape) weight. Later than the rules it overrides. */
 .side-hl,
 .live-side,
 .rhom-sweep { stroke-width: 2.4; }
@@ -5854,9 +5865,9 @@ body {
 .rhom-shape.lit-d2 .d-d2 .d-arrow,
 .rhom-shape.lit-d2 .d-d2 .d-head,
 .rtrap-stage .fig .d-group.lit.rt-len .d-arrow,
-.rtrap-stage .fig .d-group.lit.rt-len .d-head { stroke-width: 2.4; }
-.rt-dims .d-group.lit.rt-hgt .d-height { stroke-width: 2.4; }
-.rtrap-stage .fig .d-group.lit.d-hgt .d-height,
+.rtrap-stage .fig .d-group.lit.rt-len .d-head { stroke-width: 1.8; }
+.rt-dims .d-group.lit.rt-hgt .d-height { stroke-width: 1.8; }
+.rtrap-stage .fig .d-group.lit.d-hgt .d-height { stroke-width: 1.8; }
 .rtrap-stage .fig .d-group.lit.d-hgt .d-mark { stroke-width: 2.4; }
 .quad-shape.live .corner.armed .dot { stroke-width: 2.4; }
 .ghost-side { stroke-width: 4; }
