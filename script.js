@@ -6269,6 +6269,11 @@
     if (tone) paraText.classList.add(tone);
     swiftee.hold('talking');
     await typeSegments(paraTxt, paraCaret, [{ t: text }], TYPE_MS, 320, null);
+    /* the lines about the sides are one explanation: the bird and its last
+       line stay up between them, the next line replacing it, rather than the
+       bird leaving and jumping back in after every sentence (user,
+       2026-09-25). The next scene takes it down. */
+    cancelDismiss(paraTxt);
     swiftee.release();
   }
   /* The name quiz's lines, said page 4's way (user, 2026-09-25): the box fits
