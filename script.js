@@ -71,10 +71,11 @@
  *   9. the same shape again, cut top to bottom: the learner draws that
  *      diagonal, the halves shade and their base and heights are named,
  *      and then -- no triangle lines this time (review, 2026-09-25) -- the
- *      rule in words is typed out as a reminder, and under it the learner
- *      completes it in symbols from two drop-downs -- the diagonal from
- *      b / h₁ / h₂, the sum of the heights from h₁ + h₂ / b + h₁ / b + h₂;
- *      then the celebration and Next
+ *      rule in words is typed out, a copy of it peels off onto the row
+ *      below, and in the copy "(Diagonal)" and then "(Sum of perpendicular
+ *      heights)" each dissolve into a drop-down; the learner fills them in
+ *      symbols -- the diagonal from b / h₁ / h₂, the sum of the heights
+ *      from h₁ + h₂ / b + h₁ / b + h₂; then the celebration and Next
  *
  * Section 4: a different quadrilateral, with measurements. Its diagonal and
  * heights draw themselves; the learner picks each triangle's base and height
@@ -893,7 +894,7 @@
 
   /* section 2: Swiftee's two lines in the triangle lesson */
   const LESSON = {
-    types: 'Triangles can look different, but their area depends on the base and height.',
+    types: 'Triangles can look different, But their area depends on the base and height.',
     dims:  'Let’s observe their base and height.'
   };
 
@@ -2621,8 +2622,13 @@
     }
   }
 
-  /* ---------- the ghost chip that demonstrates the drag ---------- */
-  function demoDrag(signal) {
+  /* ---------- the ghost chip that demonstrates the drag ----------
+   * opts.once skips the idle wait and plays a single pass right away -- used
+   * right after the round's line is said, so every learner has seen the
+   * motion before ever being asked to try it themselves. Without it, the
+   * loop below waits for the learner to sit idle first, the way the
+   * stuck-learner nudges elsewhere in the mission do. */
+  function demoDrag(signal, opts) {
     const slot = roundSlots[0];
     const chip = roundChips.find(c => c.dataset.word === slot.dataset.accept);
     if (!chip) return Promise.resolve();
@@ -2667,6 +2673,13 @@
       retired(mine);
     }
 
+    if (opts && opts.once) {
+      return (async () => {
+        if (signal.done || fastForward) return;
+        await pass();
+      })();
+    }
+
     return (async () => {
       while (!signal.done) {
         await idleFor(signal);
@@ -2691,9 +2704,6 @@
     await mascotWithLine(spec.text);
     swiftee.hold('talking');
 
-    const signal = { done: false, anim: null };
-    const demo = demoDrag(signal);
-
     /* The clip, the pace and the hold at the end of it all belong to the
        typewriter now: 2400ms is only the pace to keep when this line has no
        recording to keep. */
@@ -2701,9 +2711,10 @@
 
     swiftee.release();
 
-    signal.done = true;
-    if (signal.anim) { try { signal.anim.finish(); } catch (e) {} }
-    await demo;
+    /* the line is said: the ghost chip shows the drag once, low-opacity,
+       right away -- every learner sees the motion before being asked to try
+       it, rather than only the ones who sit idle long enough to earn it */
+    await demoDrag({ done: false, anim: null }, { once: true });
   }
 
   /* ---------- a round ---------- */
@@ -2715,6 +2726,10 @@
     wrongInRound = 0;
     autoScheduled = false;
     roundDone = false;
+
+    /* a prior round may have zoomed the bay up into the empty heading once
+       its own line was said; this round's briefing needs that heading back */
+    if (bay.classList.contains('zoomed')) unzoomBay();
 
     /* only the deck in play takes pointer events */
     Object.keys(trays).forEach(k => trays[k].classList.toggle('live', Number(k) === n));
@@ -2729,6 +2744,15 @@
     await revealGroup(roundChips, ROUND_IN);
 
     await briefing(ROUNDS[n]);
+
+    /* a mid-mission round: the line said, Swiftee ducks back behind the
+       board and the shapes grow up into the heading it leaves empty -- more
+       room for the drag itself. The last round leaves this to showLabels()
+       instead, which never comes back from it. */
+    if (n < LAST_ROUND) {
+      const gen = runToken;
+      mascotJumpOut().catch(() => {}).then(() => { if (gen === runToken) zoomBay(); });
+    }
 
     lockInput(false);
   }
@@ -4014,10 +4038,11 @@
      triangle's, the first of that cut.) */
   const NOTATION = [{ v: 'base', t: 'b' }, { v: 'h-green', t: 'h₁' }, { v: 'h-purple', t: 'h₂' }];
   const SUMS = [{ v: 'heights', t: 'h₁ + h₂' }, { v: 'b-h1', t: 'b + h₁' }, { v: 'b-h2', t: 'b + h₂' }];
-  /* the rule in words, typed above the boxes as the reminder they are
-     filled from */
-  const RULE_IN_WORDS = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × (' }, { t: 'Diagonal', w: 'base' },
-    { t: ') × (' }, { t: 'Sum of perpendicular heights', w: 'height' }, { t: ')' }];
+  /* the rule in words, typed out and then copied for the boxes to come out
+     of: each bracketed part is one piece, brackets and all, since it is the
+     whole of it that becomes a box (ruleToBoxes) */
+  const RULE_IN_WORDS = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: '(Diagonal)', w: 'base' },
+    { t: ' × ' }, { t: '(Sum of perpendicular heights)', w: 'height' }];
 
   const AREA_MS    = 64;       /* per character */
   const AREA_PAUSE = 560;      /* a beat after each key word, for the highlight to land */
@@ -4167,6 +4192,29 @@
       art += '<polygon class="tri-fill c-' + t.color + '" points="' + pt(A) + ' ' + pt(P[t.apex]) + ' ' + pt(B) + '" />';
     });
     art += '<path class="shape-outline" d="M' + ORDER.map(k => fmt(P[k].x) + ' ' + fmt(P[k].y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
+    /* each triangle's own two outer sides, stacked on the path just drawn --
+       see .tri-outline: normally invisible, and only shown (in the focused
+       half's colour, the other's dimmed) once a half is in focus */
+    {
+      const iA = ORDER.indexOf(d1), iB = ORDER.indexOf(d2);
+      const arcKeys = (from, to) => {
+        const out = [];
+        for (let i = from; ; i = (i + 1) % ORDER.length) {
+          out.push(ORDER[i]);
+          if (i === to) break;
+        }
+        return out;
+      };
+      const arcs = [arcKeys(iA, iB), arcKeys(iB, iA)];
+      spec.tris.forEach(t => {
+        const arc = arcs.find(a => a.indexOf(t.apex) >= 0);
+        /* `ol-<color>`, not `c-<color>` -- that class also drives the
+           fill's pulse-on-focus animation, whose transform-box/origin are
+           set up for a polygon, not this path */
+        art += '<path class="tri-outline ol-' + t.color + '" d="M' +
+          arc.map(k => fmt(P[k].x) + ' ' + fmt(P[k].y)).join(' L') + '" fill="none" stroke-width="5" />';
+      });
+    }
     quadArt.innerHTML = art;
     quadFill = quadArt.querySelector('.shape-fill');
 
@@ -5098,6 +5146,10 @@
     const el = shape || quadShape;
     el.classList.remove('focus-green', 'focus-purple');
     if (color) el.classList.add('focus-' + color);
+    /* the quadrilateral's outline splits into its two halves' own sides
+       while a half is focused, so the other one's border can dim along
+       with the rest of it -- see .tri-outline */
+    if (el === quadShape) el.classList.toggle('outline-split', !!color);
   }
 
   /* a key word has landed in the working: light the part of the drawing it
@@ -5195,29 +5247,6 @@
     lockInput(true);
   }
 
-  /* "Area of Quadrilateral = ½ × [ v ] × [ v ]": the rule with its two
-     parts to be chosen, each box from its own list (review, 2026-09-25).
-     Not a table like the formula lines: the line folds wherever the column
-     runs out, a box dropping whole onto the next row (CSS). */
-  function wordsLine(first, second) {
-    const line = document.createElement('div');
-    line.className = 'area-line f-line words-line';
-    const seg = (cls, text) => {
-      const el = document.createElement('span');
-      el.className = cls;
-      setTxt(el, text);
-      return el;
-    };
-    const dd1 = makeDD(first, true, 'diagonal'), dd2 = makeDD(second, true, 'heights');
-    const lhs = seg('lhs', '');
-    lhs.append(seg('seg', 'Area of '), seg('w w-quad lit', 'Quadrilateral'), seg('seg', ' '));
-    const expr = document.createElement('span');
-    expr.className = 'expr rhs';
-    expr.append(seg('seg', '= ½ × '), dd1, seg('seg', ' × '), dd2);
-    line.append(lhs, expr);
-    return { line: line, dds: [ddController(dd1), ddController(dd2)] };
-  }
-
   /* "The sum of the perpendicular heights is [ v ]": a label card with a
      drop-down slot on its end, as the name quiz was */
   function questionLine(label, opts) {
@@ -5252,14 +5281,21 @@
    * lifted off the drawing's own labels and set down in their places in
    * the line (`talk.line`). Every line is Swiftee's, from the heading,
    * and the bird stays for all of them: each line's send-off
-   * is cancelled as it ends (holdHeading). The labels are written in their
-   * short names straight away -- the line that names them is the look the
-   * full name used to get. */
+   * is cancelled as it ends (holdHeading). Each label gets its look at the
+   * full word first, exactly as it does in revealDims, and only then
+   * dissolves into its short name (relabel) -- before the formula ever
+   * reaches for it (user, 2026-09-25). The base only gets that look once:
+   * the second triangle finds it already short. */
   const holdHeading = () => cancelDismiss(promptTxt);
   async function triangleTalk(spec, i, talk) {
     const t = spec.tris[i];
     const baseLbl = quadDims.querySelector('.lbl-base');
     const hLbl    = quadDims.querySelector('.lbl-' + t.color);
+
+    /* the base reads thicker than the rest of the outline for as long as
+       it is being derived from -- workSum takes it back down once the two
+       triangles are put together */
+    quadShape.classList.add('thick-base');
 
     /* this half comes forward, by name */
     focusTri(t.color);
@@ -5268,10 +5304,13 @@
     await wait(REDUCED ? 200 : 800);
 
     /* its base: the diagonal, lit and named as the line says so */
-    baseLbl.textContent = spec.short.base;
     const base = (async () => {
       await wait(REDUCED ? 100 : 600);
       quadShape.classList.add('lit-base');
+      if (baseLbl.textContent !== spec.short.base) {
+        await wait(REDUCED ? 80 : 460);
+        await relabel(baseLbl, spec.short.base);
+      }
       await denoteQuad('base', REDUCED ? 200 : 900);
     })();
     await heading(talk.base);
@@ -5280,11 +5319,12 @@
     await wait(REDUCED ? 100 : 300);
 
     /* its height: dropped and named as the line says so */
-    hLbl.textContent = spec.short.h[i];
     const height = (async () => {
       await wait(REDUCED ? 100 : 500);
       await dropHeight(t.color);
       quadShape.classList.add('lit-' + t.color);
+      await wait(REDUCED ? 80 : 460);
+      await relabel(hLbl, spec.short.h[i]);
       await denoteQuad(t.color, REDUCED ? 200 : 700);
     })();
     await heading(QUAD.height(spec.short.h[i]));
@@ -5403,18 +5443,85 @@
     line.querySelector('.caret').hidden = true;
     areaLinesEl.appendChild(line);
     fitEq(line);
+    await peelOff(from, line);
+    return line;
+  }
+
+  /* a copy of a line, already in the row under it, fades up over the
+     line and slides down into its own row */
+  async function peelOff(from, line) {
     /* the rows share one grid, so their offsets are the distance to slide */
     const dy = from.offsetTop - line.offsetTop;
     line.classList.add('show');
-    if (REDUCED || fastForward) return line;
+    if (REDUCED || fastForward) return;
     const a = line.animate([
       { transform: 'translateY(' + dy + 'px)', opacity: 0 },
       { transform: 'translateY(' + dy + 'px)', opacity: 1, offset: .3 },
       { transform: 'none', opacity: 1 }
-    ], { duration: 1200, easing: 'cubic-bezier(.4, 0, .2, 1)' });
+    ], { duration: 1400, easing: 'cubic-bezier(.4, 0, .2, 1)' });
     sfx('click', .3);
     await finished(a);
-    return line;
+  }
+
+  /* ---------- the rule, copied and opened up ----------
+   * The second cut's question is the first cut's rule itself (review,
+   * 2026-09-25): the line in words is typed out, a copy of it peels off
+   * onto the row below, and in the copy "(Diagonal)" and then "(Sum of
+   * perpendicular heights)" each dissolve into a drop-down asking for that
+   * part in symbols -- so the boxes are seen to come out of the words they
+   * stand for, and each box's placeholder is those words. Slow enough to
+   * follow: a box takes longer than a derivation step does.
+   * The copy is plain spans rather than a typed line's ghost and overlay:
+   * a box is taller than the words it replaces, and the row has to grow
+   * with it. */
+  async function ruleToBoxes(from, segs) {
+    const line = document.createElement('div');
+    line.className = 'area-line words-line';
+    lineSpans(line, segs).forEach(part => {
+      if (part.seg.w) part.els.forEach(el => el.classList.add('lit'));
+      part.words.forEach(w => w.el.classList.add('in', 'landed'));
+    });
+    areaLinesEl.appendChild(line);
+    await peelOff(from, line);
+    await wait(REDUCED ? 200 : 1000);
+
+    const dd1 = makeDD(NOTATION, true, 'diagonal');
+    await wordToBox(line, 'base', dd1);
+    await wait(REDUCED ? 200 : 1000);
+    const dd2 = makeDD(SUMS, true, 'sum of perpendicular heights');
+    await wordToBox(line, 'height', dd2);
+    return { line: line, dds: [ddController(dd1), ddController(dd2)] };
+  }
+
+  /* A part of the line dissolves into a box: the same crossing morphTo
+     makes between two texts -- the words lift and fade, the box rises into
+     their place, the width easing between the two -- but slower still. The
+     box then keeps the width its placeholder gave it, so an answer going
+     in, or a wrong one going out again, moves nothing along the line. */
+  const BOX_MS = 1500;
+  async function wordToBox(line, w, dd) {
+    const word = line.querySelector('.w.w-' + w);
+    const holder = document.createElement('span');
+    holder.className = 'morph slow box';
+    word.parentNode.insertBefore(holder, word);
+    const oldLayer = document.createElement('span');
+    oldLayer.className = 'm-old';
+    oldLayer.appendChild(word);
+    const newLayer = document.createElement('span');
+    newLayer.className = 'm-new';
+    newLayer.appendChild(dd);
+    holder.append(oldLayer, newLayer);
+    const w1 = oldLayer.getBoundingClientRect().width, w2 = newLayer.getBoundingClientRect().width;
+    holder.style.width = w1 + 'px';
+    void holder.offsetWidth;
+    holder.classList.add('go');
+    holder.style.width = w2 + 'px';
+    sfx('click', .25);
+    await wait(REDUCED ? 60 : BOX_MS);
+    holder.parentNode.insertBefore(dd, holder);
+    holder.remove();
+    const value = dd.querySelector('.dd-value');
+    value.style.minWidth = value.getBoundingClientRect().width + 'px';
   }
 
   /* ---------- the two halves together ----------
@@ -5425,8 +5532,11 @@
    * followed, and each step is said before it is made. Then the rule again
    * in words on a row of its own, the celebration, and Next. */
   async function workSum(steps, words) {
-    /* the sum is about both halves: neither is held back for it */
+    /* the sum is about both halves: neither is held back for it, and the
+       base's own line drops back to the rest of the outline's weight --
+       see .thick-base */
     focusTri(null);
+    quadShape.classList.remove('thick-base');
     const sum = await showTypedLine(steps[0]);
     const sumTxt = sum.querySelector('.txt');
     await wait(REDUCED ? 300 : 1300);
@@ -5574,21 +5684,20 @@
     await layoutWide(quad, quadSvg, true, 'ask');
     await wait(REDUCED ? 120 : 340);
 
-    /* 3. the three names fade up on the right half first, one to tap; then
-          Swiftee comes up from behind the board above them and asks what
-          the shape is (user, 2026-09-25: the options first, then the
-          question). The names are inert until the question is asked --
-          askChips is what takes their taps. */
+    /* 3. Swiftee comes up from behind the board and asks what the shape is
+          first; the three names then fade up on the right half, one to tap
+          (user, 2026-09-25: the question first, then the options). The
+          names are inert until dealt -- askChips is what takes their taps. */
     quizBubble.classList.remove('show', 'ok', 'bad');
     quizBlock.classList.add('show');
     await wait(REDUCED ? 200 : 440);
-    await dealChips(quizChips);
-    await wait(REDUCED ? 100 : 320);
     await mascotJumpIn(quizMascot);
     await wait(REDUCED ? 100 : 260);
     swiftee.hold('talking');
     await quizSay(QUAD.ask);
     swiftee.release();
+    await wait(REDUCED ? 100 : 320);
+    await dealChips(quizChips);
     await askChips(quizChips, QUAD.answer,
       chip => quizSay(QUAD.notes[chip.dataset.answer] || QUAD.notes.triangle, 'bad'));
     await quizSay(QUAD.notes[QUAD.answer], 'ok');
@@ -5706,21 +5815,21 @@
     await layoutWide();
     await wait(400);
 
-    /* the rule in words, as the first cut ended on it, typed out as a
-       reminder -- the diagonal and both heights lighting up as they are
-       named -- and under it the same rule for the learner to complete in
-       symbols (review, 2026-09-25): no triangle lines this time. The
-       diagonal from the drawing's three names, the sum of the heights from
-       three sums; each right answer lights what it names. */
-    await showTypedLine(RULE_IN_WORDS, null, w => {
+    /* the rule in words, as the first cut ended on it, typed out -- the
+       diagonal and both heights lighting up as they are named -- and then,
+       once Swiftee has asked, a copy of it comes down and opens up into
+       the boxes the learner fills in symbols (review, 2026-09-25): no
+       triangle lines this time. Each right answer lights what it names. */
+    const rule = await showTypedLine(RULE_IN_WORDS, null, w => {
       if (w === 'height') { onAreaWord('h-green'); onAreaWord('h-purple'); }
       else onAreaWord(w);
     });
     await wait(REDUCED ? 300 : 900);
     await heading(QUAD.complete);
     holdHeading();
-    const f = wordsLine(NOTATION, SUMS);
-    await showLine(f.line);
+    await wait(REDUCED ? 200 : 500);
+    const f = await ruleToBoxes(rule, RULE_IN_WORDS);
+    await wait(REDUCED ? 200 : 500);
     await askFormula(f, ['base', 'heights']);
     await wait(REDUCED ? 300 : 900);
 

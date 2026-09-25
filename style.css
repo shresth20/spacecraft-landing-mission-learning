@@ -143,6 +143,15 @@
   --base-hl:   #E8590C;
   --height-hl: #1F63D6;
 
+  /* This page's own height colour (the three base/height triangles): the
+     shared royal blue above sat too close to the first triangle's purple, so
+     here height is a deep green instead -- nowhere near purple on the wheel,
+     and still clear of the base's orange. Used only by .tri (see style.css
+     .tri rule) and its dedicated arrowhead marker (index.html #dimArrowHeight),
+     which sits outside .tri and so cannot pick up that scoped override. */
+  --tri-height-hl:   #1C9A52;
+  --tri-glow-height: rgba(28, 154, 82, .55);
+
   /* The neutral shape accent: what a slot or a chip borrows to show it is
      being dragged over, hovered or picked. Deliberately not one of the three
      shape colours -- a highlight that echoed a shape would hint at the
@@ -399,9 +408,10 @@ body {
   text-align: left;
   white-space: pre-wrap;
 }
-/* the heading's line lands centred in its box, so a line that wraps centres
-   both its rows */
-.prompt .type { text-align: center; }
+/* the line sits flush against Swiftee, growing rightwards as it types, so a
+   short line never drifts away from the bird inside the box reserved for
+   the section's longest line -- and a line that wraps keeps both rows left */
+.prompt .type { text-align: left; }
 
 /* ---------- the words ease in ----------
  * script.js lays a line out whole, a span per word, and shows the words one
@@ -624,6 +634,9 @@ body {
   stroke-dashoffset: 4000;
   stroke-linecap: round;
   stroke-linejoin: round;
+  /* only the quadrilateral ever changes this path's opacity (outline-split,
+     above), and fades it to match the .tri-outline halves taking over */
+  transition: opacity .5s ease;
 }
 .shape-fill { fill: var(--shape-fill); opacity: 0; }
 
@@ -721,6 +734,14 @@ body {
 .tri[data-tri="right"]  { --shape-fill: var(--tri-b-fill); --shape-border: var(--tri-b-border); }
 .tri[data-tri="obtuse"] { --shape-fill: var(--tri-c-fill); --shape-border: var(--tri-c-border); }
 .tri .art { filter: drop-shadow(0 3px 5px var(--shadow-soft)); }
+/* Scoped to #lesson (this page only), so it reaches both the triangles'
+   dimension lines and the formula box below them, while every other lesson
+   (parallelogram, rhombus, trapezium) keeps the shared blue -- see
+   --tri-height-hl above. */
+#lesson {
+  --height-hl: var(--tri-height-hl);
+  --glow-height: var(--tri-glow-height);
+}
 
 /* Dotted dimension lines: a zero-length dash with round caps and a gap is a
    row of dots. Each starts collapsed and invisible; script.js grows it out
@@ -759,7 +780,7 @@ body {
 }
 #dimArrow path       { stroke: var(--heading); }
 #dimArrowBase path   { stroke: var(--base-hl); }
-#dimArrowHeight path { stroke: var(--height-hl); }
+#dimArrowHeight path { stroke: var(--tri-height-hl); }
 .dim-mark {
   opacity: 0;
   fill: none;
@@ -1034,6 +1055,33 @@ body {
 .quad-shape.lit-base   .lbl-base,
 .quad-shape.lit-green  .lbl-green,
 .quad-shape.lit-purple .lbl-purple { opacity: 1; }
+/* the base reads as the line both triangles' formulas are being built from
+   -- thicker than the diagonal's own weight for as long as triangleTalk is
+   deriving one of their areas from it, and back to the same weight as
+   every other border once the two are put together (user, 2026-09-25:
+   "increase the thickness of base line during deriving the both triangle
+   formula... after it will remove match thickness to other borders").
+   `lit-base` alone would also catch the second cut's own look at the base
+   (revealDims), which never means to thicken it -- so this is its own
+   class, turned on only for triangleTalk's derivation. */
+.quad-shape.thick-base .join-line { stroke-width: 5; }
+
+/* the two triangles' own outer sides (everything but the shared diagonal,
+   which is the join-line and stays out of this) -- kept stacked exactly on
+   the single drawn outline and invisible until a half is in focus, so each
+   one can then be dimmed on its own without splitting the initial draw-in,
+   which still plays along the single path underneath. */
+.tri-outline {
+  fill: none;
+  stroke: var(--shape-border);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  transition: opacity .5s ease;
+}
+.quad-shape.outline-split .shape-outline { opacity: 0; }
+.quad-shape.outline-split .tri-outline   { opacity: 1; }
 
 /* ---------- one half at a time ----------
  * While a triangle's area is being written, the other half steps back: its
@@ -1053,9 +1101,11 @@ body {
 .quad-shape.focus-green  .c-purple,
 .quad-shape.focus-green  .hgrp-purple,
 .quad-shape.focus-green  .tname-purple,
+.quad-shape.focus-green  .ol-purple,
 .quad-shape.focus-purple .c-green,
 .quad-shape.focus-purple .hgrp-green,
-.quad-shape.focus-purple .tname-green { opacity: .24; }
+.quad-shape.focus-purple .tname-green,
+.quad-shape.focus-purple .ol-green { opacity: .24; }
 
 /* ---------- the corner dots ----------
  * Pop in one after another, and take the pointer only while the join is the
@@ -1605,12 +1655,15 @@ body {
 .f-line .tail .txt.eqgrid { display: grid; }
 .f-line .dd { display: inline-block; margin: 0 .12em; }
 .f-line .tail .caret { background: var(--heading); }
-/* the rule in words, with its two parts to choose (script.js, wordsLine):
-   not a table, since its boxes are wide -- the line folds where the column
-   runs out, a box dropping whole onto the next row */
+/* the rule copied and opened up (script.js, ruleToBoxes): plain spans,
+   folding where the column runs out, a box dropping whole onto the next
+   row. A box dissolves out of its words slower than a derivation step
+   changes, so the swap can be followed. */
 .words-line { white-space: normal; }
-.words-line .expr { display: inline; white-space: normal; }
-.words-line .dd { white-space: nowrap; margin: .1em .12em; }
+.words-line .dd { display: inline-block; vertical-align: middle; white-space: nowrap; margin: .1em .12em; }
+.morph.box { transition-duration: 1.5s; }
+.morph.box .m-old,
+.morph.box .m-new { transition: opacity 1s ease, transform 1.3s cubic-bezier(.2, .7, .3, 1), filter 1s ease; }
 .dd-small .dd-btn {
   min-width: clamp(88px, 9vw, 150px);
   padding: .1em .45em .1em .6em;

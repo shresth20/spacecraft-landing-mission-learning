@@ -138,11 +138,11 @@ Feedback on this page: FB-01, FB-02, FB-03.
 | P05-04 | INSTRUCTION | Complete the formula for the area of the quadrilateral. | Heading, once the shape has moved aside — **needs recording** |
 | P05-06 | NARRATION | So this is the area of the quadrilateral! *(reuse of P04-12)* | Heading, once both boxes are right |
 
-On-screen only (no VO): the rule in words is typed out as a reminder,
-"Area of Quadrilateral = ½ × (Diagonal) × (Sum of perpendicular heights)",
-and under it the line the learner completes reads
-"Area of Quadrilateral = ½ × [ ] × [ ]" — the first box offers b / h₁ / h₂,
-the second h₁ + h₂ / b + h₁ / b + h₂.
+On-screen only (no VO): the rule in words is typed out,
+"Area of Quadrilateral = ½ × (Diagonal) × (Sum of perpendicular heights)";
+after P05-04 a copy of it slides down and its two bracketed parts turn into
+drop-downs (placeholders "diagonal" and "sum of perpendicular heights") —
+the first offers b / h₁ / h₂, the second h₁ + h₂ / b + h₁ / b + h₂.
 
 ## Page 6 — Quadrilateral · with measurements
 
