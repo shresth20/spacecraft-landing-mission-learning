@@ -623,8 +623,12 @@
         if (out.length) {
           out[0].t = out[0].t.replace(/^\s+/, '');
           out[out.length - 1].t = out[out.length - 1].t.replace(/\s+$/, '');
+          /* each piece stands alone in its box, so it opens with a capital
+             (user, 2026-09-25) -- a word, not a lone letter like side a */
         }
-        return { segs: out.filter(sg => sg.t), len: len };
+        const segs = out.filter(sg => sg.t);
+        if (segs.length) segs[0].t = segs[0].t.replace(/^[a-z](?=[a-z’'])/, c => c.toUpperCase());
+        return { segs: segs, len: len };
       })
       .filter(ch => ch.segs.length);
   }

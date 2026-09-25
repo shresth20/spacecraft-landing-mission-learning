@@ -1982,9 +1982,8 @@ body {
 /* ---------- Swiftee's box, at the top of the right half ----------
  * It exists only while the board is halved: in the middle of the board the
  * bird is at the heading, as it is everywhere else in the mission.
- * The line in it never wraps (user, 2026-09-18) -- its size is capped in the
- * column's own width (cqw), so a long line shrinks to fit the half instead
- * of breaking across two rows and moving the names under it. */
+ * Out of the halved board the line never wraps -- its size is capped in the
+ * column's own width (cqw). Halved, it is page 4's box instead (below). */
 .para-say { display: none; }
 .para.sides .para-say {
   display: flex;
@@ -2007,6 +2006,28 @@ body {
 .para-text .type-ghost { white-space: nowrap; }
 /* the line goes while the bird is still standing there, so it has somewhere
    to hop from; the row itself follows once the hop is done */
+/* Page 4's box, carried over (user, 2026-09-25): the box rides up over the
+   bird's head, leaning back over it a little so the tail comes down to it,
+   at the name quiz's larger size, and a long line breaks into two balanced
+   rows inside it. The ghost holds the longest line, so the box is one size
+   for the whole scene and the names under it never move. */
+.para.sides .para-say { align-items: flex-end; }
+.para.sides .para-text {
+  align-self: flex-start;
+  font-size: clamp(24px, 4.4vh, 40px);
+  margin: 0 0 calc(var(--mascot) * .78) calc(var(--mascot) * -.22);
+  max-width: min(640px, calc(100% - var(--mascot) * .78));
+  padding: .5em 1.15em .55em;
+  white-space: normal;
+}
+.para.sides .para-text .type-wrap,
+.para.sides .para-text .type-ghost { display: block; }
+.para.sides .para-text .type-ghost,
+.para.sides .para-text .type {
+  white-space: pre-wrap;
+  text-align: center;
+  text-wrap: balance;
+}
 .para-say.quiet .say-text { opacity: 0; }
 .para.sides .para-say.off {
   opacity: 0;
