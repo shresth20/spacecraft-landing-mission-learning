@@ -6271,6 +6271,23 @@
     await typeSegments(paraTxt, paraCaret, [{ t: text }], TYPE_MS, 320, null);
     swiftee.release();
   }
+  /* The name quiz's lines, said page 4's way (user, 2026-09-25): the box fits
+     the line, the words come all at once, and nothing takes them down -- the
+     question stays up with the bird while the learner picks a name, and the
+     verdict stays until Next. */
+  async function paraQuizSay(text, tone) {
+    await speakerUp(paraTxt);
+    feedbackGen++;
+    /* built the way the live words are, a span per word, so the box and the
+       words inside it wrap at the same place */
+    lineSpans(paraText.querySelector('.type-ghost'), [{ t: longestChunk(text) }]);
+    paraText.classList.remove('ok', 'bad');
+    if (tone) paraText.classList.add(tone);
+    paraCaret.hidden = true;
+    swiftee.hold('talking');
+    await sayPieces(paraTxt, text);
+    swiftee.release();
+  }
   /* a replay finds the row as the last run left it: empty, and up */
   function clearParaSay() {
     paraSay.classList.remove('off', 'quiet');
@@ -6424,14 +6441,20 @@
                      PARA.look2, PARA.measure, PARA.fit1, PARA.fit2]) }]);
     await mascotJumpIn(paraMascot);
     await wait(REDUCED ? 80 : 260);
-    await sayPara(PARA.ask);
+    await paraQuizSay(PARA.ask);
     await dealChips(paraChips);
     await wait(200);
-    await askChips(paraChips, PARA_ANSWER, () => sayPara(PARA.hint, 'bad'));
-    await sayPara(PARA.right, 'ok');
-    await wait(1500);
+    await askChips(paraChips, PARA_ANSWER, () => paraQuizSay(PARA.hint, 'bad'));
+    await paraQuizSay(PARA.right, 'ok');
+    /* the learner reads the answer for as long as they like and moves on
+       with Next, as page 4 does */
+    await wait(REDUCED ? 200 : 600);
+    await showNext();
 
-    /* 4. the names go and the fact list takes the cell under the box */
+    /* 4. the names go and the fact list takes the cell under the box; the
+          box goes back to holding the longest of the lines still to come */
+    lineSpans(paraText.querySelector('.type-ghost'),
+      [{ t: longest([PARA.look1, PARA.never, PARA.look2, PARA.measure, PARA.fit1, PARA.fit2]) }]);
     paraTray.classList.add('off');
     await wait(460);
     facts.classList.add('show');
