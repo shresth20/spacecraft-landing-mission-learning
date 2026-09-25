@@ -3761,7 +3761,7 @@ body {
 .welcome-art {
   position: absolute;
   inset: 0;
-  background: url("assets/image/bg.png") center / cover no-repeat;
+  background: url("assets/image/welcome-page.png") center / cover no-repeat;
 }
 
 /* darkens the foot of the landscape so the title, the bar and the button stay
@@ -3774,13 +3774,12 @@ body {
     linear-gradient(180deg, transparent 42%, var(--scrim) 76%, var(--scrim-strong) 100%);
 }
 
-/* Swiftee waves the learner in from the same corner it will stand in during
-   play, so the character is already placed when the board arrives.
-   Held back until script.js has a decoded sheet to paint into it -- a sprite
-   box that is on screen while its sheet is still coming down is an empty box
-   that pops full, and that pop is the first thing the learner would see. No
-   fade: it is revealed on a frame that is already the finished drawing. */
+/* The new welcome artwork already paints Swiftee into this same corner, so
+   the animated cut-out stays out of the way here rather than doubling the
+   bird up; script.js still finds the node (nodes.filter(Boolean)) and keeps
+   driving the shared clock for the other scenes. */
 .welcome-mascot {
+  display: none;
   position: absolute;
   left: 8%;
   bottom: 4%;
