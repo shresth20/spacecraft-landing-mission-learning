@@ -1884,7 +1884,6 @@
     { entry: sectionTwo,        name: 'Triangles \u00b7 base and height' },
     { entry: sectionThree,      name: 'Quadrilateral \u00b7 one diagonal' },
     { entry: sectionThreeAgain, name: 'Quadrilateral \u00b7 the other diagonal' },
-    { entry: sectionFour,       name: 'Quadrilateral \u00b7 with measurements' },
     { entry: sectionFive,       name: 'Quadrilateral \u00b7 your own go' },
     { entry: specialIntro,      name: 'Aside \u00b7 special quadrilaterals' },
     { entry: paraSection,       name: 'Parallelogram \u00b7 its sides' },
@@ -3894,7 +3893,6 @@
    * the two triangles it makes: the corner it reaches, its colour, and what
    * its height is labelled. */
   const PTS_A = { T: { x: 165, y: 10 }, R: { x: 323, y: 151 }, B: { x: 73,  y: 262 }, L: { x: 10,  y: 151 } };
-  const PTS_B = { T: { x: 120, y: 10 }, R: { x: 322, y: 70 },  B: { x: 250, y: 262 }, L: { x: 12,  y: 200 } };
   const PTS_C = { T: { x: 106, y: 49 }, R: { x: 322, y: 190 }, B: { x: 221, y: 226 }, L: { x: 12,  y: 140 } };
   const ORDER = ['T', 'R', 'B', 'L'];
 
@@ -3922,11 +3920,6 @@
     /* the heights are h₁ and h₂ again: this is a fresh pair of triangles,
        and the working beside it is read the same way as the first cut's */
     short: { base: 'b', h: ['h₁', 'h₂'] }
-  };
-  /* section 4: a different one, with measurements */
-  const SPEC_B = {
-    pts: PTS_B, diag: ['T', 'B'], base: '10 cm',
-    tris: [{ apex: 'L', color: 'green', label: '6 cm' }, { apex: 'R', color: 'purple', label: '5 cm' }]
   };
   /* section 5: the one the learner works out alone */
   const SPEC_C = {
@@ -3971,9 +3964,9 @@
     complete: 'Complete the formula for the area of the quadrilateral.',
     joinWrong: (a, b) => 'Try again! Join the ' + NAME[a] + ' and ' + NAME[b] + ' corners.'
   };
+  /* only .pick survives (in the heading-ghost list below): the rest of
+     page 6, "Quadrilateral · with measurements", was cut (user, 2026-09-25) */
   const FOUR = {
-    here: 'Here is a different quadrilateral.',
-    dims: 'Let’s look at its base and heights.',
     pick: 'Choose the base and height for each triangle.'
   };
   const FIVE = {
@@ -4012,7 +4005,6 @@
      { t: ' + ' }, { t: 'h₂', w: 'h-green' }, { t: ')' }],
     [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: 'Diagonal', w: 'base' }, { t: ' × (' }, { t: 'Sum of perpendicular heights', w: 'height' }, { t: ')' }]
   ];
-  const SUM_B  = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ' }, { t: '30 sq. cm', w: 'green' }, { t: ' + ' }, { t: '25 sq. cm', w: 'purple' }, { t: ' = 55 sq. cm' }];
 
   /* what the drop-downs in a formula offer: the parts of the drawing by
      name in section 3, and the measurements in section 4 */
@@ -4026,7 +4018,6 @@
      filled from */
   const RULE_IN_WORDS = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × (' }, { t: 'Diagonal', w: 'base' },
     { t: ') × (' }, { t: 'Sum of perpendicular heights', w: 'height' }, { t: ')' }];
-  const MEASURES = [{ v: '10', t: '10 cm' }, { v: '6', t: '6 cm' }, { v: '5', t: '5 cm' }];
 
   const AREA_MS    = 64;       /* per character */
   const AREA_PAUSE = 560;      /* a beat after each key word, for the highlight to land */
@@ -5172,43 +5163,6 @@
     return line;
   }
 
-  /* "Area of [Orange Triangle] = ½ × [ v ] × [ v ]": a line with two
-     drop-downs in it, and a tail the working is typed into once both are
-     right */
-  function formulaLine(name, color, opts) {
-    const line = document.createElement('div');
-    line.className = 'area-line f-line eqgrid';
-    const seg = (cls, text) => {
-      const el = document.createElement('span');
-      el.className = cls;
-      setTxt(el, text);
-      return el;
-    };
-    const dd1 = makeDD(opts, true, 'base'), dd2 = makeDD(opts, true, 'height');
-    /* the name in the left column; the formula with its boxes, and then
-       each step of the working, on rows of their own under the "=" */
-    const lhs = seg('lhs', '');
-    lhs.append(seg('seg', 'Area of '), seg('w w-' + color + ' lit', name), seg('seg', ' '));
-    const expr = document.createElement('span');
-    expr.className = 'expr rhs';
-    expr.append(seg('seg', '= ½ × '), dd1, seg('seg', ' × '), dd2);
-    line.append(lhs, expr);
-    return {
-      line: line,
-      dds: [ddController(dd1), ddController(dd2)],
-      /* the boxes dissolve into the first step, and the row then solves
-         itself where it stands: "= ½ × 10 × 6", "= 5 × 6", "= 30 sq. cm" */
-      solve: async steps => {
-        await morphTo(expr, steps[0], true);
-        for (let i = 1; i < steps.length; i++) {
-          await wait(REDUCED ? 200 : 1000);
-          await morphTo(expr, steps[i]);
-        }
-        await wordsSettle();
-      }
-    };
-  }
-
   /* Both boxes are live at once, but each one is bound to the part it is
      asking for: `need` is read in the boxes' own order -- the base in the
      box hinted "base", the triangle's height in the one hinted "height" --
@@ -5772,45 +5726,6 @@
 
     await heading(QUAD.rule);
     await wait(REDUCED ? 150 : 350);
-    celebrate();
-    await wait(2600);
-    await showNext();
-    await sectionFour();
-  }
-
-  /* ---------- section 4: a different quadrilateral, with measurements ---------- */
-  async function sectionFour() {
-    lockInput(true);
-    sceneStart(sectionFour);
-
-    await nextQuad(SPEC_B);
-    await heading(FOUR.here);
-    await wait(700);
-    await heading(FOUR.dims);
-    await wait(200);
-    await showSplit(['T', 'B'], SPEC_B);
-    await heading(FOUR.pick);
-    await wait(200);
-
-    /* each triangle: pick the base and the height, and the working follows */
-    const g = formulaLine('Orange Triangle', 'green', MEASURES);
-    await showLine(g.line);
-    await askFormula(g, ['10', '6']);
-    await wait(300);
-    await g.solve(['= ½ × 10 × 6', '= 5 × 6', '= 30 sq. cm']);
-    onAreaWord('green');
-    await wait(800);
-    const p = formulaLine('Purple Triangle', 'purple', MEASURES);
-    await showLine(p.line);
-    await askFormula(p, ['10', '5']);
-    await wait(300);
-    await p.solve(['= ½ × 10 × 5', '= 5 × 5', '= 25 sq. cm']);
-    onAreaWord('purple');
-    await wait(800);
-
-    /* and the two are added up */
-    /* the sum, then the total in its place on the same line */
-    await showSolveLine(areaLinesEl, [SUM_B.slice(0, -1), 'Area of Quadrilateral = 55 sq. cm'], onAreaWord);
     celebrate();
     await wait(2600);
     await showNext();
