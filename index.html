@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Spacecraft Mission Learning</title>
+<title>Area of Quadrilaterals</title>
 <!-- The typeface is a single variable file every line of the board is set in,
      so it is fetched alongside the stylesheet rather than after it. -->
 <link rel="preload" href="assets/fonts/baloo_2/baloo2-variablefont_wght.ttf" as="font" type="font/ttf" crossorigin />
@@ -13,6 +13,28 @@
 <link rel="stylesheet" href="responsive.css" />
 </head>
 <body>
+  <!-- ---------- arrowheads for the measuring lines ----------
+       One marker per colour a triangle's base or height can be drawn in; the
+       stylesheet picks one. Sized in the drawing's own units, so they stay a
+       dash long whatever the line's width. Not display:none, which would stop
+       the markers painting. -->
+  <svg id="dimArrows" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <marker id="dimArrow" class="dim-arrow" viewBox="0 0 6 6" refX="5" refY="3"
+              markerWidth="6" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+        <path d="M1.2 .8 L5 3 L1.2 5.2" />
+      </marker>
+      <marker id="dimArrowBase" class="dim-arrow" viewBox="0 0 6 6" refX="5" refY="3"
+              markerWidth="6" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+        <path d="M1.2 .8 L5 3 L1.2 5.2" />
+      </marker>
+      <marker id="dimArrowHeight" class="dim-arrow" viewBox="0 0 6 6" refX="5" refY="3"
+              markerWidth="6" markerHeight="6" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
+        <path d="M1.2 .8 L5 3 L1.2 5.2" />
+      </marker>
+    </defs>
+  </svg>
+
   <!-- ---------- icons ----------
        Drawn once here and stamped wherever they are needed with <use>, so
        every copy is the same artwork at any size. -->
@@ -41,7 +63,7 @@
          takes the colour of whatever box it hangs off, which is what lets a
          verdict turn the whole box green or red. -->
     <symbol id="ico-tail" viewBox="0 0 44 42">
-      <path d="M4 0 H42 V8 C36 20 24 30 2 42 C8 32 8 20 4 8 Z" fill="var(--board-bg)" />
+      <path d="M4 0 H42 V8 C36 20 24 30 2 42 C8 32 8 20 4 8 Z" fill="var(--bub-fill, var(--board-bg))" />
       <path d="M42 8 C36 20 24 30 2 42 C8 32 8 20 4 8" fill="none"
             stroke="var(--note-edge)" stroke-width="4"
             stroke-linecap="round" stroke-linejoin="round"
@@ -97,8 +119,8 @@
               </g>
               <!-- shown in round 2, after the first wrong drop -->
               <g class="labels">
-                <g class="wdim wdim-h"><line class="wdim-line" x1="4" y1="144" x2="236" y2="144" /><path class="wdim-head" d="M12 139 L4 144 L12 149 M228 139 L236 144 L228 149" /><text class="shape-label" x="120" y="160" font-size="13" text-anchor="middle">length</text></g>
-                <g class="wdim wdim-v"><line class="wdim-line" x1="252" y1="4" x2="252" y2="128" /><path class="wdim-head" d="M247 12 L252 4 L257 12 M247 120 L252 128 L257 120" /><text class="shape-label" x="268" y="66" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 268 66)">breadth</text></g>
+                <g class="wdim wdim-h"><line class="wdim-line" x1="4" y1="144" x2="236" y2="144" /><path class="wdim-head" d="M9.6 140.5 L4 144 L9.6 147.5 M230.4 140.5 L236 144 L230.4 147.5" /><text class="shape-label" x="120" y="160" font-size="13" text-anchor="middle">length</text></g>
+                <g class="wdim wdim-v"><line class="wdim-line" x1="252" y1="4" x2="252" y2="128" /><path class="wdim-head" d="M248.5 9.6 L252 4 L255.5 9.6 M248.5 122.4 L252 128 L255.5 122.4" /><text class="shape-label" x="268" y="66" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 268 66)">breadth</text></g>
               </g>
             </svg>
           </div>
@@ -125,8 +147,8 @@
                 <path class="shape-outline" d="M4 4 H156 V156 H4 Z" fill="none" stroke-width="5" />
               </g>
               <g class="labels">
-                <g class="wdim wdim-h"><line class="wdim-line" x1="4" y1="170" x2="156" y2="170" /><path class="wdim-head" d="M12 165 L4 170 L12 175 M148 165 L156 170 L148 175" /><text class="shape-label" x="80" y="186" font-size="13" text-anchor="middle">side</text></g>
-                <g class="wdim wdim-v"><line class="wdim-line" x1="172" y1="4" x2="172" y2="156" /><path class="wdim-head" d="M167 12 L172 4 L177 12 M167 148 L172 156 L177 148" /><text class="shape-label" x="188" y="80" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 188 80)">side</text></g>
+                <g class="wdim wdim-h"><line class="wdim-line" x1="4" y1="170" x2="156" y2="170" /><path class="wdim-head" d="M9.6 166.5 L4 170 L9.6 173.5 M150.4 166.5 L156 170 L150.4 173.5" /><text class="shape-label" x="80" y="186" font-size="13" text-anchor="middle">side</text></g>
+                <g class="wdim wdim-v"><line class="wdim-line" x1="172" y1="4" x2="172" y2="156" /><path class="wdim-head" d="M168.5 9.6 L172 4 L175.5 9.6 M168.5 150.4 L172 156 L175.5 150.4" /><text class="shape-label" x="188" y="80" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 188 80)">side</text></g>
               </g>
             </svg>
           </div>
@@ -152,8 +174,8 @@
               </g>
               <g class="labels">
                 <line class="height-line" x1="100" y1="10" x2="100" y2="166" />
-                <g class="wdim wdim-h"><line class="wdim-line" x1="5" y1="182" x2="195" y2="182" /><path class="wdim-head" d="M13 177 L5 182 L13 187 M187 177 L195 182 L187 187" /><text class="shape-label" x="100" y="198" font-size="13" text-anchor="middle">base</text></g>
-                <g class="wdim wdim-v"><line class="wdim-line" x1="-14" y1="6" x2="-14" y2="166" /><path class="wdim-head" d="M-19 14 L-14 6 L-9 14 M-19 158 L-14 166 L-9 158" /><text class="shape-label" x="-30" y="86" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 -30 86)">height</text></g>
+                <g class="wdim wdim-h"><line class="wdim-line" x1="5" y1="182" x2="195" y2="182" /><path class="wdim-head" d="M10.6 178.5 L5 182 L10.6 185.5 M189.4 178.5 L195 182 L189.4 185.5" /><text class="shape-label" x="100" y="198" font-size="13" text-anchor="middle">base</text></g>
+                <g class="wdim wdim-v"><line class="wdim-line" x1="-14" y1="6" x2="-14" y2="166" /><path class="wdim-head" d="M-17.5 11.6 L-14 6 L-10.5 11.6 M-17.5 160.4 L-14 166 L-10.5 160.4" /><text class="shape-label" x="-30" y="86" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 -30 86)">height</text></g>
               </g>
             </svg>
           </div>
@@ -305,8 +327,7 @@
              its box up and to its right, as the trapezium's name quiz has --
              and under it the sentence, "This is a [ v ]" -->
         <div class="quiz-block" id="quizBlock">
-          <!-- Swiftee's landing spot, above the sentence so the drop-down's
-               menu opens into free board rather than over the bird's box. The
+          <!-- Swiftee's landing spot, above the three names. The
                row is laid out from the first frame -- bird and box both
                invisible until they are wanted -- so neither arrival moves
                anything. -->
@@ -320,26 +341,11 @@
               <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true"><use href="#ico-tail" /></svg>
             </p>
           </div>
-          <div class="quiz-row">
-            <div class="quiz-sentence">
-              <span class="quiz-label">This is a</span>
-              <div class="dd" id="dd">
-                <button class="dd-btn" id="ddBtn" type="button" aria-haspopup="listbox" aria-expanded="false"
-                        aria-label="Choose the name of the shape">
-                  <span class="dd-value" id="ddValue" data-hint="Tap here"></span>
-                  <svg class="dd-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-8 10z" /></svg>
-                </button>
-                <div class="dd-menu" id="ddMenu" role="listbox">
-                  <button class="dd-opt" type="button" role="option" data-value="triangle">triangle</button>
-                  <button class="dd-opt" type="button" role="option" data-value="quadrilateral">quadrilateral</button>
-                  <button class="dd-opt" type="button" role="option" data-value="pentagon">pentagon</button>
-                </div>
-                <!-- the hand that points at the arrow until the box is tapped -->
-                <svg class="dd-tap" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z" />
-                </svg>
-              </div>
-            </div>
+          <!-- three names, tap the right one -->
+          <div class="quiz-tray" id="quizTray">
+            <button class="chip" type="button" data-answer="triangle"><span>Triangle</span></button>
+            <button class="chip" type="button" data-answer="quadrilateral"><span>Quadrilateral</span></button>
+            <button class="chip" type="button" data-answer="pentagon"><span>Pentagon</span></button>
           </div>
         </div>
 
@@ -869,17 +875,10 @@
     <div class="intro-mascot" id="introMascot"></div>
 
     <div class="bubble" id="bubble">
-      <!-- the two little emphasis strokes either side of the bubble -->
-      <svg class="bubble-mark mark-left" viewBox="0 0 40 60" aria-hidden="true">
-        <path d="M8 12 L30 24" /><path d="M8 48 L30 36" />
-      </svg>
       <span class="type-wrap">
         <span class="type-ghost" id="bubbleGhost"></span>
         <span class="type" id="bubbleType" aria-live="polite"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
       </span>
-      <svg class="bubble-mark mark-right" viewBox="0 0 40 60" aria-hidden="true">
-        <path d="M32 12 L10 24" /><path d="M32 48 L10 36" />
-      </svg>
       <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true"><use href="#ico-tail" /></svg>
     </div>
   </div>
@@ -980,7 +979,7 @@
     <div class="welcome-mascot" id="welcomeMascot" aria-hidden="true"></div>
 
     <div class="welcome-body">
-      <h2 class="welcome-title">Spacecraft Mission Learning</h2>
+      <h2 class="welcome-title">Area of Quadrilaterals</h2>
 
       <div class="welcome-slot">
         <div class="loader" id="loader">

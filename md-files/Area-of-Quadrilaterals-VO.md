@@ -1,4 +1,4 @@
-# Spacecraft Mission Learning — Voice-Over Script
+# Area of Quadrilaterals — Voice-Over Script
 
 Every spoken line in the mission, in play order, keyed to the **page numbers**
 of the in-game section jump menu (the numbers shown beside each section name in
@@ -107,17 +107,25 @@ Feedback on this page: FB-01, FB-02, FB-03.
 
 | ID | Type | Line | Where |
 |---|---|---|---|
-| P04-01 | INSTRUCTION | What shape is this? | Swiftee's box, beside the drop-down |
-| P04-02 | FEEDBACK | Incorrect. A triangle has 3 sides. | Same box, red |
-| P04-03 | FEEDBACK | Incorrect. A pentagon has 5 sides. | Same box, red |
+| P04-01 | INSTRUCTION | What shape is this? | Swiftee's box, above the three names (the names appear first, then the question) |
+| P04-02 | FEEDBACK | Not quite! A triangle has 3 sides. | Same box, red |
+| P04-03 | FEEDBACK | Not quite! A pentagon has 5 sides. | Same box, red |
 | P04-04 | FEEDBACK | Correct. A quadrilateral has 4 sides. | Same box, green |
 | P04-05 | NARRATION | This is a general quadrilateral. | Swiftee's line beside the shape |
 | P04-06 | INSTRUCTION | Let’s try and find its area! | Swiftee's line beside the shape |
-| P04-07 | INSTRUCTION | Join the corners to divide the quadrilateral into two parts. | Heading |
+| P04-07 | INSTRUCTION | Join the corners to draw a diagonal. | Heading (Swiftee comes up with it, having left after P04-06) |
 | P04-08 | FEEDBACK | Try again! Join the left and right corners. | Heading, on a wrong pair of corners |
-| P04-09 | NARRATION | The quadrilateral is divided into two triangles. | Heading |
-| P04-10 | NARRATION | Let’s put in each triangle’s area. | Heading |
+| P04-09 | NARRATION | Now, the quadrilateral is divided into two triangles. Let’s look at each triangle. | Heading — **re-record** (was "The quadrilateral is divided into two triangles."; the old clip plays under the new line until then) |
+| P04-13 | NARRATION | Let’s say the base of this triangle is b. | Heading, Triangle 1 forward — **needs recording** |
+| P04-14 | NARRATION | And its height is h₁. | Heading — **needs recording** |
+| P04-15 | NARRATION | So, its area will be … | Heading; the line writes itself beside the shape — **needs recording** |
+| P04-16 | NARRATION | This triangle has the same base b. | Heading, Triangle 2 forward (after Next) — **needs recording** |
+| P04-17 | NARRATION | And its height is h₂. | Heading — **needs recording** |
+| P04-18 | NARRATION | So, its area will be … *(reuse of P04-15)* | Heading |
+| P04-10 | NARRATION | Let’s put in each triangle’s area. | Heading (after Next) |
 | P04-11 | NARRATION | Both triangles share the same base b. | Heading |
+| P04-19 | NARRATION | The base b is the diagonal. | Heading; a copy of the rule's b becomes "Diagonal" — **needs recording** |
+| P04-20 | NARRATION | And h₁ + h₂ is the sum of the perpendicular heights. | Heading; the bracket becomes "Sum of perpendicular heights" — **needs recording** |
 | P04-12 | NARRATION | So this is the area of the quadrilateral! | Heading |
 
 ## Page 5 — Quadrilateral · the other diagonal
@@ -127,12 +135,14 @@ Feedback on this page: FB-01, FB-02, FB-03.
 | P05-01 | INSTRUCTION | Let’s try a different way! | Heading |
 | P05-02 | FEEDBACK | Try again! Join the top and bottom corners. | Heading, on a wrong pair of corners |
 | P05-03 | NARRATION | Two new triangles! Let’s find their areas. | Heading |
-| P05-04 | NARRATION | Let’s put in each triangle’s area. *(reuse of P04-10)* | Heading |
-| P05-05 | NARRATION | Both triangles share the same base b. *(reuse of P04-11)* | Heading |
-| P05-06 | NARRATION | So this is the area of the quadrilateral! *(reuse of P04-12)* | Heading |
+| P05-04 | INSTRUCTION | Complete the formula for the area of the quadrilateral. | Heading, once the shape has moved aside — **needs recording** |
+| P05-06 | NARRATION | So this is the area of the quadrilateral! *(reuse of P04-12)* | Heading, once both boxes are right |
 
-On-screen only (no VO): the two answer lines the learner fills in read
-"Area of Orange Triangle = ½ × [ ] × [ ]" and "Area of Purple Triangle = ½ × [ ] × [ ]".
+On-screen only (no VO): the rule in words is typed out as a reminder,
+"Area of Quadrilateral = ½ × (Diagonal) × (Sum of perpendicular heights)",
+and under it the line the learner completes reads
+"Area of Quadrilateral = ½ × [ ] × [ ]" — the first box offers b / h₁ / h₂,
+the second h₁ + h₂ / b + h₁ / b + h₂.
 
 ## Page 6 — Quadrilateral · with measurements
 
@@ -483,17 +493,25 @@ Incorrect. A pentagon has 5 sides.
 Correct. A quadrilateral has 4 sides.
 This is a general quadrilateral.
 Let’s try and find its area!
-Join the corners to divide the quadrilateral into two parts.
+Join the corners to draw a diagonal.
 Try again! Join the left and right corners.
-The quadrilateral is divided into two triangles.
+Now, the quadrilateral is divided into two triangles. Let’s look at each triangle.
+Let’s say the base of this triangle is b.
+And its height is h₁.
+So, its area will be …
+This triangle has the same base b.
+And its height is h₂.
 Let’s put in each triangle’s area.
 Both triangles share the same base b.
+The base b is the diagonal.
+And h₁ + h₂ is the sum of the perpendicular heights.
 So this is the area of the quadrilateral!
 
 — Page 5 · Quadrilateral, the other diagonal —
 Let’s try a different way!
 Try again! Join the top and bottom corners.
 Two new triangles! Let’s find their areas.
+Complete the formula for the area of the quadrilateral.
 
 — Page 6 · Quadrilateral, with measurements —
 Here is a different quadrilateral.

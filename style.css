@@ -136,9 +136,12 @@
 
   /* The two hues the formula's words -- and the matching dotted lines under
      every triangle -- light up in. Neither is a shape colour, so a lit line
-     always reads against whichever fill it crosses. */
-  --base-hl:   #F0932B;
-  --height-hl: #2E86DE;
+     always reads against whichever fill it crosses. Both are deep shades
+     (a tangerine and a royal blue) rather than the paler pair they were: on
+     the pale pink board those faded out, thin lines and small labels most of
+     all. */
+  --base-hl:   #E8590C;
+  --height-hl: #1F63D6;
 
   /* The neutral shape accent: what a slot or a chip borrows to show it is
      being dragged over, hovered or picked. Deliberately not one of the three
@@ -175,6 +178,11 @@
    * hues in the game that are not drawn from the artwork. */
   --correct: #2EBF7A;
   --wrong: #E5304B;
+  /* the same two hues darkened for lettering: the bright ones are right for
+     an edge or a glow but blend into the pale box as words (review,
+     2026-09-25). Both clear 4.5:1 on --board-highlight. */
+  --correct-ink: #137A4A;
+  --wrong-ink: #B3182F;
 
   /* ---- accent ----
    * What the motion system emphasises with: the sweep behind a highlighted
@@ -205,13 +213,13 @@
   --glow-wrong-dim:  rgba(229, 48, 75, .13);    /* --wrong         */
   --tint-wrong:      rgba(229, 48, 75, .28);    /* --wrong         */
   --tint-accent:     rgba(133, 52, 94, .18);    /* --accent        */
-  --glow-base:       rgba(240, 147, 43, .55);   /* --base-hl       */
-  --glow-height:     rgba(46, 134, 222, .55);   /* --height-hl     */
+  --glow-base:       rgba(232, 89, 12, .55);   /* --base-hl       */
+  --glow-height:     rgba(31, 99, 214, .55);   /* --height-hl     */
   --glow-green:      rgba(224, 99, 42, .5);     /* --tri-border    */
   --glow-purple:     rgba(106, 53, 217, .5);    /* --square-border */
-  --glow-pair-a:     rgba(46, 134, 222, .55);  /* --pair-a        */
+  --glow-pair-a:     rgba(31, 99, 214, .55);  /* --pair-a        */
   --glow-pair-b:     rgba(106, 53, 217, .55);  /* --pair-b        */
-  --tint-pair-a:     rgba(46, 134, 222, .18);  /* --pair-a        */
+  --tint-pair-a:     rgba(31, 99, 214, .18);  /* --pair-a        */
   --tint-pair-b:     rgba(106, 53, 217, .18);  /* --pair-b        */
   --tint-heading:    rgba(133, 52, 94, .14);    /* --heading       */
   --glow-heading:    rgba(133, 52, 94, .45);    /* --heading       */
@@ -404,6 +412,19 @@ body {
   from { opacity: 0; filter: blur(4px); }
   to   { opacity: 1; filter: blur(0); }
 }
+/* a word that arrived as a copy flying in off the drawing (floatWord in
+   script.js): simply there as the copy lands, with no fade of its own */
+.wd.landed { animation: none; opacity: 1; }
+/* the flying copy itself: cut in the word's own type and hue (both set
+   inline), over everything, never in the pointer's way */
+.float-word {
+  position: fixed;
+  z-index: 960;
+  pointer-events: none;
+  white-space: pre;
+  transform-origin: 0 0;
+  will-change: transform, opacity;
+}
 @media (prefers-reduced-motion: reduce) {
   .wd.in { animation-duration: .08s; }
 }
@@ -442,7 +463,19 @@ body {
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   gap: clamp(8px, 2.5%, 30px);
-  transition: opacity .45s ease, visibility 0s linear .45s;
+  /* the zoom grows the bay upwards, into the heading, never down over the tray */
+  transform-origin: 50% 100%;
+  transition: opacity .45s ease, visibility 0s linear .45s,
+              transform .9s cubic-bezier(.22, 1, .36, 1);
+}
+/* Swiftee has left the heading: the scene under it -- the warm-up's shapes
+   and slots, the triangle lesson -- comes forward into the room it stood in.
+   script.js works the scale out from the room there is (zoomIn). */
+.bay.zoomed,
+.lesson.zoomed { transform: scale(var(--scene-zoom, 1)); }
+@media (prefers-reduced-motion: reduce) {
+  .bay { transition: opacity .45s ease, visibility 0s linear .45s, transform .2s ease; }
+  .lesson { transition: transform .2s ease; }
 }
 
 /* ---------- clearing the board for section 2 ----------
@@ -481,8 +514,7 @@ body {
      warm-up now holds the heading's room for its whole length (roomHeight in
      script.js), so the bay is its final size from the first frame and there is
      only a few pixels of slack to share out at all. */
-  justify-content: space-evenly;
-  gap: clamp(8px, 2.2vh, 20px);
+  justify-content: flex-start;
   min-height: 0;
 }
 
@@ -641,6 +673,9 @@ body {
   /* laid out but not painted until the warm-up has cleared away; its pieces
      are each invisible until drawn, so no fade is needed here */
   visibility: hidden;
+  /* the zoom at the end of the lesson grows it upwards, into the heading */
+  transform-origin: 50% 100%;
+  transition: transform .9s cubic-bezier(.22, 1, .36, 1);
 }
 .lesson.on { visibility: visible; }
 
@@ -672,7 +707,10 @@ body {
   position: absolute;
   /* sits --art-gap under the top of its room rather than in the middle of it;
      see --art-gap. 82.1cqw is the drawing's height at full width (viewBox 240 x 197). */
-  --art-lift: min(var(--art-gap), max(0px, (100cqh - 82.1cqw) / 2));
+  /* the lesson ignores --art-gap: its heading row is held open throughout
+     (script.js, sectionTwo), so the triangles always keep the middle of
+     their room and never jump between top and centre */
+  --art-lift: max(0px, (100cqh - 82.1cqw) / 2);
   inset: var(--art-lift) 0 auto 0;
   width: 100%;
   height: auto;
@@ -691,7 +729,7 @@ body {
   opacity: 0;
   fill: none;
   stroke: var(--heading);
-  stroke-width: 2.4;
+  stroke-width: 1.8;
   stroke-dasharray: 8 7;
   stroke-linecap: round;
   transition: stroke .4s ease, stroke-width .4s ease, filter .4s ease;
@@ -700,9 +738,28 @@ body {
    quieter than the two lines the lesson is actually about */
 .dim-ext {
   stroke: var(--text-primary);
-  stroke-width: 2.4;
+  stroke-width: 1.8;
   stroke-dasharray: 7 6;
 }
+/* A base and a height are measures, so each ends in a small open arrowhead
+   at both ends: about the size of one dash, so they point the way without
+   weighing more than the line. The markers live in the #dimArrows sprite at
+   the top of index.html, one per colour the line can be in; a lit line swaps
+   to its own. The helper extension is not a measure and gets none. */
+.tri .dim-base,
+.tri .dim-height { marker-start: url(#dimArrow); marker-end: url(#dimArrow); }
+.tri.lit-base .dim-base     { marker-start: url(#dimArrowBase);   marker-end: url(#dimArrowBase); }
+.tri.lit-height .dim-height { marker-start: url(#dimArrowHeight); marker-end: url(#dimArrowHeight); }
+.dim-arrow path {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: none;
+}
+#dimArrow path       { stroke: var(--heading); }
+#dimArrowBase path   { stroke: var(--base-hl); }
+#dimArrowHeight path { stroke: var(--height-hl); }
 .dim-mark {
   opacity: 0;
   fill: none;
@@ -713,15 +770,19 @@ body {
 }
 .tri.marked .dim-mark { opacity: 1; }
 
+/* A lit line is drawn thin, so it is made evident by colour instead: the
+   deep hue itself, a hairline of the board's palest pink hugging it -- which
+   is what lifts the blue height off the purple triangle it runs through --
+   and then a soft glow of its own colour. */
 .tri.lit-base .dim-base {
   stroke: var(--base-hl);
-  stroke-width: 2.4;
-  filter: drop-shadow(0 0 3px var(--glow-base));
+  stroke-width: 1.8;
+  filter: drop-shadow(0 0 1px var(--board-highlight)) drop-shadow(0 0 3px var(--glow-base));
 }
 .tri.lit-height .dim-height {
   stroke: var(--height-hl);
-  stroke-width: 2.4;
-  filter: drop-shadow(0 0 3px var(--glow-height));
+  stroke-width: 1.8;
+  filter: drop-shadow(0 0 1px var(--board-highlight)) drop-shadow(0 0 3px var(--glow-height));
 }
 
 .dim-label {
@@ -1016,6 +1077,8 @@ body {
 .corner:nth-child(4) .dot { transition-delay: .27s; }
 .quad-shape.dots .dot { opacity: 1; transform: none; transition-delay: inherit; }
 .dot-hit { fill: transparent; }
+/* a corner the diagonal being drawn does not use: neither shown nor tappable */
+.corner.spare { display: none; }
 .quad-shape.live .corner:hover .dot,
 .quad-shape.live .corner.hot .dot {
   transform: scale(1.35);
@@ -1086,9 +1149,9 @@ body {
 }
 .quiz-block.show { opacity: 1; visibility: visible; transition: opacity .4s ease; }
 /* the sentence and the remark go; Swiftee stays until it has hopped away */
-.quiz-block .quiz-sentence,
+.quiz-block .quiz-tray,
 .quiz-block .quiz-note { transition: opacity .36s ease, transform .36s ease; }
-.quiz-block.off .quiz-sentence,
+.quiz-block.off .quiz-tray,
 .quiz-block.off .quiz-note { opacity: 0; transform: translateY(8px); }
 /* the quadrilateral's box speaks from its own tail, so it is shut by having
    its .show taken away rather than faded with the sentence -- but the
@@ -1278,6 +1341,21 @@ body {
   transition: opacity .36s ease;
 }
 .say-row.off .say-text { opacity: 0; }
+/* With the shape alone in the middle of the board, the aside stands up
+   beside its lower right edge rather than centred under it, so the bird
+   reads as talking about the shape (review, 2026-09-25). A transform lifts
+   it, so the foot keeps its height and the shape does not move. The line
+   stays on one row: letting it wrap in a flex item let the box shrink to
+   its longest word, one word a line (review, 2026-09-25). */
+.quad:not(.wide):not(.ask) .say-row {
+  justify-self: start;
+  margin-left: 45%;
+  transform: translateY(calc(var(--mascot) * -.75));
+}
+.quad:not(.wide):not(.ask) .say-row .say-text { flex: none; }
+/* plain words here, no box behind them (review, 2026-09-25). Doubled class:
+   it has to outrank the shared box rule further down. */
+.quad:not(.wide):not(.ask) .say-row .say-text.say-text { background: none; padding: 0; border: 0; }
 .say-text .type-wrap { display: inline-block; vertical-align: top; }
 .say-text .type { white-space: nowrap; }
 
@@ -1346,7 +1424,16 @@ body {
    its half with the bird. Later than the shared type sizes. */
 .quad.ask .quiz-bubble .type,
 .quad.ask .quiz-bubble .type-ghost { white-space: pre-wrap; }
-.quad.ask .quiz-bubble { font-size: clamp(var(--fs-min), 2.5vh, 23px); }
+.quad.ask .quiz-bubble { font-size: clamp(24px, 4.4vh, 40px); }
+/* Up over the bird's head rather than level with its face, leaning back
+   over it a little, so the tail comes down to the bird from above and the
+   line reads first, before the names under it (review, 2026-09-25). */
+.quad.ask .quiz-block .quiz-bubble {
+  align-self: flex-start;
+  margin: 0 0 calc(var(--mascot) * .78) calc(var(--mascot) * -.22);
+  max-width: min(640px, calc(100% - var(--mascot) * .78));
+  padding: .5em 1.15em .55em;
+}
 /* the bird stands ABOVE its sentence here, so the room the trapezium keeps
    over its box belongs under this one -- and the drop-down's menu has the
    rest of the half to open into instead of the bird's box */
@@ -1518,6 +1605,12 @@ body {
 .f-line .tail .txt.eqgrid { display: grid; }
 .f-line .dd { display: inline-block; margin: 0 .12em; }
 .f-line .tail .caret { background: var(--heading); }
+/* the rule in words, with its two parts to choose (script.js, wordsLine):
+   not a table, since its boxes are wide -- the line folds where the column
+   runs out, a box dropping whole onto the next row */
+.words-line { white-space: normal; }
+.words-line .expr { display: inline; white-space: normal; }
+.words-line .dd { white-space: nowrap; margin: .1em .12em; }
 .dd-small .dd-btn {
   min-width: clamp(88px, 9vw, 150px);
   padding: .1em .45em .1em .6em;
@@ -1786,7 +1879,8 @@ body {
 }
 .para-foot > * { grid-area: 1 / 1; }
 
-.para-tray {
+.para-tray,
+.quiz-tray {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1794,14 +1888,19 @@ body {
   transition: opacity .4s ease, visibility 0s linear .4s;
 }
 .para-tray.off { opacity: 0; visibility: hidden; }
+/* three names in half the board: let them wrap rather than overflow */
+.quiz-tray { flex-wrap: wrap; gap: clamp(10px, 1.6vw, 24px); }
 /* these chips are tapped, not dragged */
-.para-tray .chip { cursor: pointer; }
+.para-tray .chip,
+.quiz-tray .chip { cursor: pointer; }
 .para-tray .chip.reveal:hover,
 .para-tray .chip.reveal:focus-visible { border-color: var(--para-border); }
 /* the right name: the chip goes green and swells once. Both states are
    scoped to the tray so they outrank the generic chip's reveal and hover. */
 .para-tray .chip.correct,
-.para-tray .chip.correct:hover {
+.para-tray .chip.correct:hover,
+.quiz-tray .chip.correct,
+.quiz-tray .chip.correct:hover {
   border-color: var(--correct);
   background: var(--board-highlight);
   box-shadow: 0 0 0 4px var(--tint-correct);
@@ -1809,7 +1908,8 @@ body {
   cursor: default;
 }
 /* a wrong name, once turned down, steps back */
-.para-tray .chip.spent {
+.para-tray .chip.spent,
+.quiz-tray .chip.spent {
   opacity: .42;
   transform: none;
   pointer-events: none;
@@ -3185,7 +3285,12 @@ body {
 
   position: relative;
   font-family: inherit;
-  padding: clamp(7px, 1.6vh, 15px) clamp(14px, 2.4vw, 30px);
+  /* The lettering is a quarter over --fs-chip (see the type scale) and the
+     padding gives back exactly what the taller line takes -- the old
+     clamp(7px, 1.6vh, 15px) less .144 of the chip size -- so the pill stays
+     the size it was and only the words grow. The side padding gives back
+     roughly what a word of average length gains. */
+  padding: clamp(4.15px, 1.23vh, 11.4px) clamp(8px, 1.6vw, 20px);
   border: 2px solid var(--button-border);
   border-radius: 999px;
   background: var(--button-bg);
@@ -3194,7 +3299,7 @@ body {
     0 calc(var(--edge) / 2) 6px var(--shadow-soft);
   color: var(--button-text);
   font-weight: 700;
-  font-size: clamp(15.4px, 2.6vh, 25.3px);
+  font-size: clamp(19.25px, 3.25vh, 31.6px);
   line-height: 1.15;
   letter-spacing: .2px;
   cursor: grab;
@@ -3228,7 +3333,7 @@ body {
 
 /* Area formulas run longer than a single word, so they get a step down in
    size to stay on one line inside the same chip. */
-.chip.formula { font-size: clamp(14.3px, 2.3vh, 22px); }
+.chip.formula { font-size: clamp(17.9px, 2.875vh, 27.5px); }
 .chip.formula sup { font-size: .68em; vertical-align: super; line-height: 0; }
 .chip.formula sub { font-size: .68em; vertical-align: sub; line-height: 0; }
 
@@ -3268,15 +3373,17 @@ body {
   --edge: 0px;
   --sink: 0px;
   box-shadow: none;
-  /* one size for every docked card, name or formula: the slot's box is fixed,
-     so only the lettering grows, and the longest formula still fits one line */
-  font-size: clamp(16.5px, 3vh, 28.6px);
+  /* the slot's box is fixed, so only the lettering grows: a name fills about
+     half the slot's height (formulas, below, a step smaller) */
+  font-size: clamp(21.5px, 3.9vh, 37px);
   white-space: nowrap;
   cursor: default;
   opacity: 1;
   transform: none;
 }
-.slot .chip.formula { font-size: clamp(16.5px, 3vh, 28.6px); }
+/* a formula runs three times the length of a name, so it grows less: the
+   slot is capped at 250px wide and the longest one must stay on one line */
+.slot .chip.formula { font-size: clamp(18px, 3.3vh, 31.5px); }
 
 /* The clone that follows the pointer during a real drag. It is off the page
    and in the air, so it has no wall to stand on and nothing to sink into. */
@@ -3310,6 +3417,11 @@ body {
  * selected by background-position alone, in percentages, so it stays exact at
  * any size. script.js sets --sw-* per frame. */
 .board { --mascot: clamp(72px, 17vh, 160px); }
+/* Down beside a shape or in the right half, away from the heading, the bird
+   stands a little larger (user, 2026-09-25). Set on the spot itself, so its
+   own box and margins follow; the hop between spots grows or shrinks the
+   sprite on the way (hopBetween). */
+.mascot:not(#mascot) { --mascot: clamp(84px, 20vh, 188px); }
 
 /* ---------- where the artwork sits in its room ----------
  * Every shape is fitted into its box with `meet`, so on a wide board the
@@ -3389,6 +3501,11 @@ body {
   /* the sprite cell; the bird fills roughly the middle three quarters of it.
      Keyed to the height, but never wider than the screen on a portrait phone. */
   --im: clamp(170px, min(54vh, 100vw), 520px);
+  /* where the bird stands: its centre line across the screen, and the ground
+     line its feet rest on, up from the foot of the screen. The bubble is
+     placed off the same two, so the pair move together. */
+  --bird-x: 37.5%;
+  --ground: 17.5vh;
 }
 .intro.on { display: block; }
 
@@ -3397,11 +3514,11 @@ body {
   /* left of centre: the bubble sits off the right shoulder, so standing the
      bird dead centre pushes the pair into the right edge of the screen --
      the two together read as centred from here */
-  left: 37.5%;
+  left: var(--bird-x);
   margin-left: calc(var(--im) / -2);
-  /* feet (87.7% down the cell) on the ground line, 17.5% up from the foot of
-     the screen -- the sprite's empty foot strip hangs below that */
-  bottom: calc(17.5vh - var(--im) * .123);
+  /* feet (87.7% down the cell) on the ground line -- the sprite's empty foot
+     strip hangs below that */
+  bottom: calc(var(--ground) - var(--im) * .123);
   width: var(--im);
   height: var(--im);
   background-image: var(--sw-img);
@@ -3421,9 +3538,8 @@ body {
  * are simply allowed to wrap -- capped in width so the box stays beside the
  * bird instead of sliding across its head -- and the typed text is centred
  * on those lines, as the box is. */
-.intro.aside .intro-mascot { left: 26%; }
+.intro.aside { --bird-x: 26%; }
 .intro.aside .bubble {
-  left: 26.5%;
   /* three lines for the longest sentence; on a narrow screen say() slides
      the box left to keep it on screen, and the tail stays by the head */
   max-width: min(900px, 64vw);
@@ -3453,8 +3569,8 @@ body {
  *
  * The greeting draws at its own type size. A verdict box draws at 1.55x its
  * type size instead, because the one length the two boxes SHARE is the 4px
- * edge: at the greeting's 59px type that edge is a hairline round a big
- * box, and at a verdict's 22px it is three times as heavy a share. Drawing
+ * edge: at the greeting's ~40px type that edge is a fine line round a big
+ * box, and at a verdict's 22px it is nearly twice as heavy a share. Drawing
  * the small box's corner, light and tail at 1.55x puts each of them back at
  * the same share of the box the greeting gives them -- a quarter of the
  * height for the corner, a fifth for the light, a little over a quarter for
@@ -3472,14 +3588,22 @@ body {
 }
 .bubble {
   position: absolute;
-  /* half a point right of the bird's centre, so the tail comes down by the
-     beak; moves with .intro-mascot */
-  left: 38%;
-  bottom: 57.5vh;
+  /* Placed by its tail rather than its box. The tail's tip is put on the
+     head's upper-right outline -- 74% across the sprite cell and 23% down;
+     the beak is at 56% / 44%, so the tail points down at it -- and the box
+     is set back from that point by where the tip falls inside it: 4px of
+     border plus the tail's offset along the bottom edge, and the tail's
+     height below that edge (it starts 8px up, inside the border). Both are
+     in the box's own em, so the join holds at every type size. Moves with
+     .intro-mascot. */
+  --bub-tip-x: calc(var(--bird-x) + var(--im) * .24);
+  --bub-tip-y: calc(var(--ground) + var(--im) * .647);   /* 1 - .123 - .23 */
+  left:   calc(var(--bub-tip-x) - 4px - .815em);
+  bottom: calc(var(--bub-tip-y) - .725em + 8px);
   /* wide enough for either line to stay on one row; script.js slides the box
-     left when the screen runs out before the line does. The subtraction is the
-     screen margin plus the emphasis strokes either side. */
-  max-width: min(1000px, calc(100vw - 24px - 2.2em));
+     left when the screen runs out before the line does. The subtraction is
+     the screen margin either side. */
+  max-width: min(1000px, calc(100vw - 24px));
   --note-edge: var(--board-border);
   padding: .62em 1em;
   border: 4px solid var(--note-edge);
@@ -3492,8 +3616,10 @@ body {
   color: var(--heading);
   font-weight: 700;
   /* keyed to the height like the rest of the type, but reined in by the width
-     so a portrait phone does not get a bubble wider than the screen */
-  font-size: clamp(24.2px, min(6.6vh, 5.1vw), 63.8px);
+     so a portrait phone does not get a bubble wider than the screen. About a
+     third of the bird's height as a box: a bubble the head's size, not the
+     bird's. */
+  font-size: clamp(18px, min(4.6vh, 3.6vw), 46px);
   line-height: 1.2;
   letter-spacing: .2px;
   text-align: center;
@@ -3501,7 +3627,7 @@ body {
   /* pops out of its own tail, overshoots, settles */
   opacity: 0;
   transform: scale(.15);
-  transform-origin: 12% 100%;
+  transform-origin: calc(4px + var(--bub-tail-x) + var(--bub-tail-shift, 0px) + var(--bub-tail-w) / 2) 100%;
   transition: transform .44s cubic-bezier(.2, .9, .3, 1.45), opacity .2s ease;
 }
 .bubble.show { opacity: 1; transform: none; }
@@ -3526,26 +3652,13 @@ body {
 .bubble .type-wrap { display: inline-block; vertical-align: top; }
 .bubble .caret { background: var(--heading); }
 
-/* two short strokes each side, converging on the bubble */
-.bubble-mark {
-  position: absolute;
-  top: 50%;
-  width: .62em;
-  height: .93em;
-  transform: translateY(-50%);
-  fill: none;
-  stroke: var(--board-border);
-  stroke-width: 7;
-  stroke-linecap: round;
-  overflow: visible;
-}
-.mark-left  { right: calc(100% + .42em); }
-.mark-right { left:  calc(100% + .42em); }
-
-/* the tail hangs off the bottom-left corner and reaches back toward Swiftee */
+/* the tail hangs off the bottom-left corner and reaches back toward Swiftee.
+   --bub-tail-shift is set by say() once it has slid the greeting's box left
+   to keep it on a narrow screen: the tail walks back along the bottom edge
+   by the same distance, so its tip stays by the head. */
 .bubble-tail {
   position: absolute;
-  left: var(--bub-tail-x);
+  left: calc(var(--bub-tail-x) + var(--bub-tail-shift, 0px));
   top: calc(100% - 4px);        /* starts inside the border so it can cover it */
   width: var(--bub-tail-w);
   height: auto;
@@ -3936,7 +4049,7 @@ body {
    from shares its half with the bird. Later than the shared type sizes. */
 .trap.wide .trap-note .type,
 .trap.wide .trap-note .type-ghost { white-space: pre-wrap; }
-.trap.wide .trap-note { font-size: clamp(var(--fs-min), 2.35vh, 22px); }
+.trap.wide .trap-note { font-size: var(--fs-heading); }
 
 /* ---------- clearing the board for section 6 ----------
  * The rhombus scenes are finished: their section keeps its box but gives up
@@ -4045,7 +4158,7 @@ body {
 .quiz-block .trap-note,
 .quiz-block .quiz-bubble {
   /* the room left in the half once the bird beside it has taken its share */
-  max-width: min(460px, calc(100% - var(--mascot)));
+  max-width: min(580px, calc(100% - var(--mascot)));
   /* up beside the bird's head rather than level with its feet */
   margin: 0 0 calc(var(--mascot) * .42);
 
@@ -4078,9 +4191,11 @@ body {
 
 /* ---------- the message box ----------
  * Wherever Swiftee stands BESIDE its line rather than in the board's
- * heading, the line has one rule (user, 2026-09-18): an instruction is
- * simply the words, and only the answer to a choice -- right or wrong -- is
- * spoken from a box, green for the right name and red for a wrong one.
+ * heading, everything it says is spoken from a box (review, 2026-09-25,
+ * replacing 2026-09-18's words-only instructions): a question or an
+ * instruction in the heading's plum, the answer to a choice green for the
+ * right name and red for a wrong one. The box only shows while it holds
+ * words, so an empty spot waiting for the bird is never an empty frame.
  *
  * The box is the greeting's own bubble brought onto the board: the same 4px
  * edge, the same corner, the same three-layer glow, the same catch-light in
@@ -4092,9 +4207,12 @@ body {
  * clear, so a verdict arriving does not move the line it replaces: the box
  * is a colour that comes and goes, not a shape that pushes the room open. */
 .msg {
-  --note-edge: transparent;
-  --note-glow-soft: transparent;
-  --note-glow-dim: transparent;
+  /* a warm pink drawn from the board's own rim, solid so the tail's stroke
+     joins the edge cleanly; the plum is left to the words */
+  --note-edge: #E59BC0;
+  --bub-fill: var(--board-highlight);
+  --note-glow-soft: var(--glow-board-soft);
+  --note-glow-dim: var(--glow-board-dim);
   /* the small box draws its corner, light and tail a size up: see the unit
      at the top of the speech-bubble section */
   --bub-u: 1.55em;
@@ -4103,8 +4221,13 @@ body {
   padding: .62em 1em;
   border: 4px solid var(--note-edge);
   border-radius: var(--bub-corner);
-  background: none;
-  box-shadow: none;
+  background: var(--board-highlight);
+  /* lifted off the board by a soft drop rather than ringed by a wide glow:
+     the halo read as a smudge round a box this size */
+  box-shadow:
+    0 0 10px 1px var(--note-glow-soft),
+    0 6px 0 -1px var(--note-glow-dim),
+    0 12px 24px var(--shadow-soft);
   text-align: center;
   /* the greeting's type, at the board's size: the same weight, the same
      line and the same tracking, so the words inside the box sit the way
@@ -4128,25 +4251,17 @@ body {
   align-items: center;
   justify-content: center;
 }
-.msg.ok,
-.msg.bad {
-  background: var(--board-bg);
-  box-shadow:
-    0 0 14px 2px var(--note-glow-soft),
-    0 0 34px 10px var(--note-glow-dim),
-    0 10px 26px var(--shadow-soft);
-}
 .msg.ok {
   --note-edge: var(--correct);
   --note-glow-soft: var(--glow-correct-soft);
   --note-glow-dim: var(--glow-correct-dim);
-  color: var(--correct);
+  color: var(--correct-ink);
 }
 .msg.bad {
   --note-edge: var(--wrong);
   --note-glow-soft: var(--glow-wrong-soft);
   --note-glow-dim: var(--glow-wrong-dim);
-  color: var(--wrong);
+  color: var(--wrong-ink);
 }
 /* the catch-light in the top-left corner, as the greeting's bubble has it */
 .msg::before {
@@ -4159,16 +4274,40 @@ body {
   border-radius: 999px;
   background: var(--bubble-sheen);
   transform: rotate(-22deg);
-  opacity: 0;
+  opacity: .95;
   transition: opacity .35s ease;
 }
-.msg.ok::before,
-.msg.bad::before { opacity: .95; }
 /* the tail is the greeting's drawing, stamped again: hidden until there is a
    box for it to hang off */
-.msg > .bubble-tail { opacity: 0; transition: opacity .3s ease; }
-.msg.ok > .bubble-tail,
-.msg.bad > .bubble-tail { opacity: 1; }
+.msg > .bubble-tail { opacity: 1; transition: opacity .3s ease; }
+/* nothing said yet, or the line cleared: no frame, no light, no tail */
+.msg:has(.type .txt:empty) {
+  --note-edge: transparent;
+  background: none;
+  box-shadow: none;
+}
+.msg:has(.type .txt:empty)::before,
+.msg:has(.type .txt:empty) > .bubble-tail { opacity: 0; }
+/* The lines Swiftee says from beside itself in the later scenes (the aside
+   by the quadrilateral, the rhombus, the right trapezium and the rest) are
+   plain .say-text rather than .msg, with no tail drawn for them: they take
+   the same box -- edge, fill, glow, corner -- round the words. The padding
+   and a clear edge are kept whether or not there is a line, so the box
+   arriving never moves the words or the bird. */
+.say-text:not(.msg) {
+  --bub-u: 1.55em;
+  padding: .5em .9em;
+  border: 4px solid transparent;
+  border-radius: var(--bub-corner);
+  text-align: center;
+  transition: opacity .36s ease, border-color .35s ease,
+              background-color .35s ease, box-shadow .35s ease;
+}
+.say-text:not(.msg):not(:has(.type .txt:empty)) {
+  /* no drawn edge and no shadow: the pale fill alone carries the box
+     (review, 2026-09-25) */
+  background: var(--board-highlight);
+}
 /* the boxed verdict pops out of that tail, the way the greeting's does */
 .quiz-block .trap-note.ok,
 .quiz-block .trap-note.bad,
@@ -5567,7 +5706,7 @@ body {
 .wdim-head {
   fill: none;
   stroke: var(--heading);
-  stroke-width: 2.4;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -5786,10 +5925,17 @@ body {
    question itself: it is the line the page ends on, and a line smaller than
    the chips above it would arrive as a footnote */
 .rtrap.cfu .tc-work .area-line { font-size: max(var(--fs-min), min(var(--fs-body) * 1.2, 5.6cqw)); }
-.chip,
-.chip.formula,
-.slot .chip,
-.slot .chip.formula,
+/* The chips' own lettering runs a quarter over the shared chip size, and
+   their padding (see .chip) gives the difference back, so the pill keeps its
+   size and only the words grow. A formula is three names long, so it takes
+   less of the step. */
+.chip         { font-size: calc(var(--fs-chip) * 1.25); }
+.chip.formula { font-size: calc(var(--fs-chip) * 1.15); }
+/* In a slot the box is fixed and roomy, so the lettering takes more of it: a
+   name about half the slot's height, a formula a step under so the longest
+   still stands on one line. */
+.slot .chip         { font-size: calc(var(--fs-chip) * 1.5); }
+.slot .chip.formula { font-size: calc(var(--fs-chip) * 1.3); }
 .card-slot .chip,
 .trap-tray .chip,
 .fslot .chip,

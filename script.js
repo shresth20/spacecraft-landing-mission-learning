@@ -1,4 +1,4 @@
-/* Spacecraft Mission Learning.
+/* Area of Quadrilaterals.
  *
  * Opening, once:
  *   0. Swiftee jumps up into the middle of the landscape, greets the learner
@@ -40,26 +40,41 @@
  *   1. Swiftee jumps back behind the board and the lesson fades off it
  *   2. one quadrilateral draws itself in the middle of the empty board and
  *      glides to the left half of it
- *   3. "This is a [ v ]" with a drop-down appears on the right half; Swiftee
- *      comes up from behind the board under it and asks "What shape is
- *      this?" from its box, and the empty slot asks to be tapped -- its own
- *      "Tap here" and a hand beside the arrow, both gone the moment it is.
- *      Each choice is answered in the same box, with how many sides that
- *      shape has
+ *   3. three names fade up on the right half, one to tap; then Swiftee
+ *      comes up from behind the board above them and asks "What shape is
+ *      this?" from its box (user, 2026-09-25: the options first, then the
+ *      question). Each choice is answered in the same box, with how many
+ *      sides that shape has
  *   4. the quiz goes, the shape comes back to the middle, and Swiftee is up
  *      again beside it: "This is a general quadrilateral." / "Let's try and
  *      find its area!"
- *   5. Swiftee hops up to the heading; four dots appear on the corners and
- *      "Join the corners to divide the quadrilateral into two parts." types
- *      while a finger traces the diagonal, left to right
- *   6. the learner draws it: "The quadrilateral is divided into two
- *      triangles."
- *   7. the shape slides left and the halves shade in two colours; each height
- *      drops in turn and its area line types out beside the shape, lighting
- *      what it names; the last line adds the two up
- *   8. Next -- then the same shape again, cut top to bottom: the learner
- *      draws that diagonal, and names the base and height of the green and
- *      then the purple triangle from drop-downs; the sum is written out
+ *   5. Swiftee goes back behind the board -- removed after "Let's try and
+ *      find its area!", not before it (user, 2026-09-25); two dots appear
+ *      on the corners, and Swiftee comes up at the heading with "Join the
+ *      corners to draw a diagonal.", which types while a finger traces the
+ *      diagonal, left to right
+ *   6. the learner draws it: the halves shade in two colours -- "Now, the
+ *      quadrilateral is divided into two triangles. Let's look at each
+ *      triangle." -- and the shape slides left
+ *   7. one triangle at a time, in conversation (review, 2026-09-25): the
+ *      half comes forward and the other steps back; "Let's say the base of
+ *      this triangle is b." lights the diagonal and names it; "And its
+ *      height is h₁." drops the height and names it; "So, its area will be
+ *      …" writes the line beside the shape, "½ ×" typed and then the b and
+ *      the h₁ floated off the drawing's own labels into their places.
+ *      Next; then the same for the other triangle; Next
+ *   8. the two together: the third line is the sum of the two, worked where
+ *      it stands to ½ × b × (h₁ + h₂); then a copy of it peels off onto the
+ *      row below and is put into words -- b becomes "Diagonal", the bracket
+ *      "Sum of perpendicular heights" -- and "So this is the area of the
+ *      quadrilateral!"; Next
+ *   9. the same shape again, cut top to bottom: the learner draws that
+ *      diagonal, the halves shade and their base and heights are named,
+ *      and then -- no triangle lines this time (review, 2026-09-25) -- the
+ *      rule in words is typed out as a reminder, and under it the learner
+ *      completes it in symbols from two drop-downs -- the diagonal from
+ *      b / h₁ / h₂, the sum of the heights from h₁ + h₂ / b + h₁ / b + h₂;
+ *      then the celebration and Next
  *
  * Section 4: a different quadrilateral, with measurements. Its diagonal and
  * heights draw themselves; the learner picks each triangle's base and height
@@ -202,13 +217,50 @@
   const CANCELLED = { cancelled: 'scene replaced' };
   let runToken = 0;
 
-  const wait = ms => new Promise(function (resolve, reject) {
+  /* ---------- the pace ----------
+   * One dial for how fast the screen changes (user, 2026-09-25: "a little
+   * too fast"). Every scene beat (wait), every Web Animation, every GSAP
+   * tween and every CSS transition or keyframe animation is stretched by it,
+   * together, so the choreography keeps its shape and simply breathes more.
+   * The voice-over is the one clock it does not touch: a line typed against
+   * its clip still lands with the narrator (see typePieces, waitRaw). */
+  const PACE = 1.25;
+
+  const waitFor = scale => ms => new Promise(function (resolve, reject) {
     const mine = runToken;
     setTimeout(function () {
       if (mine !== runToken) return reject(CANCELLED);
       resolve();
-    }, fastForward ? 0 : ms);
+    }, fastForward ? 0 : ms * scale);
   });
+  const wait    = waitFor(PACE);
+  const waitRaw = waitFor(1);         /* a wait measured against the voice */
+
+  /* the element's own animate(), and the stylesheet's, at the same pace */
+  if (PACE !== 1) {
+    const nativeAnimate = Element.prototype.animate;
+    Element.prototype.animate = function (keyframes, opts) {
+      if (typeof opts === 'number') opts = opts * PACE;
+      else if (opts && typeof opts === 'object') {
+        opts = Object.assign({}, opts);
+        ['duration', 'delay', 'endDelay'].forEach(k => {
+          if (typeof opts[k] === 'number') opts[k] *= PACE;
+        });
+      }
+      return nativeAnimate.call(this, keyframes, opts);
+    };
+    const paceCss = function (e) {
+      const el = e.target;
+      if (!el || !el.getAnimations) return;
+      el.getAnimations().forEach(function (a) {
+        if (a.playbackRate !== 1 || !(a.transitionProperty || a.animationName)) return;
+        a.playbackRate = 1 / PACE;
+      });
+    };
+    document.addEventListener('transitionrun', paceCss, true);
+    document.addEventListener('animationstart', paceCss, true);
+    if (window.gsap) gsap.globalTimeline.timeScale(1 / PACE);
+  }
 
   /* A retired scene unwinds through whatever await chain it was in, and some
      of those chains are deliberately awaited by nobody -- a feedback line
@@ -288,6 +340,18 @@
     duration: Motion.NORMAL,
     stagger: Motion.STAGGER_UI
   };
+
+  /* The same arrival, taken slowly, for the slots and chips of a word round:
+     each one lands on a beat of its own, so the learner sees the places to
+     fill come up one by one before the names that fill them. CARD_IN's
+     stagger is so short the whole group reads as one flash. */
+  const ROUND_IN = {
+    from: CARD_IN.from,
+    duration: 0.5,
+    stagger: 0.32
+  };
+  /* the breath between the last slot settling and the first chip rising */
+  const SLOTS_TO_CHIPS = 550;
 
   /* A group arriving in reading order: the state class goes on at once (it is
      what makes them visible and touchable), and motion.js walks them in.
@@ -485,18 +549,189 @@
   /* show the words from `due`, each when its first character would have
      been typed; `alive` may say the line has been taken over. Resolves to
      the time the line is complete. */
-  async function revealWords(words, due, perChar, alive) {
+  async function revealWords(words, due, perChar, alive, voiced) {
+    /* at the game's pace -- unless the pace is the narrator's (`voiced`) */
+    if (!voiced) perChar *= PACE;
     let from = 0;
     for (const w of words) {
       if (alive && !alive()) return due;
       const left = due + from * perChar - performance.now();
-      if (left > 0) await wait(left);
+      if (left > 0) await waitRaw(left);
       w.el.classList.add('in');
       from = w.cut;
     }
     return due + from * perChar;
   }
   const wordsSettle = () => wait(REDUCED ? 0 : WORD_IN_MS);
+
+  /* ---------- a sentence at a time ----------
+   * A line is never shown whole: it is cut after every "," "!" "." (and
+   * "?") that has more words after it, and the pieces are shown one after
+   * another in the same box, each replacing the last (user, 2026-09-25).
+   * The clip is still the whole line, said once: a piece gives way to the
+   * next only when the narrator has reached the end of it.
+   * "sq. cm" and the like are abbreviations, not the end of anything. */
+  /* the boxes Swiftee speaks from, and the bird on its way out of one --
+     filled in by speaker() further down (see "the line said, the speaker
+     goes"), declared up here so every box can register as it is built */
+  const SPEAKERS = new Map();
+  let dismissing = null;
+  let headKeepUntil = 0;   /* the heading's row stays open until then */
+
+  const CHUNK_ABBR = /(?:^|[\s(])(?:sq|e\.g|i\.e|etc|vs|approx)\.$/i;
+  const CHUNK_READ_MS = 700;   /* the beat on a piece when there is no voice */
+  function chunkCuts(text) {
+    const cuts = [];
+    const re = /[,!.?]+['’"”)]*\s+(?=\S)/g;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const mark = text.slice(0, m.index + 1);
+      if (m[0][0] === '.' && CHUNK_ABBR.test(mark)) continue;
+      cuts.push(m.index + m[0].length);
+    }
+    return cuts;
+  }
+  /* the line's segments, regrouped into its pieces: each piece is a list of
+     segments (a highlight cut in two keeps its hue on both sides), and
+     carries how many characters of the whole line it stands for */
+  function segChunks(segs) {
+    const whole = segs.map(sg => sg.t).join('');
+    const cuts = chunkCuts(whole).concat(whole.length);
+    const chunks = [];
+    let piece = [], at = 0, c = 0;
+    segs.forEach(seg => {
+      let from = 0;
+      while (c < cuts.length && cuts[c] <= at + seg.t.length) {
+        const to = cuts[c] - at;
+        if (to > from) piece.push({ t: seg.t.slice(from, to), w: seg.w });
+        from = to;
+        if (cuts[c] < whole.length) { chunks.push(piece); piece = []; }
+        c++;
+        if (to >= seg.t.length) break;
+      }
+      if (from < seg.t.length) piece.push({ t: seg.t.slice(from), w: seg.w });
+      at += seg.t.length;
+    });
+    if (piece.length) chunks.push(piece);
+    return chunks
+      .map(ch => {
+        const len = ch.reduce((n, sg) => n + sg.t.length, 0);
+        /* the spaces after a mark belong to the gap between two pieces,
+           not to the end of the one on screen */
+        const out = ch.map(sg => ({ t: sg.t, w: sg.w }));
+        if (out.length) {
+          out[0].t = out[0].t.replace(/^\s+/, '');
+          out[out.length - 1].t = out[out.length - 1].t.replace(/\s+$/, '');
+        }
+        return { segs: out.filter(sg => sg.t), len: len };
+      })
+      .filter(ch => ch.segs.length);
+  }
+  const sentenceChunks = text => segChunks([{ t: text }]).map(ch => ch.segs[0].t);
+  /* the longest piece: what a box that holds one line at a time is sized to */
+  const longestChunk = text => sentenceChunks(String(text))
+    .reduce((a, b) => (b.length > a.length ? b : a), '');
+
+  /* Wait for the narrator to reach `frac` of the way through the line. With
+     nothing playing, the piece on screen is simply given time to be read. */
+  function voiceAt(said, frac, readMs) {
+    const a = said && said.audio;
+    if (!said || !said.playing || !a) return wait(readMs == null ? CHUNK_READ_MS : readMs);
+    const at = said.length * frac - 0.08;
+    if (a.ended || a.paused || a.currentTime >= at) return Promise.resolve();
+    return waitOrSkip(function (done) {
+      let over = false;
+      const end = function () {
+        if (over) return;
+        over = true;
+        clearInterval(iv);
+        clearTimeout(cap);
+        a.removeEventListener('ended', end);
+        a.removeEventListener('pause', end);
+        done();
+      };
+      const iv = setInterval(function () {
+        if (over || fastForward || a.ended || a.paused || a.currentTime >= at) end();
+      }, 40);
+      const cap = setTimeout(end, 15000);   /* never hang on a stalled clip */
+      a.addEventListener('ended', end);
+      a.addEventListener('pause', end);
+    });
+  }
+
+  /* Type a line into a box a piece at a time. `said` is what voSay() gave
+     back for the whole line; each piece is paced so its last word lands a
+     little before the narrator finishes saying it, and is then held until
+     they have. `pause` and `onWord` are the formula typewriter's: a beat and
+     a callback each time a highlighted word completes. `alive` may say the
+     box has been taken over by a newer line. Resolves false if it was. */
+  async function typePieces(txt, segs, said, perChar, pause, onWord, alive) {
+    const chunks = segChunks(segs);
+    const total = Math.max(1, chunks.reduce((n, ch) => n + ch.len, 0));
+    const a = said.playing && said.length > 0.5 ? said.audio : null;
+    let done = 0;
+    for (let k = 0; k < chunks.length; k++) {
+      const ch = chunks[k];
+      if (k > 0) {
+        await voiceAt(said, done / total);
+        if (alive && !alive()) return false;
+      }
+      const chars = Math.max(1, ch.segs.reduce((n, sg) => n + sg.t.length, 0));
+      const keys = ch.segs.filter(sg => sg.w).length;
+      /* silent, the line keeps the game's pace (PACE); voiced, the
+         narrator's position is the clock, not one of our own, so a piece
+         started late still finishes with the voice */
+      let pace = perChar * PACE, hold = pause * PACE;
+      if (a && !a.paused && !a.ended) {
+        const target = said.length * (done + ch.len * 0.82) / total;
+        hold = pause;
+        pace = Math.max(6, ((target - a.currentTime) * 1000 - pause * keys) / chars);
+      }
+      const parts = lineSpans(txt, ch.segs);
+      let due = performance.now();
+      for (const part of parts) {
+        due = await revealWords(part.words, due, pace, alive, true);
+        if (alive && !alive()) return false;
+        if (part.seg.w) {
+          const left = due - performance.now();
+          if (left > 0) await waitRaw(left);
+          part.els.forEach(el => el.classList.add('lit'));
+          if (onWord) onWord(part.seg.w);
+          due += hold;
+        }
+      }
+      const left = due - performance.now();
+      if (left > 0) await waitRaw(left);
+      done += ch.len;
+    }
+    await wordsSettle();
+    return !alive || alive();
+  }
+
+  /* The same for a box whose words are laid in all at once rather than
+     typed -- a verdict, a nudge: each piece appears whole, and gives way to
+     the next as the voice reaches it. The voice is voAlone's, so it may
+     start a moment after the first piece does; `started` resolves with its
+     state once it has. */
+  const piecesGen = new WeakMap();
+  async function showPieces(el, text, started) {
+    const g = (piecesGen.get(el) || 0) + 1;
+    piecesGen.set(el, g);
+    const live = () => piecesGen.get(el) === g;
+    const chunks = segChunks([{ t: text }]);
+    const total = Math.max(1, chunks.reduce((n, ch) => n + ch.len, 0));
+    let said = null, done = 0;
+    for (let k = 0; k < chunks.length; k++) {
+      if (k > 0) {
+        if (!said) said = await started;
+        if (!live()) return;
+        await voiceAt(said, done / total, Math.max(CHUNK_READ_MS, chunks[k - 1].len * 55));
+        if (!live()) return;
+      }
+      lineSpans(el, chunks[k].segs)[0].words.forEach(w => w.el.classList.add('in'));
+      done += chunks[k].len;
+    }
+  }
 
   /* ---------- a line that solves itself ----------
    * A numerical working is one line that simplifies in place: "½ × 10 × 6"
@@ -621,6 +856,7 @@
 
   /* ---------- pieces ---------- */
   const board       = document.getElementById('board');
+  const bay         = document.getElementById('bay');
   const prompt      = document.getElementById('prompt');
   const promptGhost = document.getElementById('promptGhost');
   const promptType  = document.getElementById('promptType');
@@ -1003,6 +1239,8 @@
          again (user, 2026-09-18). Held, the bay is its final size from the
          first frame and nothing in the scene ever moves. */
       if (board.classList.contains('head-held')) return room.firstElementChild.offsetHeight;
+      /* a line cleared between two lines of one explanation: see speakerDone */
+      if (performance.now() < headKeepUntil) return room.firstElementChild.offsetHeight;
       const txt = room.querySelector('.txt');
       const hop = document.getElementById('hopper');   /* declared further down: looked up, not closed over */
       const fly = document.getElementById('flyer');
@@ -1200,9 +1438,9 @@
       'P03-02-lets-observe-their-base-and-height',
     'what shape is this?':
       'P04-01-what-shape-is-this',
-    'incorrect. a triangle has 3 sides.':
+    'not quite! a triangle has 3 sides.':
       'P04-02-incorrect-a-triangle-has-3-sides',
-    'incorrect. a pentagon has 5 sides.':
+    'not quite! a pentagon has 5 sides.':
       'P04-03-incorrect-a-pentagon-has-5-sides',
     'correct. a quadrilateral has 4 sides.':
       'P04-04-correct-a-quadrilateral-has-4-sides',
@@ -1210,11 +1448,11 @@
       'P04-05-this-is-a-general-quadrilateral',
     'let\'s try and find its area!':
       'P04-06-lets-try-and-find-its-area',
-    'join the corners to divide the quadrilateral into two parts.':
+    'join the corners to draw a diagonal.':
       'P04-07-join-the-corners-to-divide-the-quadrilateral-into',
     'try again! join the left and right corners.':
       'P04-08-try-again-join-the-left-and-right-corners',
-    'the quadrilateral is divided into two triangles.':
+    'now, the quadrilateral is divided into two triangles. let\'s look at each triangle.':
       'P04-09-the-quadrilateral-is-divided-into-two-triangles',
     'let\'s put in each triangle\'s area.':
       'P04-10-lets-put-in-each-triangles-area',
@@ -1462,13 +1700,6 @@
     return { audio: a, playing: true, length: length };
   }
 
-  /* How long the line should take to type: across ~82% of the clip, so the
-     last word lands a moment before the narrator finishes the sentence, and
-     at the box's own pace when there is no clip to land against. */
-  function voPace(state, fallbackMs) {
-    return (state.playing && state.length > 0.5) ? state.length * 1000 * 0.82 : fallbackMs;
-  }
-
   /* Hold the beat until the clip has finished, so the next line never talks
      over this one. A skip or a teardown releases it like any other wait. */
   function voHold(state) {
@@ -1499,15 +1730,28 @@
      let it run on under whatever happens next. */
   let voQueue = Promise.resolve();
   let voRound = 0;                     /* bumped when the queue is emptied */
-  function voAlone(text) {
+  function voAlone(text, onStart) {
     const mine = voRound;
     voQueue = voQueue.catch(() => {}).then(function () {
       /* the scene went down, or was skipped, while this line waited its
          turn: it belongs to nobody now and is simply dropped */
-      if (mine !== voRound) return;
-      return voSay(text).then(voHold, () => {});
+      if (mine !== voRound) { if (onStart) onStart(VO_SILENT); return; }
+      return voSay(text).then(function (st) {
+        if (onStart) onStart(st);        /* the pieces on screen follow it */
+        return voHold(st);
+      }, function () { if (onStart) onStart(VO_SILENT); });
     });
     return voQueue;
+  }
+  /* A line laid in whole and spoken over, a piece at a time: the words of
+     each piece appear as the voice reaches them. Resolves once the line has
+     been said and its last piece is on screen. */
+  function sayPieces(el, text) {
+    let begin;
+    const started = new Promise(res => { begin = res; });
+    const said = voAlone(text, begin);
+    const shown = showPieces(el, text, started);
+    return wordsSettle().then(() => Promise.all([said, shown]));
   }
 
   /* The clips the mission opens with: the greeting, the shapes and the two
@@ -2313,17 +2557,14 @@
    * Paced against a wall clock rather than a chain of timeouts, so a slow
    * frame costs nothing: the line always lands on time. */
   async function typeInto(txt, blink, text, totalMs) {
+    await speakerUp(txt);
     /* the clip starts as the first word lands, and the line is typed across
-       it: see voSay/voPace/voHold */
+       it a piece at a time: see voSay/typePieces/voHold */
     const said = await voSay(text);
     blink.hidden = true;
-    const words = wordSpans(txt, text);
-    const perChar = voPace(said, totalMs) / Math.max(1, text.length);
-    const end = await revealWords(words, performance.now(), perChar);
-    const left = end - performance.now();
-    if (left > 0) await wait(left);
-    await wordsSettle();
+    await typePieces(txt, [{ t: text }], said, totalMs / Math.max(1, text.length), 0, null, null);
     await voHold(said);
+    speakerDone(txt);
   }
   const typewrite = (text, totalMs) => { promptLine(text); return typeInto(promptTxt, caret, text, totalMs); };
 
@@ -2336,7 +2577,7 @@
   }
   /* a ghost is built the way its live line is -- a span per word -- so the
      two lay out identically; a plain run can differ by a hair and wrap */
-  const promptLine = text => wordSpans(promptGhost, text);
+  const promptLine = text => wordSpans(promptGhost, longestChunk(text));
 
   /* ---------- feedback in the heading ----------
    * Swiftee's reaction to a drop is not written anywhere on the board: the
@@ -2359,6 +2600,26 @@
     /* ...and spoken. Not waited for: the next chip may be on its way
        already, and a verdict that held the board up would be in the way. */
     voAlone(text).catch(() => {});
+  }
+
+  /* ---------- a hint waits for the learner to stall ----------
+   * A hand or ghost that shows what to do is for a learner who is stuck, not
+   * one who is already reaching for the answer: every nudge waits until
+   * NUDGE_IDLE has passed with no input at all, and waits again before it
+   * repeats (review, 2026-09-25: after 6 seconds of inactivity, not from the
+   * beginning). Any pointer or key counts as activity. */
+  const NUDGE_IDLE = 6000;
+  let lastInput = 0;
+  ['pointerdown', 'pointermove', 'keydown', 'wheel'].forEach(t =>
+    window.addEventListener(t, () => { lastInput = performance.now(); }, { passive: true, capture: true }));
+  async function idleFor(signal, ms) {
+    ms = ms || NUDGE_IDLE;
+    const start = performance.now();
+    while (!signal.done && !fastForward) {
+      const idle = performance.now() - Math.max(lastInput, start);
+      if (idle >= ms) return;
+      await wait(Math.min(250, ms - idle));
+    }
   }
 
   /* ---------- the ghost chip that demonstrates the drag ---------- */
@@ -2408,12 +2669,10 @@
     }
 
     return (async () => {
-      /* let a beat of the voice-over land before the hand moves */
-      await wait(450);
       while (!signal.done) {
+        await idleFor(signal);
+        if (signal.done || fastForward) break;
         await pass();
-        if (signal.done) break;
-        await wait(420);
       }
     })();
   }
@@ -2466,8 +2725,9 @@
        clock of their own -- a skip raced past the wait below and then stood
        and watched the chips trickle in afterwards, at full speed, over a
        scene that had already moved on. */
-    await revealGroup(roundSlots, CARD_IN);
-    await revealGroup(roundChips, CARD_IN);
+    await revealGroup(roundSlots, ROUND_IN);
+    await wait(SLOTS_TO_CHIPS);
+    await revealGroup(roundChips, ROUND_IN);
 
     await briefing(ROUNDS[n]);
 
@@ -2518,8 +2778,49 @@
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
-    if (boardMascot.classList.contains('in')) mascotJumpOut();
+    /* the bird goes first, then what is left on the board comes forward into
+       the heading it has emptied -- not while it is still in the air there */
+    if (boardMascot.classList.contains('in')) {
+      const gen = runToken;
+      mascotJumpOut().catch(() => {}).then(() => { if (gen === runToken) zoomBay(); });
+    } else {
+      zoomBay();
+    }
   }
+
+  /* ---------- a scene comes forward ----------
+   * Once Swiftee has said all it has to say and left the heading, the heading
+   * row is held open (head-held) but stands empty above the scene. Folding it
+   * would slide the whole scene up the board; instead the scene zooms into
+   * it. It scales about its bottom centre, so it grows up into the empty
+   * heading and out into the board's side padding, and whatever is under it
+   * -- the warm-up's tray -- is never covered. A transform, so nothing
+   * reflows, and a drag still lands: every hit test reads
+   * getBoundingClientRect. Used by the warm-up's bay and the triangle lesson. */
+  const ZOOM_MAX = 1.25;
+  const ZOOM_RIM = 20;   /* px kept clear of the board's edge either side */
+  function zoomFor(el) {
+    const row = document.querySelector('.prompt-row');
+    const h = el.offsetHeight, w = el.offsetWidth;
+    if (!h || !w) return 1;
+    const up = (h + row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0)) / h;
+    const across = (board.clientWidth - 2 * ZOOM_RIM) / w;
+    return Math.max(1, Math.min(ZOOM_MAX, up, across));
+  }
+  function zoomIn(el) {
+    el.style.setProperty('--scene-zoom', zoomFor(el).toFixed(3));
+    el.classList.add('zoomed');
+  }
+  function zoomOut(el) {
+    el.classList.remove('zoomed');
+    el.style.removeProperty('--scene-zoom');
+  }
+  const zoomBay   = () => zoomIn(bay);
+  const unzoomBay = () => zoomOut(bay);
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.zoomed[style*="--scene-zoom"]').forEach(el =>
+      el.style.setProperty('--scene-zoom', zoomFor(el).toFixed(3)));
+  });
 
   /* second wrong drop: stop asking, and fly each formula home */
   async function autoSolve() {
@@ -2990,6 +3291,7 @@
   /* one jump straight up into the middle of the screen: Swiftee springs up
      from below the ground line, hangs for a beat, and lands where it stands */
   function hopIn() {
+    delete introMascot.dataset.away;
     if (REDUCED) {
       introMascot.style.transform = 'none';
       return wait(120);
@@ -3030,7 +3332,8 @@
     bubble.style.width = '';
     bubble.style.height = '';
     bubble.style.left = '';
-    wordSpans(bubbleGhost, text);
+    bubble.style.removeProperty('--bub-tail-shift');
+    wordSpans(bubbleGhost, longestChunk(text));
 
     /* before its pop-in the box sits scaled down to a dot, so it is measured
        with the scale lifted for the instant of the measurement */
@@ -3047,14 +3350,26 @@
     let r1 = measure();
 
     /* A long line on a narrow screen: slide the box left rather than let it
-       run off the edge -- keeping room for the emphasis strokes outside it.
-       The box is only as wide as the room to the right of its left edge, so
-       sliding it can let it grow; a second pass settles it. */
+       run off the edge. The box is only as wide as the room to the right of
+       its left edge, so it is measured with all the room there is before the
+       place is chosen, or it would be sized by the screen's edge and sit on it. */
     const vw = window.innerWidth;
-    const edge = 12 + parseFloat(getComputedStyle(bubble).fontSize) * 1.1;
-    for (let pass = 0; pass < 2 && r1.right > vw - edge; pass++) {
-      bubble.style.left = Math.max(edge, vw - edge - r1.width) + 'px';
+    const edge = 12;
+    const home = r1.left;
+    if (r1.right > vw - edge) {
+      bubble.style.left = edge + 'px';
+      const w = measure().width;
+      bubble.style.left = Math.max(edge, vw - edge - w) + 'px';
       r1 = measure();
+    }
+    /* Slid: the box has left the head behind, so the tail walks back along
+       the bottom edge by the same distance to keep its tip there -- as far
+       as the edge allows, stopping short of the far corner's curve. */
+    if (bubble.style.left) {
+      const fs = parseFloat(getComputedStyle(bubble).fontSize);
+      const room = r1.width - 8 - fs * (.78 + .76 + .62);
+      const shift = Math.min(home - r1.left, room);
+      if (shift > 0) bubble.style.setProperty('--bub-tail-shift', shift + 'px');
     }
 
     /* The second place, and the last: the box grows or shrinks to fit the
@@ -3091,6 +3406,10 @@
   /* Swiftee leaves centre stage: a crouch, a spring, and a drop straight out
      of the bottom of the frame. */
   async function introExit() {
+    /* already off the bottom of the screen -- it left after its last line
+       (see boardAside) -- and a second exit would start from standing */
+    if (introMascot.dataset.away) return;
+    introMascot.dataset.away = '1';
     const r = introMascot.getBoundingClientRect();
     if (!r.width || REDUCED) return;
     const drop = window.innerHeight - r.top + 40;      /* clear of the bottom edge */
@@ -3130,6 +3449,7 @@
      arc, where both are fully clear of the board, and since one player paints
      both, the cut is invisible. */
   async function mascotJumpIn(target) {
+    await birdFree();
     const spot = target || boardMascot;         /* the heading's, unless told otherwise */
     const m = spot.getBoundingClientRect();
     const b = board.getBoundingClientRect();
@@ -3186,6 +3506,7 @@
      behind the board's top edge. Same two sprites, same swap point, same
      shared clock as the jump in, so the cut is just as invisible. */
   async function mascotJumpOut(source) {
+    await birdFree();
     const spot = source || boardMascot;
     if (!spot.classList.contains('in')) return;      /* already gone */
     const m = spot.getBoundingClientRect();
@@ -3231,6 +3552,7 @@
      in-board sprite does the whole thing: only the page clips, and it clips
      at the bottom edge, which is exactly where the bird is going. */
   async function mascotDropOut(spot) {
+    await birdFree();
     if (!spot.classList.contains('in')) return;      /* already gone */
     const r = spot.getBoundingClientRect();
     if (!r.width || REDUCED) { spot.classList.remove('in'); return; }
@@ -3389,23 +3711,28 @@
     });
   }
 
-  /* Base, then height, on every triangle, each starting a beat after the one
-     to its left; the obtuse one first carries its base on under the apex. */
-  function drawDims() {
-    return Promise.all(tris.map((tri, i) => (async () => {
-      await wait(i * 340);
-      await growLine(tri.querySelector('.dim-base'), 540);
-      await wait(120);
-      await growLine(tri.querySelector('.dim-ext'), 380);
-      await growLine(tri.querySelector('.dim-height'), 540);
+  /* Base, then height, one triangle at a time, left to right: each is
+     finished -- right-angle mark and all -- and given a breath before the
+     next begins, so the eye is only ever asked to follow one. They used to
+     overlap, a third of a second apart, and all three read as one flash.
+     The obtuse one carries its base on under the apex first. */
+  const DIMS_GAP = 450;
+  async function drawDims() {
+    for (let i = 0; i < tris.length; i++) {
+      const tri = tris[i];
+      if (i) await wait(DIMS_GAP);
+      await growLine(tri.querySelector('.dim-base'), 620);
+      await wait(160);
+      await growLine(tri.querySelector('.dim-ext'), 420);
+      await growLine(tri.querySelector('.dim-height'), 620);
       tri.classList.add('marked');
-    })()));
+    }
   }
 
   /* the formula's word has landed: light the matching line on each triangle,
-     left to right */
+     left to right, far enough apart that each one lights on its own */
   function lightDims(kind) {
-    tris.forEach((tri, i) => setTimeout(() => tri.classList.add('lit-' + kind), i * 150));
+    tris.forEach((tri, i) => setTimeout(() => tri.classList.add('lit-' + kind), i * 380));
   }
 
   /* The formula pops up, then types itself out on a wall clock. When a key
@@ -3441,7 +3768,14 @@
        before the stage is noted, so a replay of this scene does not come back
        to a board still holding it. */
     board.classList.remove('head-held');
+    zoomOut(lesson);
     sceneStart(sectionTwo);
+    /* ...and taken up again at once for the lesson's own length: Swiftee
+       comes and goes from the heading three times here, and letting the row
+       fold and open around each visit pumped the triangles up and down the
+       board. Held, the lesson keeps one size from the first frame to the
+       zoom at the end. */
+    board.classList.add('head-held');
 
     /* 1. Swiftee ducks back behind the board, and the warm-up clears away
           while it is mid-air */
@@ -3493,9 +3827,22 @@
     /* 6. the formula, word by word, lighting the lines it names */
     await showFormula();
     swiftee.play('happy', 1);
+    await wait(1100);
 
-    /* 7. two seconds to take it in, then on */
-    await wait(2000);
+    /* 7. everything has been said: Swiftee and its line leave the heading,
+          and the triangles and formula come forward into the room they
+          leave. The row is held open for it, so the zoom grows into empty
+          space rather than the whole lesson sliding up as the row folds. */
+    board.classList.add('head-held');
+    feedbackGen++;
+    promptTxt.textContent = '';
+    caret.hidden = true;
+    await mascotJumpOut();
+    await wait(220);
+    zoomIn(lesson);
+
+    /* 8. the zoom, and two seconds to take it in, then on */
+    await wait(900 + 2000);
     await showNext();
     await sectionThree();
   }
@@ -3520,7 +3867,7 @@
   const demoHand   = document.getElementById('demoHand');
   const quizBlock  = document.getElementById('quizBlock');
   const quizMascot = document.getElementById('quizMascot');
-  const dd         = document.getElementById('dd');
+  const quizChips  = Array.from(document.querySelectorAll('#quizTray .chip'));
   const quizBubble = document.getElementById('quizNote');
   const noteGhost  = document.getElementById('noteGhost');
   const noteType   = document.getElementById('noteType');
@@ -3597,20 +3944,31 @@
     /* every remark carries the reason -- how many sides that shape has --
        so a choice is answered with the thing being taught, not with praise */
     notes: {
-      triangle:      'Incorrect. A triangle has 3 sides.',
-      pentagon:      'Incorrect. A pentagon has 5 sides.',
+      triangle:      'Not quite! A triangle has 3 sides.',
+      pentagon:      'Not quite! A pentagon has 5 sides.',
       quadrilateral: 'Correct. A quadrilateral has 4 sides.'
     },
     general: 'This is a general quadrilateral.',
     area:    'Let’s try and find its area!',
-    join:    'Join the corners to divide the quadrilateral into two parts.',
-    divided: 'The quadrilateral is divided into two triangles.',
+    join:    'Join the corners to draw a diagonal.',
+    divided: 'Now, the quadrilateral is divided into two triangles. Let’s look at each triangle.',
+    /* one triangle at a time: its base, its height, and then its area */
+    base1:   'Let’s say the base of this triangle is b.',
+    base2:   'This triangle has the same base b.',
+    height:  h => 'And its height is ' + h + '.',
+    /* not `area`: that key is the aside beside the shape, "Let's try and
+       find its area!", and a second `area` here silently replaced it */
+    areaIs:  'So, its area will be …',
+    /* the rule put into words, a part at a time */
+    words1:  'The base b is the diagonal.',
+    words2:  'And h₁ + h₂ is the sum of the perpendicular heights.',
     /* the third line of the working, taken the rest of the way */
     swap:    'Let’s put in each triangle’s area.',
     share:   'Both triangles share the same base b.',
     rule:    'So this is the area of the quadrilateral!',
     another: 'Let’s try a different way!',
     twoNew:  'Two new triangles! Let’s find their areas.',
+    complete: 'Complete the formula for the area of the quadrilateral.',
     joinWrong: (a, b) => 'Try again! Join the ' + NAME[a] + ' and ' + NAME[b] + ' corners.'
   };
   const FOUR = {
@@ -3626,8 +3984,10 @@
      names a part of the drawing is its own span, so it can light up -- and
      light the part it names -- the moment it has finished typing. */
   const LINES_A = [
-    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' = ½ × ' }, { t: 'b', w: 'base' }, { t: ' × ' }, { t: 'h₁', w: 'h-purple' }],
-    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 'green' },  { t: ' = ½ × ' }, { t: 'b', w: 'base' }, { t: ' × ' }, { t: 'h₂', w: 'h-green' }],
+    /* `fly`: the part is not typed but floated in, a copy of the drawing's
+       own label for it (floatLine) */
+    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' = ½ × ' }, { t: 'b', w: 'base', fly: 'base' }, { t: ' × ' }, { t: 'h₁', w: 'h-purple', fly: 'h' }],
+    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 'green' },  { t: ' = ½ × ' }, { t: 'b', w: 'base', fly: 'base' }, { t: ' × ' }, { t: 'h₂', w: 'h-green', fly: 'h' }],
     /* the no-break spaces keep "= Area of" and "+ Area of" whole, so the long
        line wraps before an operator rather than leaving one dangling */
     [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' + Area of ' }, { t: 'Triangle 2', w: 'green' }]
@@ -3643,27 +4003,29 @@
     [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: 'b', w: 'base' }, { t: ' × (' }, { t: 'h₁', w: 'h-purple' },
      { t: ' + ' }, { t: 'h₂', w: 'h-green' }, { t: ')' }]
   ];
-  const SUM_A2 = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = Area of ' }, { t: 'Orange Triangle', w: 'green' }, { t: ' + Area of ' }, { t: 'Purple Triangle', w: 'purple' }];
-  /* The second cut's third line is taken all the way too, on the row it was
-     written on, exactly as QUAD_STEPS takes the first cut's: each half's
-     area put in, then the base both halves share taken outside the bracket.
-     The learner may have filled the boxes above in either order; the working
-     writes ½ × b × h either way, so the shared base stands in the same
-     place in both halves and can be seen to come out. */
-  const QUAD_STEPS2 = [
-    SUM_A2,
-    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: 'b', w: 'base' }, { t: ' × ' }, { t: 'h₁', w: 'h-green' },
-     { t: ' + ½ × ' }, { t: 'b', w: 'base' }, { t: ' × ' }, { t: 'h₂', w: 'h-purple' }],
-    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: 'b', w: 'base' }, { t: ' × (' }, { t: 'h₁', w: 'h-green' },
-     { t: ' + ' }, { t: 'h₂', w: 'h-purple' }, { t: ')' }]
+  /* The rule again in words, on a row of its own under the working (review,
+     2026-09-25): a copy of the last step above, whose b becomes "Diagonal"
+     and whose bracket becomes "Sum of perpendicular heights", one and then
+     the other. The bracket's sum keeps the height's blue. */
+  const WORDS_A = [
+    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: 'Diagonal', w: 'base' }, { t: ' × (' }, { t: 'h₁', w: 'h-purple' },
+     { t: ' + ' }, { t: 'h₂', w: 'h-green' }, { t: ')' }],
+    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: 'Diagonal', w: 'base' }, { t: ' × (' }, { t: 'Sum of perpendicular heights', w: 'height' }, { t: ')' }]
   ];
   const SUM_B  = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ' }, { t: '30 sq. cm', w: 'green' }, { t: ' + ' }, { t: '25 sq. cm', w: 'purple' }, { t: ' = 55 sq. cm' }];
 
-  /* what the drop-downs in a formula offer: the parts of the drawing by name
-     in section 3, and by measurement in section 4 */
-  /* (the parts carry the short names the shape has shown by then: the
-     orange triangle is the first of that cut, so its height is h₁) */
+  /* what the drop-downs in a formula offer: the parts of the drawing by
+     name in section 3, and the measurements in section 4 */
+  /* the second cut's rule (review, 2026-09-25): the diagonal from the
+     drawing's three names, and the sum of the heights from three sums --
+     the other two each take the base for a height. (h₁ is the orange
+     triangle's, the first of that cut.) */
   const NOTATION = [{ v: 'base', t: 'b' }, { v: 'h-green', t: 'h₁' }, { v: 'h-purple', t: 'h₂' }];
+  const SUMS = [{ v: 'heights', t: 'h₁ + h₂' }, { v: 'b-h1', t: 'b + h₁' }, { v: 'b-h2', t: 'b + h₂' }];
+  /* the rule in words, typed above the boxes as the reminder they are
+     filled from */
+  const RULE_IN_WORDS = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × (' }, { t: 'Diagonal', w: 'base' },
+    { t: ') × (' }, { t: 'Sum of perpendicular heights', w: 'height' }, { t: ')' }];
   const MEASURES = [{ v: '10', t: '10 cm' }, { v: '6', t: '6 cm' }, { v: '5', t: '5 cm' }];
 
   const AREA_MS    = 64;       /* per character */
@@ -3894,17 +4256,15 @@
     let gen = 0;
     return async function (text) {
       const g = ++gen;
+      await speakerUp(txt);
+      if (g !== gen) return;
       const said = await voSay(text);
       if (g !== gen) return;
       blink.hidden = true;
-      const words = wordSpans(txt, text);
-      const pace = voPace(said, perChar * Math.max(1, text.length)) / Math.max(1, text.length);
-      const end = await revealWords(words, performance.now(), pace, () => g === gen);
-      if (g !== gen) return;
-      const left = end - performance.now();
-      if (left > 0) await wait(left);
-      await wordsSettle();
+      const whole = await typePieces(txt, [{ t: text }], said, perChar, 0, null, () => g === gen);
+      if (!whole || g !== gen) return;
       await voHold(said);
+      if (g === gen) speakerDone(txt);
     };
   }
   const aside = typer(sayTxt, sayCaret, TYPE_MS);     /* Swiftee's line beside itself */
@@ -3918,17 +4278,24 @@
    * are, so the learner reads one sentence rather than watching it arrive --
    * and they are laid in BEFORE the box opens, so a second try never shows
    * the last try's line for the frame before its own is written. */
-  function quizSay(text, tone) {
+  async function quizSay(text, tone) {
+    await speakerUp(noteTxt);
+    /* the box fits the line it is saying: a ghost holding the longest line
+       kept a one-line question in a two-line box, mostly empty (review,
+       2026-09-25) */
+    noteGhost.textContent = text;
     quizBubble.classList.remove('ok', 'bad');
     if (tone) quizBubble.classList.add(tone);
     noteCaret.hidden = true;
-    wordSpans(noteTxt, text).forEach(w => w.el.classList.add('in'));
+    /* the words of each piece are all there at once, so the voice is not
+       paced against them -- it is simply said over them, a piece at a time,
+       and the beat lasts as long as it takes to say */
+    const said = sayPieces(noteTxt, text);
     quizBubble.classList.add('show');
-    /* the words are all there at once, so the voice is not paced against
-       them -- it is simply said over them, and the beat lasts as long as it
-       takes to say */
-    const said = voAlone(text);
-    return wordsSettle().then(() => said);
+    await said;
+    /* no speakerDone: the question has to stay on screen, with the bird
+       beside it, while the learner picks a name. The scene takes both down
+       itself once the quiz is over. */
   }
 
   /* ---------- the bird arrives with its line ----------
@@ -3956,7 +4323,8 @@
        the air between two spots; either way it does not jump again for this
        line. A bird on its way BACK behind the board is the exception: that
        trip was the hand-over to the learner, and it has been answered. */
-    if (!mascotLeaving &&
+    cancelDismiss();
+    if (!mascotLeaving && !dismissing &&
         (board.querySelector('.mascot.in') ||
          hopper.classList.contains('on') ||
          flyer.classList.contains('on'))) return Promise.resolve();
@@ -3968,6 +4336,7 @@
            from a sprite that is halfway through leaving -- and the line
            would type with nobody beside it. */
         if (mascotLeaving) await mascotLeaving;
+        if (dismissing) await dismissing;
         if (board.querySelector('.mascot.in')) return;
         await mascotJumpIn();
         await wait(MASCOT_LEAD);
@@ -3997,19 +4366,111 @@
   let mascotLeaving = null;
   let leaveSeq = 0;
   function headingAside() {
-    /* the warm-up holds its row open whatever is standing in it, so there is
-       no room to win back there and nothing to take away */
-    if (board.classList.contains('head-held')) return;
-    if (!boardMascot.classList.contains('in')) return;   /* not ours to move */
+    /* the hand-over folds the row at once: nothing is coming back to it */
+    headKeepUntil = 0;
+    cancelDismiss(promptTxt);
+    headingDown();
+  }
+  /* The line goes, and the bird with it if it is standing by the heading.
+     The warm-up's row is held open whatever stands in it, so there the words
+     and the bird simply leave and nothing on the board moves. */
+  function headingDown() {
     feedbackGen++;                     /* a feedback line still typing stops */
     promptTxt.textContent = '';
     caret.hidden = true;
     promptGhost.textContent = '';
+    if (!boardMascot.classList.contains('in')) return;   /* not ours to move */
     const mine = ++leaveSeq;
     mascotLeaving = mascotJumpOut().catch(() => {}).then(() => {
       if (mine === leaveSeq) mascotLeaving = null;   /* the latest trip landed */
     });
   }
+
+  /* ---------- the line said, the speaker goes ----------
+   * Once Swiftee has said a line and its voice-over has finished, the line
+   * leaves the screen and the bird goes with it -- wherever it was said
+   * from: the heading, the quiz bubble, a box beside the shape (user,
+   * 2026-09-25). A short grace keeps the bird for a line that follows
+   * straight on from the last, so one explanation said in two lines does not
+   * send it away and back between them; a line said after the grace brings
+   * it back up (see speakerUp and mascotWithLine).
+   *
+   * Every typewriter reports here when its line is done, keyed by the box
+   * it typed into, and only a box registered with speaker() has a bird to
+   * send away. A scene that moves the bird itself -- a hop, a jump, a drop
+   * -- cancels whatever is pending: the scene knows where it wants it.
+   *
+   * A heading cleared mid-explanation keeps its row a little longer, so the
+   * board does not fold up and open again between two lines of the same
+   * explanation; the hand-over folds it at once (headingAside). */
+  const DISMISS_GRACE = 650;
+  const HEAD_KEEP_MS = 2600;
+  function speaker(txt, spot, clear) {
+    SPEAKERS.set(txt, { spot: spot, clear: clear || null, gone: false, timer: 0 });
+  }
+  /* one box's pending dismissal, or every one */
+  function cancelDismiss(txt) {
+    SPEAKERS.forEach(function (sp, key) {
+      if (txt && key !== txt) return;
+      if (sp.timer) { clearTimeout(sp.timer); sp.timer = 0; }
+    });
+  }
+  function speakerDone(txt) {
+    const sp = SPEAKERS.get(txt);
+    if (!sp) return;
+    if (sp.timer) clearTimeout(sp.timer);
+    const mine = runToken;
+    sp.timer = setTimeout(function () {
+      sp.timer = 0;
+      if (mine !== runToken) return;   /* the scene went down meanwhile */
+      dismissNow(txt, sp);
+    }, fastForward ? 0 : DISMISS_GRACE);
+  }
+  function dismissNow(txt, sp) {
+    if (sp.spot === boardMascot) {
+      if (!txt.childNodes.length && !boardMascot.classList.contains('in')) return;
+      headKeepUntil = performance.now() + HEAD_KEEP_MS;
+      setTimeout(askRooms, HEAD_KEEP_MS + 40);
+      headingDown();
+      return;
+    }
+    if (sp.clear) sp.clear();
+    txt.textContent = '';
+    if (!sp.spot.classList.contains('in')) return;
+    sp.gone = true;
+    const p = mascotJumpOut(sp.spot).catch(() => {}).then(() => {
+      if (dismissing === p) dismissing = null;
+    });
+    dismissing = p;
+  }
+  /* A line is about to be said in this box. Anything pending waits for the
+     line to be done instead; a bird sent away from here comes back up first
+     -- unless it is standing somewhere else on the board, where the scene
+     has put it. The heading's bird is mascotWithLine's to bring. */
+  async function speakerUp(txt) {
+    cancelDismiss();
+    const sp = SPEAKERS.get(txt);
+    if (!sp) return;
+    if (sp.spot === boardMascot) return mascotWithLine(null);
+    if (dismissing) await dismissing;
+    if (!sp.gone) return;
+    sp.gone = false;
+    if (sp.spot.classList.contains('in') || board.querySelector('.mascot.in') ||
+        hopper.classList.contains('on') || flyer.classList.contains('on')) return;
+    await mascotJumpIn(sp.spot);
+    await wait(MASCOT_LEAD);
+  }
+  /* A scene moving the bird itself: a line's pending send-off is dropped,
+     and a trip already under way lands before the next one starts, so two
+     jumps never share the hopper. */
+  async function birdFree() {
+    cancelDismiss();
+    if (dismissing) await dismissing;
+    if (mascotLeaving) await mascotLeaving;
+  }
+  speaker(promptTxt, boardMascot);
+  speaker(noteTxt, quizMascot, () => quizBubble.classList.remove('show', 'ok', 'bad'));
+  speaker(sayTxt, sideMascot);
 
   /* Between scenes the bird STAYS where it is: a rebuild that sent it behind
      the board every time reads as blinking, whatever the heading is doing.
@@ -4029,32 +4490,16 @@
   async function typeSegments(txt, blink, segs, perChar, pause, onWord) {
     /* the whole line, as it will read on screen, is what the clip is found
        by -- a line in pieces is still one sentence to the ear */
+    await speakerUp(txt);
     const whole = segs.map(sg => sg.t).join('');
     const said = await voSay(whole);
-    if (said.playing) {
-      /* the clip has to cover the pauses between the key words as well as
-         the words themselves, or the voice runs out before the line does */
-      const holds = pause * segs.filter(sg => sg.w).length;
-      perChar = Math.max(1, voPace(said, perChar * whole.length) - holds) / Math.max(1, whole.length);
-    }
     blink.hidden = true;
-    /* every word of every segment is in place before the first shows */
-    const parts = lineSpans(txt, segs);
-    let due = performance.now();
-    for (const part of parts) {
-      due = await revealWords(part.words, due, perChar);
-      if (part.seg.w) {
-        const left = due - performance.now();
-        if (left > 0) await wait(left);
-        part.els.forEach(el => el.classList.add('lit'));
-        if (onWord) onWord(part.seg.w);
-        due += pause;
-      }
-    }
-    const left = due - performance.now();
-    if (left > 0) await wait(left);
-    await wordsSettle();
+    /* a piece at a time, every word of the piece in place before the first
+       shows; the clip covers the pauses between the key words as well as
+       the words themselves (see typePieces) */
+    await typePieces(txt, segs, said, perChar, pause, onWord, null);
     await voHold(said);
+    speakerDone(txt);
   }
 
   /* an eased 0 -> 1 over ms, driven by the frame clock; a skip lands it at 1.
@@ -4095,6 +4540,8 @@
     let best = null, bd = HIT;
     Object.keys(CORNERS).forEach(k => {
       if (k === except) return;
+      const el = cornerEl(k);
+      if (el && el.classList.contains('spare')) return;   /* hidden: see onlyCorners */
       const c = CORNERS[k];
       const d = Math.hypot(c.x - p.x, c.y - p.y);
       if (d < bd) { bd = d; best = k; }
@@ -4115,7 +4562,9 @@
        headingAside). A hop from an empty spot would run the whole
        choreography on an invisible sprite and then pop the bird in at the
        far end, so it comes up from behind the board instead -- which is
-       where it actually is. */
+       where it actually is. The same if it has just been sent away after
+       its line (see speakerDone): the trip down is let finish first. */
+    await birdFree();
     if (!fromEl.classList.contains('in')) return mascotJumpIn(toEl);
     const a = fromEl.getBoundingClientRect();
     const b = toEl.getBoundingClientRect();
@@ -4150,11 +4599,19 @@
     const dx = b.left - at0.left;
     const dy = b.top - at0.top;
     const arc = Math.min(170, Math.max(70, Math.abs(dx) * .3 + Math.max(0, -dy) * .2));
+    /* The spots down beside a shape are a size larger than the heading's
+       (style.css), so the sprite grows or shrinks in the air to arrive at
+       the size of where it lands -- in the landing's squash, which is the
+       pose the landing below starts from. Scaled from its top-left corner,
+       so the translation still carries that corner onto the spot's. */
+    const sx = b.width * 1.06 / at0.width, sy = b.height * .92 / at0.height;
+    flyer.style.transformOrigin = '0 0';
     const N = 18;
     const kf = [];
     for (let i = 0; i <= N; i++) {
       const t = i / N;
-      kf.push({ transform: 'translate(' + (dx * t) + 'px, ' + (dy * t - arc * 4 * t * (1 - t)) + 'px)' });
+      kf.push({ transform: 'translate(' + (dx * t) + 'px, ' + (dy * t - arc * 4 * t * (1 - t)) + 'px)' +
+                ' scale(' + (1 + (sx - 1) * t) + ', ' + (1 + (sy - 1) * t) + ')' });
     }
     const fly = flyer.animate(kf, {
       duration: Math.min(900, 480 + Math.hypot(dx, dy) * .35), easing: 'linear', fill: 'forwards'
@@ -4173,6 +4630,7 @@
     toEl.classList.add('in');
     flyer.classList.remove('on');
     fly.cancel();
+    flyer.style.removeProperty('transform-origin');
     const land = toEl.animate(
       [{ transform: from }, { transform: 'none' }],
       { duration: 220, easing: 'ease-out', fill: 'forwards' }
@@ -4305,7 +4763,6 @@
       }
     };
   }
-  const quizDD = ddController(dd);
 
   /* ---------- joining the corners ----------
    * Drag from one corner to another, or tap one and then the other. Only the
@@ -4480,6 +4937,8 @@
     if (REDUCED) {
       /* no motion: the whole line, held, until the learner starts */
       return (async () => {
+        await idleFor(signal);
+        if (signal.done || fastForward) return;
         setLine(demoLine, A, B); handAt(B.x, B.y);
         demoG.classList.add('on');
         while (!signal.done && !fastForward) await wait(200);
@@ -4512,11 +4971,10 @@
     }
 
     return (async () => {
-      await wait(350);
       while (!signal.done && !fastForward) {
+        await idleFor(signal);
+        if (signal.done || fastForward) break;
         await pass();
-        if (signal.done) break;
-        await wait(550);
       }
       demoG.classList.remove('on');
     })();
@@ -4767,16 +5225,43 @@
      and the learner sees the two as one thing. A box answered with a
      measurement rather than a part's name has nothing to point at, and the
      drawing is left alone. */
-  const PART_ANSWER = { base: 'base', 'h-green': 'h-green', 'h-purple': 'h-purple' };
+  const PART_ANSWER = {
+    base: 'base', 'h-green': 'h-green', 'h-purple': 'h-purple',
+    /* the sum of the heights: both of them */
+    heights: ['h-green', 'h-purple']
+  };
   async function askFormula(f, need) {
     lockInput(false);
     await Promise.all(f.dds.map((d, i) => d.ask(v => v === need[i],
       v => {
         feedback(FEEDBACK.right);
-        if (PART_ANSWER[v]) onAreaWord(PART_ANSWER[v]);
+        [].concat(PART_ANSWER[v] || []).forEach(onAreaWord);
       },
       () => feedback(FEEDBACK.wrong))));
     lockInput(true);
+  }
+
+  /* "Area of Quadrilateral = ½ × [ v ] × [ v ]": the rule with its two
+     parts to be chosen, each box from its own list (review, 2026-09-25).
+     Not a table like the formula lines: the line folds wherever the column
+     runs out, a box dropping whole onto the next row (CSS). */
+  function wordsLine(first, second) {
+    const line = document.createElement('div');
+    line.className = 'area-line f-line words-line';
+    const seg = (cls, text) => {
+      const el = document.createElement('span');
+      el.className = cls;
+      setTxt(el, text);
+      return el;
+    };
+    const dd1 = makeDD(first, true, 'diagonal'), dd2 = makeDD(second, true, 'heights');
+    const lhs = seg('lhs', '');
+    lhs.append(seg('seg', 'Area of '), seg('w w-quad lit', 'Quadrilateral'), seg('seg', ' '));
+    const expr = document.createElement('span');
+    expr.className = 'expr rhs';
+    expr.append(seg('seg', '= ½ × '), dd1, seg('seg', ' × '), dd2);
+    line.append(lhs, expr);
+    return { line: line, dds: [ddController(dd1), ddController(dd2)] };
   }
 
   /* "The sum of the perpendicular heights is [ v ]": a label card with a
@@ -4801,6 +5286,249 @@
     swiftee.play('proud', 1);
     skyConfetti(120, 3200);
     sfx('confetti', .8);
+  }
+
+  /* ---------- one triangle, in conversation ----------
+   * Swiftee talks the learner through a half of the cut shape (review,
+   * 2026-09-25: conversational, and in step with the drawing). The half
+   * comes forward and the other steps back; "Let's say the base of this
+   * triangle is b." lights the diagonal and names it; "And its height is
+   * h₁." drops the height and names it; "So, its area will be …" writes
+   * the line beside the shape -- "½ ×" typed, and then the b and the h
+   * lifted off the drawing's own labels and set down in their places in
+   * the line (`talk.line`). Every line is Swiftee's, from the heading,
+   * and the bird stays for all of them: each line's send-off
+   * is cancelled as it ends (holdHeading). The labels are written in their
+   * short names straight away -- the line that names them is the look the
+   * full name used to get. */
+  const holdHeading = () => cancelDismiss(promptTxt);
+  async function triangleTalk(spec, i, talk) {
+    const t = spec.tris[i];
+    const baseLbl = quadDims.querySelector('.lbl-base');
+    const hLbl    = quadDims.querySelector('.lbl-' + t.color);
+
+    /* this half comes forward, by name */
+    focusTri(t.color);
+    pulseTri(quadShape, t.color);
+    showTriName(t.color);
+    await wait(REDUCED ? 200 : 800);
+
+    /* its base: the diagonal, lit and named as the line says so */
+    baseLbl.textContent = spec.short.base;
+    const base = (async () => {
+      await wait(REDUCED ? 100 : 600);
+      quadShape.classList.add('lit-base');
+      await denoteQuad('base', REDUCED ? 200 : 900);
+    })();
+    await heading(talk.base);
+    holdHeading();
+    await base;
+    await wait(REDUCED ? 100 : 300);
+
+    /* its height: dropped and named as the line says so */
+    hLbl.textContent = spec.short.h[i];
+    const height = (async () => {
+      await wait(REDUCED ? 100 : 500);
+      await dropHeight(t.color);
+      quadShape.classList.add('lit-' + t.color);
+      await denoteQuad(t.color, REDUCED ? 200 : 700);
+    })();
+    await heading(QUAD.height(spec.short.h[i]));
+    holdHeading();
+    await height;
+    await wait(REDUCED ? 100 : 300);
+
+    /* its area, written beside the shape */
+    await heading(QUAD.areaIs);
+    holdHeading();
+    await wait(REDUCED ? 100 : 400);
+    await floatLine(talk.line, { base: baseLbl, h: hLbl });
+    await wait(REDUCED ? 200 : 600);
+  }
+
+  /* The area line, its parts lifted off the drawing: the words up to "½ ×"
+     type themselves, and then each part the line names -- the b, the h --
+     is a copy of the drawing's own label that floats across into its
+     place, the label glowing as it leaves. `from` gives the label for each
+     segment's `fly` key. The whole line is laid out at once, unseen, so
+     every word has its place before the first shows and a flying copy has
+     somewhere to land. */
+  async function floatLine(segs, from) {
+    const line = document.createElement('div');
+    line.className = 'area-line';
+    line.innerHTML = '<span class="type-wrap"><span class="type-ghost"></span>' +
+      '<span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span>';
+    lineSpans(line.querySelector('.type-ghost'), segs);
+    areaLinesEl.appendChild(line);
+    fitEq(line);
+    await showLine(line);
+    line.querySelector('.caret').hidden = true;
+    const parts = lineSpans(line.querySelector('.txt'), segs);
+    let due = performance.now();
+    for (const part of parts) {
+      const src = part.seg.fly && from[part.seg.fly];
+      if (!src) {
+        due = await revealWords(part.words, due, AREA_MS);
+        if (part.seg.w) {
+          const left = due - performance.now();
+          if (left > 0) await waitRaw(left);
+          part.els.forEach(el => el.classList.add('lit'));
+          onAreaWord(part.seg.w);
+          due += AREA_PAUSE * PACE;
+        }
+        continue;
+      }
+      const left = due - performance.now();
+      if (left > 0) await waitRaw(left);
+      /* coloured before it flies, so the copy is cut in the word's own hue */
+      part.els.forEach(el => el.classList.add('lit'));
+      await floatWord(src, part.els[0], part.words);
+      due = performance.now() + (REDUCED ? 80 : 360) * PACE;
+    }
+    const left = due - performance.now();
+    if (left > 0) await waitRaw(left);
+    await wordsSettle();
+    return line;
+  }
+
+  /* A copy of a label on the drawing floats across the board and settles
+     into the line as one of its words: from the label's own place and size
+     to the word's, on a slight rise, and the word is simply there as the
+     copy lands. The label stays on the drawing, lit as the copy leaves. */
+  async function floatWord(src, wrap, words) {
+    const land = () => words.forEach(w => w.el.classList.add('in', 'landed'));
+    const from = src.getBoundingClientRect();
+    const to   = wrap.getBoundingClientRect();
+    if (!from.width || !to.width || REDUCED || fastForward) { land(); return; }
+    /* the word's own type and hue -- the hue read past the .4s a lit word
+       eases its colour over, so the copy is cut in the colour it lands as */
+    wrap.style.transition = 'none';
+    const cs = getComputedStyle(wrap);
+    const type = {
+      fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight,
+      letterSpacing: cs.letterSpacing, lineHeight: cs.lineHeight, color: cs.color
+    };
+    wrap.style.transition = '';
+    const ghost = document.createElement('span');
+    ghost.className = 'float-word';
+    ghost.textContent = words.map(w => w.el.dataset.t).join('');
+    Object.assign(ghost.style, type, { left: to.left + 'px', top: to.top + 'px' });
+    fx.appendChild(ghost);
+    /* over the label at the label's size; then in its place at its own */
+    const s = from.height / to.height;
+    const dx = (from.left + from.width / 2) - (to.left + to.width * s / 2);
+    const dy = (from.top + from.height / 2) - (to.top + to.height * s / 2);
+    lineDenote([src], 500).catch(() => {});
+    const a = ghost.animate([
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + s + ')', opacity: 0 },
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + s + ')', opacity: 1, offset: .12 },
+      { transform: 'translate(' + (dx * .45) + 'px,' + (dy * .45 - 28) + 'px) scale(' + ((1 + s) / 2) + ')', opacity: 1, offset: .6 },
+      { transform: 'none', opacity: 1 }
+    ], { duration: 1100, easing: 'cubic-bezier(.35, .05, .25, 1)', fill: 'forwards' });
+    sfx('click', .3);
+    try { await finished(a); } finally { ghost.remove(); }
+    land();
+  }
+
+  /* The rule again, in words (review, 2026-09-25): a copy of the line peels
+     off it onto the row below -- fades up over it and slides down -- and
+     there its b becomes "Diagonal" and its bracket "Sum of perpendicular
+     heights", each as Swiftee says it (workSum). The copy's ghost holds
+     the longest form it will take, so the row is its final size from the
+     start and nothing under it moves as the words grow. */
+  async function copyLine(from, segs, widest) {
+    const line = document.createElement('div');
+    line.className = 'area-line';
+    line.innerHTML = '<span class="type-wrap"><span class="type-ghost"></span>' +
+      '<span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span>';
+    lineSpans(line.querySelector('.type-ghost'), widest);
+    lineSpans(line.querySelector('.txt'), segs).forEach(part => {
+      if (part.seg.w) part.els.forEach(el => el.classList.add('lit'));
+      part.words.forEach(w => w.el.classList.add('in', 'landed'));
+    });
+    line.querySelector('.caret').hidden = true;
+    areaLinesEl.appendChild(line);
+    fitEq(line);
+    /* the rows share one grid, so their offsets are the distance to slide */
+    const dy = from.offsetTop - line.offsetTop;
+    line.classList.add('show');
+    if (REDUCED || fastForward) return line;
+    const a = line.animate([
+      { transform: 'translateY(' + dy + 'px)', opacity: 0 },
+      { transform: 'translateY(' + dy + 'px)', opacity: 1, offset: .3 },
+      { transform: 'none', opacity: 1 }
+    ], { duration: 1200, easing: 'cubic-bezier(.4, 0, .2, 1)' });
+    sfx('click', .3);
+    await finished(a);
+    return line;
+  }
+
+  /* ---------- the two halves together ----------
+   * The third line is written as the sum of the two above it, and then
+   * carries on being worked where it stands: each triangle's area put in,
+   * and the base both of them share taken outside the bracket. One line,
+   * one flow -- only the part after the "=" changes, slowly enough to be
+   * followed, and each step is said before it is made. Then the rule again
+   * in words on a row of its own, the celebration, and Next. */
+  async function workSum(steps, words) {
+    /* the sum is about both halves: neither is held back for it */
+    focusTri(null);
+    const sum = await showTypedLine(steps[0]);
+    const sumTxt = sum.querySelector('.txt');
+    await wait(REDUCED ? 300 : 1300);
+
+    await heading(QUAD.swap);
+    holdHeading();
+    await wait(REDUCED ? 200 : 700);
+
+    /* the line comes forward a step for as long as it is being worked on --
+       enough to take the eye back to it, and settled at its new size before
+       anything in it moves, since a morph measures the width it is easing to */
+    sum.classList.add('solving');
+    await wait(REDUCED ? 100 : 620);
+
+    await morphTo(sumTxt, steps[1], false, true);
+    await wait(REDUCED ? 300 : 1400);
+
+    await heading(QUAD.share);
+    holdHeading();
+    await denoteQuad('base', 700);
+    await morphTo(sumTxt, steps[2], false, true);
+    await wait(REDUCED ? 300 : 1100);
+
+    /* worked out: the line settles back to the size of the two above it */
+    sum.classList.remove('solving');
+    await wait(REDUCED ? 100 : 620);
+
+    /* the rule in words: the copy comes off the line, and then each part
+       becomes its name as Swiftee says it */
+    const rule = await copyLine(sum, steps[2], words[1]);
+    const ruleTxt = rule.querySelector('.txt');
+    await wait(REDUCED ? 200 : 500);
+    const diag = (async () => {
+      await wait(REDUCED ? 100 : 700);
+      await morphTo(ruleTxt, words[0], false, true);
+    })();
+    await heading(QUAD.words1);
+    holdHeading();
+    await diag;
+    await wait(REDUCED ? 200 : 500);
+    const heights = (async () => {
+      await wait(REDUCED ? 100 : 900);
+      await morphTo(ruleTxt, words[1], false, true);
+    })();
+    await heading(QUAD.words2);
+    holdHeading();
+    await heights;
+    await wait(REDUCED ? 200 : 700);
+
+    await heading(QUAD.rule);
+    await wait(REDUCED ? 150 : 350);
+    celebrate();
+
+    /* a few seconds to take it in, then on */
+    await wait(2600);
+    await showNext();
   }
 
   /* Between quadrilaterals the board goes blank: Swiftee ducks behind it,
@@ -4830,8 +5558,17 @@
     await wait(300);
   }
 
+  /* Only the two corners the diagonal joins are marked: the other pair is
+     not part of the step, and dots on it only split the eye (review,
+     2026-09-25). Their tap targets go with them, so the only join left to
+     make is the right one. A rebuild of the shape starts with all four. */
+  function onlyCorners(pair) {
+    corners.forEach(c => c.classList.toggle('spare', pair.indexOf(c.dataset.corner) < 0));
+  }
+
   /* the diagonal, the two colours, and both heights with their labels */
   async function showSplit(pair, spec) {
+    onlyCorners(pair);
     quadShape.classList.add('dots');
     await wait(500);
     await drawJoin(pair[0], pair[1]);
@@ -4857,6 +5594,10 @@
     board.classList.add('sec3');
     trayArea.style.minHeight = '';
     await out;
+    /* the lesson held the heading row open for its closing zoom; the
+       quadrilateral scenes open and fold it with what they put in it. Let
+       go while the board is blank, so the fold moves nothing on screen. */
+    board.classList.remove('head-held');
     await wait(520);
 
     /* the heading's ghost takes the longest line of the quadrilateral
@@ -4879,27 +5620,28 @@
     await layoutWide(quad, quadSvg, true, 'ask');
     await wait(REDUCED ? 120 : 340);
 
-    /* 3. the sentence and its empty box fade up on the right; Swiftee comes
-          up from behind the board into the room under them and asks what the
-          shape is, and only then does the box start asking to be tapped --
-          its own "Tap here" and the hand beside the arrow */
+    /* 3. the three names fade up on the right half first, one to tap; then
+          Swiftee comes up from behind the board above them and asks what
+          the shape is (user, 2026-09-25: the options first, then the
+          question). The names are inert until the question is asked --
+          askChips is what takes their taps. */
     quizBubble.classList.remove('show', 'ok', 'bad');
     quizBlock.classList.add('show');
     await wait(REDUCED ? 200 : 440);
+    await dealChips(quizChips);
+    await wait(REDUCED ? 100 : 320);
     await mascotJumpIn(quizMascot);
     await wait(REDUCED ? 100 : 260);
     swiftee.hold('talking');
     await quizSay(QUAD.ask);
     swiftee.release();
-    await wait(REDUCED ? 100 : 320);
-    dd.classList.add('hint');
-    lockInput(false);
-    await quizDD.ask(v => v === QUAD.answer,
-      v => quizSay(QUAD.notes[v], 'ok'),
-      v => quizSay(QUAD.notes[v] || QUAD.notes.triangle, 'bad'));
-    lockInput(true);
-    /* time to read the answer */
-    await wait(REDUCED ? 900 : 2400);
+    await askChips(quizChips, QUAD.answer,
+      chip => quizSay(QUAD.notes[chip.dataset.answer] || QUAD.notes.triangle, 'bad'));
+    await quizSay(QUAD.notes[QUAD.answer], 'ok');
+    /* the learner reads the answer for as long as they like and moves on
+       with Next (review, 2026-09-25), instead of the quiz leaving on a clock */
+    await wait(REDUCED ? 200 : 600);
+    await showNext();
 
     /* 4. the quiz goes, Swiftee ducks back behind the board, and the shape
           comes back to the middle of it; then the bird is up again beside
@@ -4908,6 +5650,7 @@
     quizBlock.classList.add('off');
     await wait(REDUCED ? 150 : 380);
     await mascotJumpOut(quizMascot);
+    noteTxt.textContent = '';
     quizBlock.classList.remove('show');
     await layoutWide(quad, quadSvg, false, 'ask');
     await wait(REDUCED ? 120 : 300);
@@ -4916,6 +5659,9 @@
     await wait(220);
     swiftee.hold('talking');
     await aside(QUAD.general);
+    /* the two lines are one explanation: the bird stays between them, and
+       only leaves once the second is said (review, 2026-09-25) */
+    cancelDismiss(sayTxt);
     swiftee.release();
     await wait(1400);
     swiftee.hold('talking');
@@ -4923,13 +5669,23 @@
     swiftee.release();
     await wait(1100);
 
-    /* 5. up to the heading; the corners light up, and the instruction types
-          while a finger shows the line to draw */
+    /* 5. the bird has said its piece and goes back behind the board -- it
+          used to hop straight up to the heading from here and stand by it
+          with nothing to say (user, 2026-09-25: remove the mascot after
+          "Let's try and find its area!", not before it). Its line's own
+          send-off (speakerDone) has usually taken it down already, and
+          then this is a no-op. */
     sayRow.classList.add('off');
     await wait(320);
-    await hopBetween(sideMascot, boardMascot);
+    await mascotJumpOut(sideMascot);
     sayRow.classList.remove('show');
     await wait(240);
+
+    /* the corners light up; then Swiftee comes up at the heading and the
+       instruction types -- the bird arrives with its line, as for every
+       heading (see mascotWithLine) -- while a finger shows the line to
+       draw */
+    onlyCorners(['L', 'R']);
     quadShape.classList.add('dots');
     await wait(560);
     const signal = { done: false };
@@ -4938,66 +5694,25 @@
     await awaitJoin(signal, ['L', 'R']);
     await demo;
 
-    /* 6. joined */
+    /* 6. joined: the two colours, the line that says so, and the shape
+          moves to the left -- the room on the right is for the working */
     await wait(360);
-    await heading(QUAD.divided);
-    await wait(520);
-
-    /* 7. two colours; then both heights and the base, named in full for a
-          two-second look before the heights become h₁ and h₂; then the shape
-          moves to the left and the two areas and their sum are written
-          beside it */
     splitShape();
-    await wait(REDUCED ? 300 : 900);
-    await revealDims(SPEC_A, true);
+    await wait(REDUCED ? 300 : 700);
+    await heading(QUAD.divided);
+    holdHeading();
+    await wait(REDUCED ? 200 : 500);
     await layoutWide();
     await wait(400);
-    focusTri('purple');
-    await showTypedLine(LINES_A[0]);
-    await wait(760);
-    focusTri('green');
-    await showTypedLine(LINES_A[1]);
-    await wait(760);
-    /* the sum is about both halves: neither is held back for it */
-    focusTri(null);
 
-    /* 8. the third line is written as the sum of the two above it, and then
-          carries on being worked where it stands: each triangle's area put
-          in, and the base both of them share taken outside the bracket. One
-          line, one flow -- only the part after the "=" changes, slowly
-          enough to be followed, and each step is said before it is made. */
-    const sum = await showTypedLine(QUAD_STEPS[0]);
-    const sumTxt = sum.querySelector('.txt');
-    await wait(REDUCED ? 300 : 1300);
-
-    await heading(QUAD.swap);
-    await wait(REDUCED ? 200 : 700);
-
-    /* the line comes forward a step for as long as it is being worked on --
-       enough to take the eye back to it, and settled at its new size before
-       anything in it moves, since a morph measures the width it is easing to */
-    sum.classList.add('solving');
-    await wait(REDUCED ? 100 : 620);
-
-    await morphTo(sumTxt, QUAD_STEPS[1], false, true);
-    await wait(REDUCED ? 300 : 1400);
-
-    await heading(QUAD.share);
-    await denoteQuad('base', 700);
-    await morphTo(sumTxt, QUAD_STEPS[2], false, true);
-    await wait(REDUCED ? 300 : 1100);
-
-    /* worked out: the line settles back to the size of the two above it, and
-       the rule stands as it is -- nothing drawn round it */
-    sum.classList.remove('solving');
-    await wait(REDUCED ? 100 : 620);
-    await heading(QUAD.rule);
-    await wait(REDUCED ? 150 : 350);
-    celebrate();
-
-    /* a few seconds to take it in, then on */
-    await wait(2600);
+    /* 7. one triangle at a time, in conversation, with a Next after each */
+    await triangleTalk(SPEC_A, 0, { base: QUAD.base1, line: LINES_A[0] });
     await showNext();
+    await triangleTalk(SPEC_A, 1, { base: QUAD.base2, line: LINES_A[1] });
+    await showNext();
+
+    /* 8. the two together: the sum, worked and then put into words */
+    await workSum(QUAD_STEPS, WORDS_A);
     await sectionThreeAgain();
   }
 
@@ -5017,6 +5732,7 @@
     await wait(300);
 
     /* the corners again, and a finger tracing the other diagonal */
+    onlyCorners(['T', 'B']);
     quadShape.classList.add('dots');
     await wait(560);
     const signal2 = { done: false };
@@ -5025,58 +5741,35 @@
     await awaitJoin(signal2, ['T', 'B']);
     await demo2;
 
-    /* two new colours; the heights and base in full, then as h₁ and h₂;
-       then the shape moves aside for the working */
+    /* two new colours; the base and both heights named, in full for a
+       look and then as b, h₁ and h₂; then the shape moves aside */
     await wait(360);
     splitShape();
     await wait(700);
     await heading(QUAD.twoNew);
+    holdHeading();
     await revealDims(SPEC_A2, true);
     await layoutWide();
     await wait(400);
 
-    /* the learner names the base and height of each triangle in turn... */
-    focusTri('green');
-    const g = formulaLine('Orange Triangle', 'green', NOTATION);
-    await showLine(g.line);
-    await askFormula(g, ['base', 'h-green']);
-    onAreaWord('green');
-    await wait(700);
-    focusTri('purple');
-    const p = formulaLine('Purple Triangle', 'purple', NOTATION);
-    await showLine(p.line);
-    await askFormula(p, ['base', 'h-purple']);
-    onAreaWord('purple');
-    await wait(700);
+    /* the rule in words, as the first cut ended on it, typed out as a
+       reminder -- the diagonal and both heights lighting up as they are
+       named -- and under it the same rule for the learner to complete in
+       symbols (review, 2026-09-25): no triangle lines this time. The
+       diagonal from the drawing's three names, the sum of the heights from
+       three sums; each right answer lights what it names. */
+    await showTypedLine(RULE_IN_WORDS, null, w => {
+      if (w === 'height') { onAreaWord('h-green'); onAreaWord('h-purple'); }
+      else onAreaWord(w);
+    });
+    await wait(REDUCED ? 300 : 900);
+    await heading(QUAD.complete);
+    holdHeading();
+    const f = wordsLine(NOTATION, SUMS);
+    await showLine(f.line);
+    await askFormula(f, ['base', 'heights']);
+    await wait(REDUCED ? 300 : 900);
 
-    /* ...and then the third line, with both halves back: written as the sum
-       of the two above it and then carried the rest of the way where it
-       stands, a step at a time, each step said before it is made -- the same
-       derivation the first cut ended on, so the rule is met twice over. */
-    focusTri(null);
-    const sum = await showTypedLine(QUAD_STEPS2[0]);
-    const sumTxt = sum.querySelector('.txt');
-    await wait(REDUCED ? 300 : 1300);
-
-    await heading(QUAD.swap);
-    await wait(REDUCED ? 200 : 700);
-
-    /* forward a step for as long as it is being worked on, and settled at
-       its new size before anything in it moves -- a morph measures the
-       width it is easing to */
-    sum.classList.add('solving');
-    await wait(REDUCED ? 100 : 620);
-
-    await morphTo(sumTxt, QUAD_STEPS2[1], false, true);
-    await wait(REDUCED ? 300 : 1400);
-
-    await heading(QUAD.share);
-    await denoteQuad('base', 700);
-    await morphTo(sumTxt, QUAD_STEPS2[2], false, true);
-    await wait(REDUCED ? 300 : 1100);
-
-    sum.classList.remove('solving');
-    await wait(REDUCED ? 100 : 620);
     await heading(QUAD.rule);
     await wait(REDUCED ? 150 : 350);
     celebrate();
@@ -5217,6 +5910,14 @@
       await wait(i < lines.length - 1 ? 1500 : 700);
     }
 
+    /* said: the bubble pops away and Swiftee drops out of the frame before
+       the Next button, rather than standing there with its line (user,
+       2026-09-25). The scene after Next finds it already gone. */
+    bubble.classList.add('out');
+    bubble.classList.remove('show');
+    await wait(300);
+    await introExit();
+
     await showNext(nextBtnFree);
   }
 
@@ -5256,6 +5957,7 @@
   const paraText   = document.getElementById('paraText');
   const paraTxt    = paraText.querySelector('.txt');
   const paraCaret  = paraText.querySelector('.caret');
+  speaker(paraTxt, paraMascot, () => paraText.classList.remove('ok', 'bad'));
   const areaTray   = document.getElementById('areaTray');
   const areaChips  = Array.from(areaTray.querySelectorAll('.chip'));
   const paraLines  = document.getElementById('paraLines');
@@ -6106,6 +6808,8 @@
   const rhomText   = document.getElementById('rhomText');
   const rhomTxt    = rhomText.querySelector('.txt');
   const rhomCaret  = rhomText.querySelector('.caret');
+  speaker(rcTxt, rcMascot);
+  speaker(rhomTxt, rhomMascot);
 
   const RHOM = {
     drag:  'Drag the points to make each angle 90 degrees.',
@@ -6359,8 +7063,8 @@
     const S = 1.5;                                  /* the hand's scale */
     const at = (x, y) => rhomHint.setAttribute('transform',
       'translate(' + fmt(x - 11.5 * S) + ' ' + fmt(y - 3 * S) + ') scale(' + S + ')');
-    await wait(900);
-    for (let pass = 0; pass < 2 && !signal.done; pass++) {
+    await idleFor(signal);
+    for (let pass = 0; pass < 2 && !signal.done && !fastForward; pass++) {
       const P = rhomPts();
       const x0 = P.BR.x, y0 = P.BR.y + 4;           /* the fingertip on the point */
       at(x0, y0);
@@ -7550,7 +8254,7 @@
   async function figWorking(key, text, row) {
     const f = figEl(key, row);
     const work = f.querySelector('.fig-work');
-    wordSpans(work.querySelector('.type-ghost'), text);
+    wordSpans(work.querySelector('.type-ghost'), longestChunk(text));
     work.classList.add('show');
     sfx('click', .3);
     await wait(REDUCED ? 120 : 380);
@@ -8060,9 +8764,7 @@
      watching it arrive */
   function trapSay(text) {
     trapNoteCaret.hidden = true;
-    wordSpans(trapNoteTxt, text).forEach(w => w.el.classList.add('in'));
-    const said = voAlone(text);
-    return wordsSettle().then(() => said);
+    return sayPieces(trapNoteTxt, text);   /* a piece at a time, as it is said */
   }
   const trapQuizDD = ddController(trapDD);
 
@@ -8150,8 +8852,9 @@
     await said;
     if (!live()) return;
 
-    /* 3. time to read it... */
-    await trapHold(REDUCED ? 900 : 2800);
+    /* 3. said: only a beat, then the remark and the bird go (user,
+          2026-09-25) -- the voice-over has already been heard to its end */
+    await trapHold(REDUCED ? 300 : 500);
     if (!live()) return;
 
     /* 4. ...then the box shuts and the bird drops out of the screen */
@@ -9196,6 +9899,7 @@
   rtrapText.querySelector('.type-ghost').textContent =
     longest(Object.keys(RT_KINDS).reduce((all, k) => all.concat(rtSayLines(RT_KINDS[k])), []));
   const rtSay = typer(rtrapText.querySelector('.txt'), rtrapText.querySelector('.caret'), 45);
+  speaker(rtrapText.querySelector('.txt'), rtrapMascot);
 
   const rtDim  = cls => rtDims.querySelector('.' + cls);
   const rtLine = (cls, a, b, dash) => '<line class="' + cls + '" x1="' + fmt(a.x) + '" y1="' + fmt(a.y) + '" x2="' + fmt(b.x) + '" y2="' + fmt(b.y) + '"' + dashAttr(dash) + ' />';
@@ -10183,18 +10887,19 @@
   const hintOuts = new WeakMap();
   function showHint(el, text) {
     clearTimeout(hintOuts.get(el));
-    if (text) voAlone(text).catch(() => {});   /* spoken under the choosing */
     if (!text) {
+      piecesGen.set(el, (piecesGen.get(el) || 0) + 1);   /* no later piece */
       el.classList.remove('show');
       hintOuts.set(el, setTimeout(() => {
         if (!el.classList.contains('show')) el.textContent = '';
       }, 400));
       return;
     }
-    wordSpans(el, text).forEach((w, i) => {
-      w.el.style.animationDelay = (i * 40) + 'ms';
-      w.el.classList.add('in');
-    });
+    /* spoken under the choosing, and shown a piece at a time as it is */
+    let begin;
+    const started = new Promise(res => { begin = res; });
+    voAlone(text, begin).catch(() => {});
+    showPieces(el, text, started).catch(() => {});
     el.classList.add('show');
   }
   function tnHint(text) { showHint(tnHintEl, text); }
@@ -10807,6 +11512,7 @@
   const tcWork   = document.getElementById('tcWork');
   const tcTxt    = tcText.querySelector('.txt');
   const tcCaret  = tcText.querySelector('.caret');
+  speaker(tcTxt, tcMascot);
 
   const TC = {
     ask: 'What is the area of the trapezium?',
@@ -11110,8 +11816,10 @@
        size for the whole warm-up and the shapes neither move nor resize when
        the line arrives or clears (see roomHeight). */
     board.classList.add('head-held');
-    /* a replay comes back to shapes that may still carry their side names */
+    /* a replay comes back to shapes that may still carry their side names,
+       zoomed in to where Swiftee's heading was */
     shapes.forEach(s => s.classList.remove('labelled'));
+    unzoomBay();
 
     for (const shape of shapes) {
       await revealShape(shape);
