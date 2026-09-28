@@ -226,6 +226,7 @@
   --glow-height:     rgba(31, 99, 214, .55);   /* --height-hl     */
   --glow-green:      rgba(224, 99, 42, .5);     /* --tri-border    */
   --glow-purple:     rgba(106, 53, 217, .5);    /* --square-border */
+  --glow-gold:       rgba(245, 176, 0, .95);    /* the "look here" hint on page 6 */
   --glow-pair-a:     rgba(31, 99, 214, .55);  /* --pair-a        */
   --glow-pair-b:     rgba(106, 53, 217, .55);  /* --pair-b        */
   --tint-pair-a:     rgba(31, 99, 214, .18);  /* --pair-a        */
@@ -878,7 +879,12 @@ body {
   visibility: hidden;
 }
 .quad.on { visibility: visible; }
-.quad { transition: opacity .45s ease; }
+.quad { transition: opacity .45s ease, transform .9s cubic-bezier(.22, 1, .36, 1); }
+/* the closing zoom once Swiftee has left the heading (script.js,
+   zoomContent sets the scale and the origin) */
+.quad.zoomed {
+  transform: translate(var(--scene-tx, 0px), var(--scene-ty, 0px)) scale(var(--scene-zoom, 1));
+}
 .quad.off { opacity: 0; }
 
 /* ---------- clearing the board for section 3 ----------
@@ -1074,6 +1080,53 @@ body {
    (revealDims), which never means to thicken it -- so this is its own
    class, turned on only for triangleTalk's derivation. */
 .quad-shape.thick-base .join-line { stroke-width: 5; }
+/* a second wrong on the sum box: both heights thicken alongside their glow,
+   the same strong hint the diagonal gets from thick-base (user, 2026-09-28) */
+.quad-shape.thick-h .h-green,
+.quad-shape.thick-h .h-purple { stroke-width: 4; }
+
+/* ...and a strong pulsing glow on the part the learner just picked, so the
+   line in the box and the line on the shape are read as one (user,
+   2026-09-28). The plain .denote glow was too faint and did not move; this
+   one swells and fades on its own clock. Each part keeps its own hue:
+     glow-base -> the diagonal    glow-h1 -> the orange triangle's height
+     glow-h2   -> the purple      glow-sum -> both heights together */
+.quad-shape.glow-base .join-line,
+.quad-shape.glow-base .lbl-base { --fig-glow: var(--glow-base); animation: fig-hint 1.1s ease-in-out infinite; }
+.quad-shape.glow-h1 .h-green,
+.quad-shape.glow-h1 .lbl-green,
+.quad-shape.glow-sum .h-green,
+.quad-shape.glow-sum .lbl-green { --fig-glow: var(--glow-green); animation: fig-hint 1.1s ease-in-out infinite; }
+.quad-shape.glow-h2 .h-purple,
+.quad-shape.glow-h2 .lbl-purple,
+.quad-shape.glow-sum .h-purple,
+.quad-shape.glow-sum .lbl-purple { --fig-glow: var(--glow-purple); animation: fig-hint 1.1s ease-in-out infinite; }
+/* page 6's quiz hint: a wrong answer glows the measurement it asks about in
+   gold -- both heights for the sum, the diagonal for its length (user,
+   2026-09-28). Bright and clearly separate from the part colours above. */
+.quad-shape.gold-heights .h-green,
+.quad-shape.gold-heights .lbl-green,
+.quad-shape.gold-heights .h-purple,
+.quad-shape.gold-heights .lbl-purple,
+.quad-shape.gold-diag .join-line,
+.quad-shape.gold-diag .lbl-base { --fig-glow: var(--glow-gold); animation: fig-hint 1.1s ease-in-out infinite; }
+@keyframes fig-hint {
+  0%, 100% { filter: drop-shadow(0 0 2px var(--fig-glow)); }
+  50%      { filter: drop-shadow(0 0 5px var(--fig-glow)) drop-shadow(0 0 11px var(--fig-glow)) drop-shadow(0 0 18px var(--fig-glow)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quad-shape.glow-base .join-line, .quad-shape.glow-base .lbl-base,
+  .quad-shape.glow-h1 .h-green, .quad-shape.glow-h1 .lbl-green,
+  .quad-shape.glow-h2 .h-purple, .quad-shape.glow-h2 .lbl-purple,
+  .quad-shape.glow-sum .h-green, .quad-shape.glow-sum .lbl-green,
+  .quad-shape.glow-sum .h-purple, .quad-shape.glow-sum .lbl-purple,
+  .quad-shape.gold-heights .h-green, .quad-shape.gold-heights .lbl-green,
+  .quad-shape.gold-heights .h-purple, .quad-shape.gold-heights .lbl-purple,
+  .quad-shape.gold-diag .join-line, .quad-shape.gold-diag .lbl-base {
+    animation: none;
+    filter: drop-shadow(0 0 4px var(--fig-glow)) drop-shadow(0 0 12px var(--fig-glow));
+  }
+}
 
 /* the two triangles' own outer sides (everything but the shared diagonal,
    which is the join-line and stays out of this) -- kept stacked exactly on
@@ -1166,6 +1219,9 @@ body {
   transition: opacity .28s ease;
 }
 .demo.on { opacity: 1; }
+/* the pass that plays along with the instruction: a faint guide under the
+   words, not a second thing to read */
+.demo.on.soft { opacity: .5; }
 .demo-line {
   fill: none;
   stroke: var(--text-primary);
@@ -1216,6 +1272,8 @@ body {
    its .show taken away rather than faded with the sentence -- but the
    sentence still goes the way every quiz sentence does */
 .quiz-block.off .quiz-say { opacity: 0; transition: opacity .36s ease; }
+/* the quiz answered, the names go but the bird stays to hop away */
+.quiz-block.done .quiz-tray { opacity: 0; transform: translateY(8px); }
 
 .quiz-row {
   display: flex;
@@ -1368,6 +1426,23 @@ body {
   box-shadow: 0 0 0 4px var(--glow-wrong);
 }
 
+/* the box being asked for right now: a soft glow pulses round it, so the eye
+   goes to the one live slot (user, 2026-09-28) */
+.dd.asking .dd-btn {
+  border-color: var(--shape-border);
+  animation: dd-pulse 1.4s ease-in-out infinite;
+}
+@keyframes dd-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+  50%      { box-shadow: 0 0 0 4px var(--tint-accent), 0 0 20px 6px var(--tint-accent); }
+}
+/* its partner waits its turn: dimmed and out of reach until it is asked */
+.dd.off { opacity: .38; filter: grayscale(.4); pointer-events: none; }
+.dd.off .dd-chev, .dd.off .dd-tap { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .dd.asking .dd-btn { animation: none; box-shadow: 0 0 0 4px var(--tint-accent); }
+}
+
 /* Swiftee's remark on the answer, under the sentence */
 .quiz-note {
   margin: 0;
@@ -1408,8 +1483,10 @@ body {
    its longest word, one word a line (review, 2026-09-25). */
 .quad:not(.wide):not(.ask) .say-row {
   justify-self: start;
-  margin-left: 45%;
-  transform: translateY(calc(var(--mascot) * -.75));
+  /* clear of the shape's lower right corner, with room between the two
+     (user, 2026-09-28: more space between the bird and the shape) */
+  margin-left: 56%;
+  transform: translateY(calc(var(--mascot) * -.3));
 }
 .quad:not(.wide):not(.ask) .say-row .say-text { flex: none; }
 /* plain words here, no box behind them (review, 2026-09-25). Doubled class:
@@ -1465,7 +1542,7 @@ body {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
-  gap: clamp(12px, 3vw, 40px);
+  gap: 0;              /* the two halves meet: no gutter (user, 2026-09-28) */
 }
 .quad.ask .quad-stage { grid-column: 1; grid-row: 1; }
 /* fitRooms() pins an explicit content-fit height on the foot; centring it as
@@ -1483,20 +1560,51 @@ body {
    its half with the bird. Later than the shared type sizes. */
 .quad.ask .quiz-bubble .type,
 .quad.ask .quiz-bubble .type-ghost { white-space: pre-wrap; }
-.quad.ask .quiz-bubble { font-size: clamp(24px, 4.4vh, 40px); }
+.quad.ask .quiz-bubble { font-size: clamp(22px, 3.8vh, 34px); }
 /* Up over the bird's head rather than level with its face, leaning back
    over it a little, so the tail comes down to the bird from above and the
    line reads first, before the names under it (review, 2026-09-25). */
 .quad.ask .quiz-block .quiz-bubble {
   align-self: flex-start;
-  margin: 0 0 calc(var(--mascot) * .78) calc(var(--mascot) * -.22);
-  max-width: min(640px, calc(100% - var(--mascot) * .78));
-  padding: .5em 1.15em .55em;
+  margin: 0 0 calc(var(--mascot) * 1.0) calc(var(--mascot) * -.4);
+  max-width: min(560px, calc(100% - var(--mascot) * .9));
+  /* snug round the words: the box is the line's, not a card round it --
+     with room at the left for the catch-light to stay clear of them */
+  padding: .42em .95em .46em;
 }
 /* the bird stands ABOVE its sentence here, so the room the trapezium keeps
    over its box belongs under this one -- and the drop-down's menu has the
    rest of the half to open into instead of the bird's box */
-.quad.ask .quiz-say { margin: 0 0 clamp(10px, 2.6vh, 28px); }
+.quad.ask .quiz-say { margin-bottom: clamp(10px, 2.6vh, 28px); margin-left:clamp(30px, 5vw, 100px); }
+/* The box refits every piece it says (script.js, fitTo), so the pair is
+   no longer centred as one group -- that walked the bird sideways each time
+   the box changed size. The bird keeps its place at the left end of the
+   names below it, and the box grows and shrinks to its right. Later than
+   the shared centring at the foot of the file, hence the extra class. */
+.quad.ask .quiz-block .quiz-say.quiz-say {
+  justify-content: flex-start;
+  justify-self: stretch;     /* the row is the block's width, not the pair's */
+  width: 100%;
+}
+/* ---------- the aside, in the quiz's half ----------
+ * The shape stays in the left half from the quiz to the end of the page
+ * (user, 2026-09-28: move it only when needed), so Swiftee's two lines
+ * about it are said from the right half: the bird a little below the
+ * middle, beside the shape's lower half and clear of it, with its line in
+ * the box beside it. The box wraps inside the half the way the quiz's
+ * does, and script.js pulls it snug round its rows (snug). */
+.quad.ask .say-row {
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: flex-start;
+  padding-left: calc(var(--mascot) * .15);
+  transform: translateY(calc(var(--mascot) * .3));
+}
+.quad.ask .say-row .say-text { flex: 0 1 auto; min-width: 0; white-space: normal; }
+.quad.ask .say-row .say-text .type-wrap { display: block; }
+.quad.ask .say-row .say-text .type-ghost { display: block; }
+.quad.ask .say-row .say-text .type,
+.quad.ask .say-row .say-text .type-ghost { white-space: pre-wrap; text-wrap: balance; text-align: center; }
 
 /* ---------- the working, side by side ----------
  * Once the diagonal is in, the board's middle cell turns into two columns:
@@ -1521,6 +1629,8 @@ body {
    questions are long sentences with a drop-down on the end. */
 .para.wide,
 .rhom.wide { grid-template-columns: minmax(0, 1fr) minmax(min-content, 1fr); }
+/* no gutter between the parallelogram's halves either (user, 2026-09-28) */
+.para.wide { gap: 0; }
 /* ...and section 5, the learner's own go, is half and half for the same
    reason (user, 2026-09-18): its questions are short label-and-box lines,
    not a derivation, and the shape they ask about is read alongside every
@@ -1528,6 +1638,9 @@ body {
    capped in the column's own width (cqw, further down), so they close up to
    fit the narrower half instead of pushing the shape back. */
 .quad.wide.own { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+/* ...and so is every quadrilateral working now, with no gutter between the
+   halves (user, 2026-09-28) */
+.quad.wide { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; }
 /* and the foot's own track is the half, not the widest line in it: an auto
    track takes the max-content width of a block that asks for max-content
    and hands it back as the width a percentage cap resolves against, so the
@@ -1705,7 +1818,12 @@ body {
   opacity: 0;
   transition: opacity .45s ease, visibility 0s linear .45s;
 }
-.para.on { visibility: visible; opacity: 1; transition: opacity .45s ease; }
+.para.on { visibility: visible; opacity: 1; transition: opacity .45s ease, transform .9s cubic-bezier(.22, 1, .36, 1); }
+/* page 9's closing zoom once Swiftee has left the heading (script.js,
+   zoomContent sets the scale and the origin), as the quadrilateral's */
+.para.zoomed {
+  transform: translate(var(--scene-tx, 0px), var(--scene-ty, 0px)) scale(var(--scene-zoom, 1));
+}
 
 /* ---------- clearing the board for section 4 ----------
  * The quadrilateral scenes are finished: their section keeps its box but
@@ -2014,10 +2132,18 @@ body {
 .para.sides .para-say { align-items: flex-end; }
 .para.sides .para-text {
   align-self: flex-start;
-  font-size: clamp(24px, 4.4vh, 40px);
-  margin: 0 0 calc(var(--mascot) * .78) calc(var(--mascot) * -.22);
-  max-width: min(640px, calc(100% - var(--mascot) * .78));
-  padding: .5em 1.15em .55em;
+  font-size: clamp(20px, 3.7vh, 34px);
+  /* the box floats ABOVE the bird's head, so it must not be squeezed into the
+     flex room the bird leaves beside it -- flex-shrink:0 keeps it off the
+     bird's width, and `width: max-content` then hugs the line it holds: a
+     short line stays on one row at its own width instead of sitting in an
+     over-wide, half-empty box, while the max-width caps a long line so it
+     wraps into two even rows within the box (user, 2026-09-28) */
+  flex: 0 0 auto;
+  width: max-content;
+  margin: 0 0 calc(var(--mascot) * 1.02) calc(var(--mascot) * -.42);
+  max-width: min(560px, calc(100% - 8px));
+  padding: .5em 1.1em .55em;
   white-space: normal;
 }
 .para.sides .para-text .type-wrap,
@@ -2026,8 +2152,13 @@ body {
 .para.sides .para-text .type {
   white-space: pre-wrap;
   text-align: center;
-  text-wrap: balance;
 }
+/* the ghost sizes the box to the line's natural width (up to the max above),
+   so a line that fits on one row is NOT wrapped just to balance it -- that
+   was leaving short lines in a tall, half-empty box. `balance` is kept on the
+   visible text alone, so a line that genuinely must wrap still breaks into two
+   even rows within the box the ghost has set (user, 2026-09-28). */
+.para.sides .para-text .type { text-wrap: balance; }
 .para-say.quiet .say-text { opacity: 0; }
 .para.sides .para-say.off {
   opacity: 0;
@@ -3505,7 +3636,7 @@ body {
    stands a little larger (user, 2026-09-25). Set on the spot itself, so its
    own box and margins follow; the hop between spots grows or shrinks the
    sprite on the way (hopBetween). */
-.mascot:not(#mascot) { --mascot: clamp(84px, 20vh, 188px); }
+.mascot:not(#mascot) { --mascot: clamp(100px, 25vh, 230px); }
 
 /* ---------- where the artwork sits in its room ----------
  * Every shape is fitted into its box with `meet`, so on a wide board the
@@ -3631,16 +3762,16 @@ body {
 .intro.aside .bubble .type { text-align: center; white-space: pre-wrap; }
 
 /* the viewport-anchored Next: over the intro layer (950), under the confetti.
-   Bottom right, the same corner it takes on the board. */
+   It lands on the very spot the board's Next takes (.board > .next-btn):
+   the gap the centred board leaves at the side, the board's 3px border, then
+   the same inset from its corner -- so Next is one button in one place for
+   the whole game, board or no board. Keep in step with .board's size. */
 .free-next {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: clamp(14px, 4.5vh, 48px);
-  padding-right: clamp(18px, 4.5vw, 64px);
+  right: calc((100vw - min(1500px, 96vw)) / 2 + 3px + clamp(14px, 2.6vh, 26px));
+  bottom: calc((100dvh - min(780px, 90vh)) / 2 + 3px + clamp(14px, 2.6vh, 26px));
   z-index: 955;
   display: flex;
-  justify-content: flex-end;
   pointer-events: none;
 }
 .free-next .next-btn { place-self: auto; margin: 0; }
@@ -5693,25 +5824,30 @@ body {
   position: relative;
   vertical-align: top;
   white-space: pre;
-  transition: width .64s cubic-bezier(.4, 0, .2, 1);
+  /* eased at both ends, so the words beside the change glide rather than
+     jolt as it opens or closes (user, 2026-09-28: smoother) */
+  transition: width .8s cubic-bezier(.45, 0, .25, 1);
 }
 .morph .m-old,
 .morph .m-new {
   display: inline-block;
   white-space: pre;
-  transition: opacity .4s ease, transform .56s cubic-bezier(.2, .7, .3, 1), filter .4s ease;
+  transition: opacity .5s cubic-bezier(.4, 0, .2, 1), transform .75s cubic-bezier(.25, .1, .25, 1), filter .5s ease;
 }
 .morph .m-old { position: absolute; left: 0; top: 0; }
-.morph .m-new { opacity: 0; transform: translateY(.4em); filter: blur(3px); }
+/* a short lift, and the new words a beat behind the old, so the two cross
+   over instead of flashing through each other */
+.morph .m-new { opacity: 0; transform: translateY(.25em); filter: blur(2px); transition-delay: .12s; }
 .morph.go .m-new { opacity: 1; transform: none; filter: none; }
-.morph.go .m-old { opacity: 0; transform: translateY(-.4em); filter: blur(3px); }
+.morph.go .m-old { opacity: 0; transform: translateY(-.25em); filter: blur(2px); }
 .morph .wd { animation: none; opacity: 1; }
 /* a step of a derivation, slow enough to be followed: the width eases and
    the words cross over at about half the pace of a working that is only
    tidying numbers up */
 .morph.slow { transition-duration: 1.1s; }
 .morph.slow .m-old,
-.morph.slow .m-new { transition: opacity .7s ease, transform .95s cubic-bezier(.2, .7, .3, 1), filter .7s ease; }
+.morph.slow .m-new { transition: opacity .75s cubic-bezier(.4, 0, .2, 1), transform 1.05s cubic-bezier(.25, .1, .25, 1), filter .75s ease; }
+.morph.slow .m-new { transition-delay: .18s; }
 
 /* ---------- key words in colour, not in a pill ----------
  * A word the working names -- a base, a height, a shape -- is set in the
@@ -5816,6 +5952,9 @@ body {
   justify-self: center;
   justify-items: start;
 }
+/* ...except the parallelogram's, which stands at the start of its half,
+   close beside the shape (user, 2026-09-28) */
+.para.wide .area-lines { justify-self: start; }
 .rtrap.wide .rtrap-say {
   width: max-content;
   max-width: 100%;
@@ -6116,3 +6255,50 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .mo-highlight { transform: none; }
 }
+
+/* ---------- counting a shape's sides ----------
+ * "A quadrilateral has 4 sides.": each side traced in green in turn over
+ * the outline, with its count beside it (script.js, countSides). */
+.side-count .side-lit {
+  fill: none;
+  stroke: var(--correct);
+  stroke-width: 6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px var(--glow-correct));
+}
+.side-count.all .side-lit { animation: sides-all .6s ease-in-out 1; }
+@keyframes sides-all {
+  50% { stroke-width: 8; filter: drop-shadow(0 0 8px var(--glow-correct)); }
+}
+.side-count .side-n .pop { transform-box: fill-box; transform-origin: center; opacity: 0; }
+.side-count .side-n circle { fill: var(--correct); stroke: #fff; stroke-width: 2; }
+.side-count .side-n text {
+  fill: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+
+/* ---------- page 4's working, a size up (user, 2026-09-28) ----------
+ * The lines beside the quadrilateral never read smaller than the heading,
+ * and grow with the half they stand in. Later than the shared caps above. */
+/* page 9's working beside the parallelogram reads at the same size */
+.quad.wide .area-line,
+.para.wide .area-line { font-size: max(var(--fs-heading), min(var(--fs-body) * 1.25, 4.6cqw)); }
+.quad.wide .area-line.solving,
+.para.wide .area-line.solving { font-size: calc(max(var(--fs-heading), min(var(--fs-body) * 1.25, 4.6cqw)) * 1.1); }
+
+/* ---------- the heights in the base's colour (user, 2026-09-28) ----------
+ * h1 and h2 -- the dashed lines, their arrowheads, the right-angle marks
+ * and the names -- are drawn in the same deep aqua as the base's name b,
+ * rather than their triangles' deep shades. */
+.quad-shape .h-green,
+.quad-shape .h-purple,
+.quad-shape.lit-green .h-green,
+.quad-shape.lit-purple .h-purple,
+.quad-shape .mark-green,
+.quad-shape .mark-purple { stroke: var(--quad-base-lbl); }
+.quad-shape .lbl-green,
+.quad-shape .lbl-purple { fill: var(--quad-base-lbl); }
+#dimArrowPurple path,
+#dimArrowGreen path { stroke: var(--quad-base-lbl); }
