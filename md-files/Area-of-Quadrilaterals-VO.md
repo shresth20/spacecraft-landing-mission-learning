@@ -195,19 +195,43 @@ Board goes; Swiftee speaks from its speech bubble on the landscape.
 | P10-02 | NARRATION | This is the base of the parallelogram. | Heading |
 | P10-03 | NARRATION | Here comes the height! | Heading |
 | P10-04 | INSTRUCTION | Let us divide this into two triangles. | Heading |
+| P10-05 | NARRATION | Let’s look at Triangle 1. | Heading |
+| P10-06 | NARRATION | Its area is ½ × base × height. | Heading |
+| P10-07 | NARRATION | Its base is b. | Heading |
+| P10-08 | NARRATION | And its height is h. | Heading |
+| P10-09 | NARRATION | Now let’s look at Triangle 2. | Heading |
+| P10-10 | NARRATION | Its area is also ½ × base × height. | Heading |
+| P10-11 | NARRATION | It has the same base b. | Heading |
+| P10-12 | NARRATION | And the same height h. | Heading |
+| P10-13 | NARRATION | The parallelogram is made of both triangles. | Heading |
+| P04-10 | NARRATION | Let’s put in each triangle’s area. | Heading (page 4’s clip, reused) |
+| P10-14 | NARRATION | Two halves of b × h make one whole b × h. | Heading |
+| P10-15 | NARRATION | That is base × height! | Heading |
+| P10-16 | NARRATION | So this is the area of the parallelogram! | Heading |
 
 ## Page 11 — Parallelogram · the formula
 
 | ID | Type | Line | Where |
 |---|---|---|---|
-| P11-01 | INSTRUCTION | Which of these is the area of the parallelogram? | Heading |
-| P11-02 | FEEDBACK | That’s Correct! Area of a parallelogram = base × height. | Heading |
+| P11-01 | INSTRUCTION | Which of these is the area of the parallelogram? | Swiftee's box in the right half, the shape on the left (the question first, then the three formulas one at a time under it) |
+| P11-03 | FEEDBACK | Not quite! That is the area of just one triangle. | Same box, red — on ½ × base × height — **needs recording** |
+| P11-04 | FEEDBACK | Not quite! That is twice the area of the parallelogram. | Same box, red — on 2 × base × height — **needs recording** |
+| P11-02 | FEEDBACK | That’s Correct! Area of a parallelogram = base × height. | Same box, green; Swiftee stays with it until Next, then the formulas go and it hops up to the heading |
 
 ## Page 12 — Parallelogram · your own go
 
 | ID | Type | Line | Where |
 |---|---|---|---|
 | P12-01 | INSTRUCTION | Now it’s your turn! Find the area of this parallelogram. | Heading |
+| P12-02 | FEEDBACK | Not quite! Look at the measure of the base. | Heading, on a wrong base; the base glows gold — **needs recording** |
+| P12-03 | FEEDBACK | That’s Correct! The base is 8 cm. | Heading, on the right base — **needs recording** |
+| P12-04 | FEEDBACK | Not quite! Look at the measure of the height. | Heading, on a wrong height; the height glows gold — **needs recording** |
+| P12-05 | FEEDBACK | That’s Correct! The height is 5 cm. | Heading, on the right height — **needs recording** |
+| P12-06 | FEEDBACK | Not quite! Area of a parallelogram = base × height. | Heading, on a wrong area; the base and the height glow gold — **needs recording** |
+| P12-07 | FEEDBACK | That’s Correct! The area is 8 × 5 = 40 sq. cm. | Heading, on the right area; then Well Done! and confetti — **needs recording** |
+
+Until these are recorded they type in silence; a right answer still says
+"That’s Correct" (FB-01) as its line types.
 
 On-screen only — drop-down labels: "The base of the parallelogram is", "The
 height is", "The area of the parallelogram is".
@@ -545,6 +569,19 @@ Here is a parallelogram.
 This is the base of the parallelogram.
 Here comes the height!
 Let us divide this into two triangles.
+Let’s look at Triangle 1.
+So, its area will be …
+Its base is b.
+And its height is h.
+Now let’s look at Triangle 2.
+So, its area will be …
+It has the same base b.
+And the same height h.
+The parallelogram is made of both triangles.
+Let’s put in each triangle’s area.
+Two halves of b × h make one whole b × h.
+That is base × height!
+So this is the area of the parallelogram!
 
 — Page 11 · Parallelogram, the formula —
 Which of these is the area of the parallelogram?
@@ -553,8 +590,14 @@ That’s Correct! Area of a parallelogram = base × height.
 — Page 12 · Parallelogram, your own go —
 Now it’s your turn! Find the area of this parallelogram.
 The base of the parallelogram is
+Not quite! Look at the measure of the base.
+That’s Correct! The base is 8 cm.
 The height is
+Not quite! Look at the measure of the height.
+That’s Correct! The height is 5 cm.
 The area of the parallelogram is
+Not quite! Area of a parallelogram = base × height.
+That’s Correct! The area is 8 × 5 = 40 sq. cm.
 
 — Page 13 · Aside, on to the rhombus —
 We now know how to find the area of a parallelogram.

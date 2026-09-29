@@ -1324,6 +1324,20 @@
     });
   }
   const askRooms = () => { if (!roomsDue) roomsDue = requestAnimationFrame(fitRooms); };
+  /* A room whose occupants have all gone, shut at once rather than eased
+     shut: for a layout that is about to be measured with the room in it.
+     The quadrilateral's glide back to the middle measures the shape's new
+     place under the quiz's foot, and over a foot still closing that place
+     was a squashed one -- the shape glided down to it and was then stretched
+     back as the foot finished closing (user, 2026-09-29). */
+  function shutRoomNow(room) {
+    const pending = roomClose.get(room);
+    if (pending) { clearTimeout(pending); roomClose.delete(room); }
+    room.style.transition = 'none';
+    setRoom(room, 0);
+    void room.offsetHeight;
+    room.style.transition = '';
+  }
   if (rooms.length) {
     new MutationObserver(askRooms).observe(board, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden'] });
     /* the hopper carries the bird on and off the board from outside it, and
@@ -2209,6 +2223,7 @@
      one property at a time rather than by dropping the style attribute, so the
      sprite sheet custom properties on the mascots survive. */
   const PARKED = ['transform', 'opacity', 'width', 'height', 'left', 'top',
+                  'right', 'bottom', 'max-height',
                   'visibility', 'transition', 'min-height', 'will-change'];
 
   function clearStage() {
@@ -4163,7 +4178,7 @@
     ghost.textContent = text;
     snug(ghost);
   }
-  window.addEventListener('resize', () => { snug(noteGhost); snug(sayGhost); });
+  window.addEventListener('resize', () => snug(noteGhost));
 
   /* every ghost holds its longest line from the first frame, so no box under
      the shape changes size once it is on screen. Swiftee's box wraps its
@@ -5262,13 +5277,73 @@
     const w = vb.width * k, h = vb.height * k;
     return { left: box.left + (box.width - w) / 2, top: box.top + (box.height - h) / 2, width: w, height: h, box: box };
   }
-  async function layoutWide(sec, svg, on, cls) {
+  /* A drawing held at a size of its own, whatever the layout around it
+     does: the svg is set exactly over the drawing, in px of its (unscaled)
+     room. `size` is a drawn rect to take the size AND the height on screen
+     of: the drawing is centred across where the layout would draw it, but
+     stays at that rect's height -- never above the top of its room, so it
+     cannot ride up over the heading. Without one, the drawing is held just
+     as and where it is on screen now. (Only the across is read off the
+     layout: the rooms under a stage ease to their new height over half a
+     second, so the layout's up-and-down is not yet where it will settle.) */
+  const PIN_PROPS = ['left', 'top', 'right', 'bottom', 'width', 'height', 'max-height'];
+  function pinDrawn(svg, size) {
+    const room = svg.parentNode;
+    const cb = room.getBoundingClientRect();
+    const k = room.offsetWidth ? cb.width / room.offsetWidth : 1;
+    const now = drawnRect(svg);
+    if (!now.width || !cb.width) return;
+    const w = size ? size.width : now.width, h = size ? size.height : now.height;
+    const x = size ? now.left + now.width / 2 - w / 2 : now.left;
+    const y = size ? Math.max(size.top, cb.top) : now.top;
+    Object.assign(svg.style, {
+      left: (x - cb.left) / k + 'px', top: (y - cb.top) / k + 'px',
+      width: w / k + 'px', height: h / k + 'px',
+      right: 'auto', bottom: 'auto', maxHeight: 'none'
+    });
+    svg.dataset.pinned = '1';
+  }
+  function unpinDrawn(svg) {
+    PIN_PROPS.forEach(p => svg.style.removeProperty(p));
+    delete svg.dataset.pinned;
+  }
+  /* A held drawing kept at the height it is on screen now while the rows
+     around its room open or close -- the heading opening under a hop moves
+     the room down, and would take the drawing with it -- and only pushed
+     down if the room's top comes past it. Returns the function that lets
+     it go. */
+  function holdHeight(svg) {
+    const at = drawnRect(svg).top;
+    let on = true;
+    (function f() {
+      if (!on || !svg.dataset.pinned) return;
+      const room = svg.parentNode;
+      const cb = room.getBoundingClientRect();
+      const k = room.offsetWidth ? cb.width / room.offsetWidth : 1;
+      svg.style.top = Math.max(0, (at - cb.top) / k) + 'px';
+      requestAnimationFrame(f);
+    })();
+    return () => { on = false; };
+  }
+  /* a held drawing is let go if the window changes under it: its px were
+     measured for the old size */
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('svg[data-pinned]').forEach(unpinDrawn);
+  });
+
+  /* `keep`: the drawing glides to its new place at the size it already has,
+     rather than easing to the size the new layout would give it -- it is
+     held there at that size (pinDrawn) until a later layoutWide lets it go */
+  async function layoutWide(sec, svg, on, cls, keep) {
     sec = sec || quad;
     svg = svg || quadSvg;
     const before = drawnRect(svg);
     /* `cls`: which two-column layout to glide into -- the working layout
        unless a scene has one of its own (the values scene's 50/50 split) */
     sec.classList.toggle(cls || 'wide', on !== false);
+    /* the new layout's own place, measured with any hold let go */
+    if (svg.dataset.pinned) unpinDrawn(svg);
+    if (keep) pinDrawn(svg, before);
     const after = drawnRect(svg);
     if (REDUCED || !before.width || !after.width) return wait(120);
 
@@ -5372,7 +5447,7 @@
     /* the quadrilateral's outline splits into its two halves' own sides
        while a half is focused, so the other one's border can dim along
        with the rest of it -- see .tri-outline */
-    if (el === quadShape) el.classList.toggle('outline-split', !!color);
+    if (el === quadShape || el === paraShape) el.classList.toggle('outline-split', !!color);
   }
 
   /* a key word has landed in the working: light the part of the drawing it
@@ -5608,21 +5683,29 @@
      segment's `fly` key. The whole line is laid out at once, unseen, so
      every word has its place before the first shows and a flying copy has
      somewhere to land. */
-  async function floatLine(segs, from) {
+  /* `opts` lets another scene use it on its own working (the
+     parallelogram's): `root` is the lines' box, `onWord` what a key word
+     lights, and `beforeFly(key)`, if given, is awaited as each part is about
+     to leave the drawing -- to start Swiftee's line for that part. A segment's `word` is the
+     word it is written as first, where the part's key alone does not say. */
+  async function floatLine(segs, from, opts) {
+    opts = opts || {};
+    const onWord = opts.onWord || onAreaWord;
+    const root = opts.root || areaLinesEl;
     /* The line is written out in words first -- "Area of Triangle 1 = ½ ×
        base × height" -- and only then does each part come off the drawing:
        the label floats across onto its word, and the word turns into it,
        "base" into b and "height" into h₁ (user, 2026-09-28). */
     const WORD = { base: 'base', h: 'height' };
-    const worded = segs.map(sg => sg.fly ? { t: WORD[sg.fly] || sg.t, w: sg.w, fly: sg.fly } : sg);
+    const worded = segs.map(sg => sg.fly ? { t: sg.word || WORD[sg.fly] || sg.t, w: sg.w, fly: sg.fly } : sg);
     const line = document.createElement('div');
     line.className = 'area-line';
     line.innerHTML = '<span class="type-wrap"><span class="type-ghost"></span>' +
       '<span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span></span>';
     lineSpans(line.querySelector('.type-ghost'), worded);
-    areaLinesEl.appendChild(line);
+    root.appendChild(line);
     fitEq(line);
-    await showLine(line);
+    await showLine(line, root);
     line.querySelector('.caret').hidden = true;
     const txt = line.querySelector('.txt');
 
@@ -5635,7 +5718,7 @@
         const left = due - performance.now();
         if (left > 0) await waitRaw(left);
         part.els.forEach(el => el.classList.add('lit'));
-        if (!part.seg.fly) onAreaWord(part.seg.w);
+        if (!part.seg.fly) onWord(part.seg.w);
         due += AREA_PAUSE * PACE;
       }
     }
@@ -5651,13 +5734,16 @@
       const sg = segs[k];
       const src = sg.fly && from[sg.fly];
       if (!sg.fly) continue;
+      /* awaited: Swiftee's line for the part has started before it leaves */
+      if (opts.beforeFly) await opts.beforeFly(sg.fly);
       const word = Array.from(txt.querySelectorAll('.wd')).find(w => (w.dataset.t || '').trim() === now[k].t);
       if (src && word) await flyLabel(src, word, sg.t);
       now[k] = { t: sg.t, w: sg.w };
-      onAreaWord(sg.w);
+      onWord(sg.w);
       await morphTo(txt, now, false, false);
       await wait(REDUCED ? 100 : 380);
     }
+    return line;
   }
 
   /* A copy of a drawing's label, flown from the label onto a word in a line
@@ -5775,7 +5861,7 @@
     return { x: line.offsetLeft + (g.left - r.left) / (kx || 1),
              y: line.offsetTop + (g.top - r.top) / (ky || 1) };
   }
-  async function copyLine(from, segs, widest) {
+  async function copyLine(from, segs, widest, root) {
     const line = document.createElement('div');
     line.className = 'area-line rhs-only';
     line.innerHTML = '<span class="type-wrap"><span class="type-ghost"></span>' +
@@ -5786,7 +5872,7 @@
       part.words.forEach(w => w.el.classList.add('in', 'landed'));
     });
     line.querySelector('.caret').hidden = true;
-    areaLinesEl.appendChild(line);
+    (root || areaLinesEl).appendChild(line);
     fitEq(line);
     /* indented so its "=" stands exactly under the "=" of the line it comes
        off -- the glyphs themselves are measured, not the words, which carry
@@ -6171,8 +6257,10 @@
     await wait(REDUCED ? 200 : 900);
 
     /* 2b. it glides over to the left half, opening the right half for the
-           name quiz -- the one move it makes: it stays there for the aside,
-           the join and the working (user, 2026-09-28) */
+           name quiz. It comes back to the middle for the lines about it and
+           the diagonal, and goes aside again for the working: three moves,
+           each for a reason, and nothing else ever resizes it (user,
+           2026-09-29) */
     await layoutWide(quad, quadSvg, true, 'ask');
     await wait(REDUCED ? 120 : 340);
 
@@ -6181,6 +6269,7 @@
           (user, 2026-09-25: the question first, then the options). The
           names are inert until dealt -- askChips is what takes their taps. */
     quizBubble.classList.remove('show', 'ok', 'bad');
+    quizBlock.classList.remove('off');
     quizBlock.classList.add('show');
     await wait(REDUCED ? 200 : 440);
     await mascotJumpIn(quizMascot);
@@ -6210,48 +6299,39 @@
        (user, 2026-09-28) */
     await wait(REDUCED ? 300 : 1400);
 
-    /* 4. the names and the box go, and Swiftee hops down from the quiz to
-          stand beside the shape's lower half, in the half the quiz had */
+    /* 4. the names and the box go; Swiftee hops from the quiz up to the
+          heading -- where it stays for the rest of the page, hand-overs
+          included (headStay) -- and the shape glides back to the middle of
+          the board as it goes (user, 2026-09-29) */
     quizBubble.classList.remove('show');
     quizBlock.classList.add('done');
     await wait(REDUCED ? 150 : 380);
     noteTxt.textContent = '';
-    await hopBetween(quizMascot, sideMascot, () => {
+    headStay = true;
+    let toMid = null;
+    await hopBetween(quizMascot, boardMascot, () => {
+      /* the quiz is gone -- `off`, so its fade does not count as a room
+         still occupied -- and its foot under the shape is shut at once, so
+         the shape's new place is measured with the whole height it will
+         have (shutRoomNow) */
       quizBlock.classList.remove('show', 'done');
-      sayRow.classList.remove('off');
-      sayRow.classList.add('show');
-      snug(sayGhost);           /* the box wraps in the half: snug round its rows */
+      quizBlock.classList.add('off');
+      shutRoomNow(quad.querySelector('.quad-foot'));
+      toMid = layoutWide(quad, quadSvg, false, 'ask');
     });
-    await wait(REDUCED ? 100 : 220);
-    swiftee.hold('talking');
-    await aside(QUAD.general);
-    /* the two lines are one explanation, and the bird goes on from here to
-       the heading: its line's own send-off is called off after each */
-    cancelDismiss(sayTxt);
-    swiftee.release();
+    if (toMid) await toMid;
+    await wait(REDUCED ? 100 : 300);
+
+    /* the shape named from the heading, and the way in to its area */
+    await heading(QUAD.general);
+    holdHeading();
     await wait(REDUCED ? 300 : 900);
-    swiftee.hold('talking');
-    await aside(QUAD.area);
-    cancelDismiss(sayTxt);
-    swiftee.release();
+    await heading(QUAD.area);
+    holdHeading();
     await wait(REDUCED ? 200 : 700);
 
-    /* 5. straight up to the heading, where it stays for the rest of the
-          explanation -- the join, the cut, both triangles and the sum --
-          hand-overs included (headStay) */
-    headStay = true;
-    await hopBetween(sideMascot, boardMascot, () => { sayRow.classList.add('off'); });
-    sayTxt.textContent = '';
-    /* `off` stays on until the row is next shown: without it the row still
-       counts as shown for the .4s its visibility takes to switch, and the
-       foot opened and shut again around that */
-    sayRow.classList.remove('show');
-    await wait(REDUCED ? 60 : 200);
-
-    /* the corners light up; then Swiftee comes up at the heading and the
-       instruction types -- the bird arrives with its line, as for every
-       heading (see mascotWithLine) -- while a finger shows the line to
-       draw */
+    /* 5. the corners light up, and the instruction, a finger tracing the
+          line as it is said */
     onlyCorners(['L', 'R']);
     quadShape.classList.add('dots');
     await wait(560);
@@ -6264,19 +6344,16 @@
     await awaitJoin(signal, ['L', 'R']);
     await demo;
 
-    /* 6. joined: the two colours, the line that says so, and the working
-          takes the half the quiz had. The two layouts share their columns,
-          so the shape does not move: the quiz's layout simply becomes the
-          working's. */
+    /* 6. joined: the two colours, and the shape glides aside to make room
+          on the right for the working; then the line that says so */
     await wait(360);
     splitShape();
     await wait(REDUCED ? 300 : 700);
+    await layoutWide();
+    await wait(REDUCED ? 100 : 300);
     await heading(QUAD.divided);
     holdHeading();
     await wait(REDUCED ? 200 : 500);
-    quad.classList.remove('ask');
-    quad.classList.add('wide');
-    await wait(400);
 
     /* 7. one triangle at a time, in conversation, with a Next after each */
     await triangleTalk(SPEC_A, 0, { base: QUAD.base1, line: LINES_A[0] });
@@ -6605,16 +6682,54 @@
     base:   'This is the base of the parallelogram.',
     height: 'Here comes the height!',
     divide: 'Let us divide this into two triangles.',
+    /* the working, a triangle at a time, each part said as it floats off
+       the drawing into its line (user, 2026-09-29: page 4's way) */
+    tri1: {
+      look: 'Let’s look at Triangle 1.',
+      area: 'So, its area will be …',
+      b:    'Its base is b.',
+      h:    'And its height is h.'
+    },
+    tri2: {
+      look: 'Now let’s look at Triangle 2.',
+      area: 'So, its area will be …',
+      b:    'It has the same base b.',
+      h:    'And the same height h.'
+    },
+    whole:  'The parallelogram is made of both triangles.',
+    /* page 4's own line, and its clip (P04-10) */
+    swap:   'Let’s put in each triangle’s area.',
+    half:   'Two halves of b × h make one whole b × h.',
+    words:  'That is base × height!',
+    rule:   'So this is the area of the parallelogram!',
     which:  'Which of these is the area of the parallelogram?',
     right:  'That’s Correct! Area of a parallelogram = base × height.'
   };
   const AREA_ANSWER = 'bh';
+  /* a wrong formula is turned down in Swiftee's box with what it is instead,
+     as page 4 says how many sides a wrong name has */
+  const AREA_WRONG = {
+    half:   'Not quite! That is the area of just one triangle.',
+    double: 'Not quite! That is twice the area of the parallelogram.'
+  };
 
   /* the learner's own go: the same shape with measurements on it */
   const PARA3 = {
     turn:   'Now it’s your turn! Find the area of this parallelogram.',
     base:   '8 cm',
-    height: '5 cm'
+    height: '5 cm',
+    /* every answer to the three questions gets a line from the mascot, as
+       page 6's do (user, 2026-09-29): a right one says what was found, a
+       wrong one points back at the measurement the question is about, and
+       the drawing glows gold there until the next try */
+    rightBase:   'That’s Correct! The base is 8 cm.',
+    rightHeight: 'That’s Correct! The height is 5 cm.',
+    /* one "=" only: a line with two is laid out as a derivation, a row per
+       step (lineSpans), and this is a sentence */
+    rightArea:   'That’s Correct! The area is 8 × 5 = 40 sq. cm.',
+    wrongBase:   'Not quite! Look at the measure of the base.',
+    wrongHeight: 'Not quite! Look at the measure of the height.',
+    wrongArea:   'Not quite! Area of a parallelogram = base × height.'
   };
   /* and Swiftee's aside once it is done */
   const PARA_ASIDE = [
@@ -6624,11 +6739,37 @@
 
   /* the two triangles are told apart by colour: purple on top of the cut,
      green under it. Each has the same base b and the same height h. */
+  /* `fly`: the part is written as its `word` first, and then a copy of the
+     drawing's own label for it floats onto that word and the word becomes
+     it (floatLine). Triangle 1's b and h are the top base and the right
+     height; Triangle 2's the pair the whole shape was given. */
+  const PB = k => ({ t: 'b', w: 'b', fly: k, word: 'base' });
+  const PH = k => ({ t: 'h', w: 'h', fly: k, word: 'height' });
   const PARA_LINES = [
-    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' = ½ × ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' }],
-    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 'green' },  { t: ' = ½ × ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' }],
-    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = ½ × b × h + ½ × b × h' }],
-    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = ' }, { t: 'base × height', w: 'para' }]
+    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' = ½ × ' }, PB('b'), { t: ' × ' }, PH('h')],
+    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 'green' },  { t: ' = ½ × ' }, PB('b'), { t: ' × ' }, PH('h')],
+    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = Area of ' }, { t: 'Triangle 1', w: 'purple' },
+     { t: ' + Area of ' }, { t: 'Triangle 2', w: 'green' }]
+  ];
+  /* The third line does not stop at the sum: it is worked in place, on the
+     row it was written on, as the quadrilateral's is (QUAD_STEPS) -- each
+     triangle's name giving way to that triangle's area, one and then the
+     other (user, 2026-09-29). */
+  const PARA_SUM = [
+    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = ½ × ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' },
+     { t: ' + Area of ' }, { t: 'Triangle 2', w: 'green' }],
+    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = ½ × ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' },
+     { t: ' + ½ × ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' }]
+  ];
+  /* The fourth line is a copy of the third as it is left, under its "="
+     and carrying only its right-hand side (copyLine), worked in place too:
+     "= ½ × b × h + ½ × b × h" -> "= b × h" -> "= base × height" */
+  const PARA_STEPS = [
+    PARA_SUM[1],
+    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' }],
+    /* the words keep the hues of the letters they replace: base in the
+       base's colour, height in the height's (user, 2026-09-29) */
+    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = ' }, { t: 'base', w: 'b' }, { t: ' × ' }, { t: 'height', w: 'h' }]
   ];
 
   /* each fact's ghost holds its whole line from the first frame, so the list
@@ -6656,7 +6797,12 @@
       '<polygon class="shape-fill" clip-path="url(#wipePara)" points="' + PARA_ORDER.map(k => pt(P[k])).join(' ') + '" />' +
       '<polygon class="tri-fill c-purple" points="' + pt(P.TL) + ' ' + pt(P.TR) + ' ' + pt(P.BR) + '" />' +
       '<polygon class="tri-fill c-green" points="' + pt(P.TL) + ' ' + pt(P.BR) + ' ' + pt(P.BL) + '" />' +
-      '<path class="shape-outline" d="M' + PARA_ORDER.map(k => fmt(P[k].x) + ' ' + fmt(P[k].y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
+      '<path class="shape-outline" d="M' + PARA_ORDER.map(k => fmt(P[k].x) + ' ' + fmt(P[k].y)).join(' L') + ' Z" fill="none" stroke-width="5" />' +
+      /* each triangle's own two outer sides, stacked on the outline and
+         unseen until a half is in focus -- then the focused one is drawn
+         heavier and the other's fades (see .tri-outline, focusTri) */
+      '<path class="tri-outline ol-purple" d="M' + ['TL', 'TR', 'BR'].map(k => fmt(P[k].x) + ' ' + fmt(P[k].y)).join(' L') + '" fill="none" />' +
+      '<path class="tri-outline ol-green" d="M' + ['BR', 'BL', 'TL'].map(k => fmt(P[k].x) + ' ' + fmt(P[k].y)).join(' L') + '" fill="none" />';
     paraFill = paraArt.querySelector('.shape-fill');
 
     /* the dimensions. A base is a two-headed arrow a little off its side,
@@ -6885,6 +7031,46 @@
     await sayPieces(paraTxt, text);
     swiftee.release();
   }
+  /* Page 10's box refits every piece it says, as page 4's does (user,
+     2026-09-29): a line said a piece at a time shows one piece at once, so
+     "That's Correct!" gets a box its own size rather than the size of the
+     rule after it, and a piece that wraps has the box pulled snug round its
+     rows (snug). The first piece is fitted before the bird comes up, for
+     the reason paraQuizSay gives. */
+  const paraGhost = paraText.querySelector('.type-ghost');
+  const firstPiece = text => segChunks([{ t: text }])[0].segs.map(sg => sg.t).join('');
+  async function paraFitSay(text, tone) {
+    fitTo(paraGhost, firstPiece(text));
+    await speakerUp(paraTxt);
+    feedbackGen++;
+    paraText.classList.remove('ok', 'bad');
+    if (tone) paraText.classList.add(tone);
+    paraCaret.hidden = true;
+    swiftee.hold('talking');
+    await sayPieces(paraTxt, text, piece => fitTo(paraGhost, piece));
+    swiftee.release();
+  }
+  /* ...but the row the box stands in is held at the height of the tallest
+     piece it will hold, so the bird and the formulas under it never move as
+     the box changes size: the box grows upward from over the bird's head
+     (see .para.sides.formula .para-text). Measured with the half laid out. */
+  let paraRowLines = null;
+  function reserveParaRow(lines) {
+    paraRowLines = lines;
+    paraSay.style.minHeight = '';
+    let h = 0;
+    lines.forEach(line => segChunks([{ t: line }]).forEach(ch => {
+      fitTo(paraGhost, ch.segs.map(sg => sg.t).join(''));
+      h = Math.max(h, paraSay.offsetHeight);
+    }));
+    paraSay.style.minHeight = h + 'px';
+  }
+  window.addEventListener('resize', () => {
+    if (!para.classList.contains('formula') || !paraRowLines) return;
+    const now = paraTxt.textContent;
+    reserveParaRow(paraRowLines);
+    fitTo(paraGhost, now);
+  });
   /* the verdict on a name is a few short sentences, shown one at a time in the
      one box: each replaces the last, with a beat between them to read
      (user, 2026-09-28). A string on its own still works as a single line.
@@ -7022,7 +7208,8 @@
        longest line of this scene while there is nothing on the board to move */
     board.classList.add('sec4');
     promptReserve(longest([PARA.look1, PARA.never, PARA.look2, PARA.measure, PARA.fit1, PARA.fit2]
-      .concat(Object.keys(PARA2).map(k => PARA2[k]), PARA3.turn)));
+      .concat(Object.keys(PARA2).reduce((all, k) => all.concat(typeof PARA2[k] === 'string'
+        ? PARA2[k] : Object.keys(PARA2[k]).map(j => PARA2[k][j])), []), PARA3.turn)));
     buildPara();
     await wait(200);
     await showBoard();
@@ -7231,16 +7418,51 @@
     return built;
   }
 
+  /* ...where it stands: it stays in the left half for the quiz (user,
+     2026-09-29), so only the working and page 9's closing zoom go. The zoom
+     class goes first and its origin only once the scale is back to 1 --
+     cleared together, the origin jumps while the transform is still easing. */
   async function mendPara() {
     paraLines.classList.add('off');
     await wait(450);
+    const zoomed = para.classList.contains('zoomed');
+    zoomOut(para);
     paraShape.classList.remove('split', 'divided', 'cut-top', 'lit-b', 'lit-h',
-                               'lit-quad', 'focus-purple', 'focus-green');
+                               'lit-quad', 'focus-purple', 'focus-green', 'outline-split');
     if (paraFill) paraFill.style.opacity = 1;
-    await wait(600);
-    await layoutWide(para, paraSvg, false);
+    await wait(zoomed && !REDUCED ? 900 : 600);
+    unzoomContent(para);
     paraLines.textContent = '';
     paraLines.classList.remove('off');
+  }
+
+  /* a line of Swiftee's at the heading that stays up until the next one --
+     the bird stays for the whole working (headStay) */
+  const paraSay2 = t => heading(t).then(holdHeading);
+  const dimLabel = cls => dimGroup(cls).querySelector('.d-label');
+
+  /* One triangle's area, in conversation: the half comes forward, the line
+     is written in words while Swiftee says it, and then its b and its h
+     float off that half's own labels onto their words, each as it is named. */
+  async function paraTriangle(color, segs, talkLines, from) {
+    paraShape.classList.remove('lit-b', 'lit-h');
+    focusTri(color, paraShape);
+    pulseTri(paraShape, color);
+    await wait(REDUCED ? 200 : 600);
+    await paraSay2(talkLines.look);
+    await wait(REDUCED ? 150 : 500);
+    let talk = paraSay2(talkLines.area);
+    await wait(REDUCED ? 100 : 300);
+    await floatLine(segs, from, {
+      root: paraLines, onWord: onParaWord,
+      beforeFly: async key => {
+        await talk;
+        talk = paraSay2(talkLines[key]);
+        await wait(REDUCED ? 100 : 500);
+      }
+    });
+    await talk;
+    await wait(REDUCED ? 200 : 700);
   }
 
   async function paraArea() {
@@ -7265,9 +7487,22 @@
          A replay or a jump lands here with the bird behind the board and the
        box already down, and then there is nothing to hop: it comes up to the
        heading with the first line, as it does everywhere else. */
+    /* The shape keeps the size and the height on screen page 8 gave it,
+       and only slides across to the middle (user, 2026-09-29): it is held as
+       it stands before the hop -- kept at its height while the heading row
+       opens under the bird, moved down only as far as it must to stay clear
+       of the heading -- and then glides sideways into the middle, where it
+       stays that size for the base, the height and the cut. The move aside
+       for the working lets it go (layoutWide). */
+    let letGo = null;
+    if (para.classList.contains('sides')) {
+      pinDrawn(paraSvg);
+      letGo = holdHeight(paraSvg);
+    }
     if (paraMascot.classList.contains('in')) await hopBetween(paraMascot, boardMascot);
     clearParaSay();
-    if (para.classList.contains('sides')) await layoutWide(para, paraSvg, false, 'sides');
+    if (para.classList.contains('sides')) await layoutWide(para, paraSvg, false, 'sides', true);
+    if (letGo) letGo();
     /* Swiftee stays at the heading for the whole explanation -- the shape,
        the base, the height and the cut -- and through the working, rather
        than leaving and coming back between lines; the row is held open with
@@ -7305,23 +7540,78 @@
     await layoutWide(para, paraSvg);
     await wait(300);
     /* each triangle's area is written with that triangle alone lit: the
-       other half, and the base and height that belong to it, step back, so
-       the b and the h in the line being typed have exactly one pair on the
-       drawing to point at */
-    focusTri('purple', paraShape);
-    await wait(REDUCED ? 160 : 420);
-    await showTypedLine(PARA_LINES[0], paraLines, onParaWord);
-    await wait(760);
-    focusTri('green', paraShape);
-    await wait(REDUCED ? 160 : 420);
-    await showTypedLine(PARA_LINES[1], paraLines, onParaWord);
-    await wait(760);
-    /* the sum is about both halves: neither is held back for it */
+       other half, its border and the base and height that belong to it step
+       back, and its own border is drawn heavier, so the b and the h in the
+       line have exactly one pair on the drawing to come from. The line is
+       written in words, and each part then floats off the drawing onto its
+       word as Swiftee names it -- page 4's way -- with a Next after each
+       triangle (user, 2026-09-29). */
+    await paraTriangle('purple', PARA_LINES[0], PARA2.tri1,
+      { b: dimLabel('d-top'), h: dimLabel('d-right') });
+    await showNext();
+    await paraTriangle('green', PARA_LINES[1], PARA2.tri2,
+      { b: dimLabel('d-bottom'), h: dimLabel('d-left') });
+    await showNext();
+
+    /* the sum is about both halves: neither is held back while it is
+       written, "Area of Triangle 1 + Area of Triangle 2", each name lighting
+       its half as it lands. Then it is worked where it stands: the line
+       comes forward a step, and each name gives way to that triangle's area
+       -- "½ × b × h" -- with that half alone in focus as it does, first one
+       and then the other; the line settles back once both are in. */
+    paraShape.classList.remove('lit-b', 'lit-h');
     focusTri(null, paraShape);
     await wait(REDUCED ? 160 : 420);
-    await showTypedLine(PARA_LINES[2], paraLines, onParaWord);
-    await wait(760);
-    await showTypedLine(PARA_LINES[3], paraLines, onParaWord);
+    let talk = paraSay2(PARA2.whole);
+    await wait(REDUCED ? 100 : 300);
+    const sum = await showTypedLine(PARA_LINES[2], paraLines, onParaWord);
+    const sumTxt = sum.querySelector('.txt');
+    await talk;
+    await wait(REDUCED ? 300 : 1100);
+
+    talk = paraSay2(PARA2.swap);
+    await wait(REDUCED ? 200 : 700);
+    sum.classList.add('solving');
+    await wait(REDUCED ? 100 : 620);
+    for (const [k, color] of [[0, 'purple'], [1, 'green']]) {
+      focusTri(color, paraShape);
+      pulseTri(paraShape, color);
+      await wait(REDUCED ? 150 : 500);
+      await morphTo(sumTxt, PARA_SUM[k], false, true);
+      await wait(REDUCED ? 200 : 700);
+    }
+    await talk;
+    focusTri(null, paraShape);
+    sum.classList.remove('solving');
+    await wait(REDUCED ? 300 : 1000);
+
+    /* the fourth line: a copy of the third, as it is now, peels off under
+       its "=", and is worked down to b × h and then put into words, each
+       step as it is said */
+    const rhs = PARA_STEPS.map(rhsOf);
+    const work = await copyLine(sum, rhs[0], rhs[0], paraLines);
+    const workTxt = work.querySelector('.txt');
+    await wait(REDUCED ? 200 : 500);
+    work.classList.add('solving');
+    await wait(REDUCED ? 100 : 620);
+    let step = (async () => {
+      await wait(REDUCED ? 100 : 800);
+      onParaWord('para');
+      await morphTo(workTxt, rhs[1], false, true);
+    })();
+    await paraSay2(PARA2.half);
+    await step;
+    await wait(REDUCED ? 200 : 700);
+    step = (async () => {
+      await wait(REDUCED ? 100 : 600);
+      await morphTo(workTxt, rhs[2], false, true);
+    })();
+    await paraSay2(PARA2.words);
+    await step;
+    work.classList.remove('solving');
+    await wait(REDUCED ? 100 : 620);
+    await heading(PARA2.rule);
+    await wait(REDUCED ? 150 : 350);
     feedback(FEEDBACK.done);
     swiftee.play('proud', 1);
     skyConfetti(120, 3200);
@@ -7357,14 +7647,45 @@
     caret.hidden = true;
     ensurePara(true);
     paraEx.classList.add('gone');
+    clearParaSay();
+
+    /* 1. the working goes and the shape is put back together, still in the
+          left half */
     await mendPara();
-    await wait(300);
-    await dealChips(areaChips);
-    await wait(200);
-    await heading(PARA2.which);
-    await askChips(areaChips, AREA_ANSWER);
-    await heading(PARA2.right);
-    await wait(1800);
+
+    /* 2. page 4's name quiz, carried over (user, 2026-09-29): the board is
+          halved exactly, the shape keeping the left half and the right half
+          Swiftee's -- its box at the top, the three formulas under it. The
+          working's layout is half and half too, with no gutter, and its
+          lines are gone, so the shape already stands exactly where the quiz
+          wants it: the layouts are traded without a glide. From the middle
+          it glides across. `formula` does nothing without `sides`. */
+    para.classList.add('formula');
+    if (para.classList.contains('wide')) {
+      para.classList.remove('wide');
+      para.classList.add('sides');
+    } else await layoutWide(para, paraSvg, true, 'sides');
+    await wait(REDUCED ? 100 : 300);
+
+    /* 3. Swiftee comes up into its box and asks first; then the formulas
+          rise in under it one at a time. They are inert until askChips
+          takes their taps, and every answer is said from the same box,
+          which fits each piece as it comes. */
+    reserveParaRow([PARA2.which, PARA2.right].concat(Object.keys(AREA_WRONG).map(k => AREA_WRONG[k])));
+    await mascotJumpIn(paraMascot);
+    await wait(REDUCED ? 80 : 260);
+    await paraFitSay(PARA2.which);
+    await wait(REDUCED ? 100 : 320);
+    await revealGroup(areaChips, ROUND_IN);
+    sfx('click', .3);
+    await askChips(areaChips, AREA_ANSWER,
+      chip => paraFitSay(AREA_WRONG[chip.dataset.answer], 'bad'));
+    await paraFitSay(PARA2.right, 'ok');
+
+    /* 4. Swiftee stays with its answer, beside the formulas, until the
+          learner moves on: the formulas, the box and the trip up to the
+          heading all belong to the next scene (user, 2026-09-29) */
+    await wait(REDUCED ? 200 : 600);
     await showNext();
     await paraCheck();
   }
@@ -7391,45 +7712,87 @@
     lockInput(true);
     sceneStart(paraCheck);
 
-    /* the chips go, and the shape is measured */
+    /* Next has been pressed (user, 2026-09-29): the formulas drop away
+       with Swiftee's answer, and then the bird hops out of its box up to
+       the heading. The tray is only taken out of the room once the bird has
+       left: taken out first, the foot closed up under a bird still standing
+       in it and walked it down the half. A replay or a jump lands here with
+       the bird behind the board, and the heading's first line brings it up. */
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
     ensurePara(true);
+    paraShape.classList.remove('gold-b', 'gold-h');   /* a replay mid-hint */
     paraEx.classList.add('gone');
+    const shown = areaChips.filter(c => c.classList.contains('reveal'));
+    const gone = played(shown.length ? Motion.exit(shown, { keep: true, y: 10, duration: .32, stagger: .08 }) : null);
+    paraSay.classList.add('quiet');
+    await gone;
+    await wait(REDUCED ? 60 : 240);
+    if (paraMascot.classList.contains('in')) await hopBetween(paraMascot, boardMascot);
+    clearParaSay();
+    paraSay.style.minHeight = '';
     areaTray.classList.add('off');
-    await wait(460);
+    await wait(REDUCED ? 100 : 300);
+
+    /* and the shape is measured. Swiftee stays at the heading from here
+       through the three questions and their feedback (see below). */
     await measurePara();
+    headStay = true;
     await heading(PARA3.turn);
     await wait(300);
 
-    /* aside for the questions */
-    await layoutWide(para, paraSvg);
+    /* aside for the questions. From the quiz's halves the shape already
+       stands where the working's layout puts it, so the two are traded
+       without a glide (see paraAreaQuestion). */
+    if (para.classList.contains('sides')) {
+      para.classList.remove('sides', 'formula');
+      para.classList.add('wide');
+    } else await layoutWide(para, paraSvg);
     await wait(300);
 
     /* the questions, one at a time: each appears once the one before it has
        been got right. The base and the height are read off the shape, and
-       the part named lights up as it is answered; then the area itself. */
-    const right = () => feedback(FEEDBACK.right);
-    const wrong = () => feedback(FEEDBACK.wrong);
-    const ask = async (label, opts, answer, onRight) => {
+       the part named lights up as it is answered; then the area itself.
+       Swiftee stays at the heading for the three and says a line on every
+       answer (user, 2026-09-29, after page 6): a wrong one names the
+       measurement to look at and the drawing glows gold there, held until
+       the next try; a right one says what was found, and the gold goes. */
+    const goldGlow = (...parts) => {
+      paraShape.classList.remove('gold-b', 'gold-h');
+      parts.forEach(p => paraShape.classList.add('gold-' + p));
+    };
+    const sayLine = text => { heading(text).catch(() => {}); holdHeading(); };
+    const right = (text, lit) => () => {
+      feedback(FEEDBACK.right);
+      goldGlow();
+      if (lit) paraShape.classList.add(lit);
+      if (text) sayLine(text);
+    };
+    const wrong = (text, ...parts) => () => { sayLine(text); goldGlow(...parts); };
+    const ask = async (label, opts, answer, onRight, onWrong) => {
       const q = questionLine(label, opts);
       await showLine(q.line, paraLines);
       lockInput(false);
-      await q.dd.ask(v => v === answer, onRight, wrong);
+      await q.dd.ask(v => v === answer, onRight, onWrong);
       lockInput(true);
     };
     await ask('The base of the parallelogram is',
-      [{ v: '8', t: '8 cm' }, { v: '5', t: '5 cm' }, { v: '13', t: '13 cm' }],
-      '8', () => { right(); paraShape.classList.add('lit-b'); });
+      [{ v: '8', t: '8 cm' }, { v: '5', t: '5 cm' }, { v: '13', t: '13 cm' }], '8',
+      right(PARA3.rightBase, 'lit-b'), wrong(PARA3.wrongBase, 'b'));
     await wait(700);
     await ask('The height is',
-      [{ v: '5', t: '5 cm' }, { v: '8', t: '8 cm' }, { v: '3', t: '3 cm' }],
-      '5', () => { right(); paraShape.classList.add('lit-h'); });
+      [{ v: '5', t: '5 cm' }, { v: '8', t: '8 cm' }, { v: '3', t: '3 cm' }], '5',
+      right(PARA3.rightHeight, 'lit-h'), wrong(PARA3.wrongHeight, 'h'));
     await wait(700);
+    /* the area takes both measurements, so a wrong one glows both. Its right
+       line is waited for: the celebration's "Well Done!" would stop it
+       mid-type and send the bird off with half of it on screen. */
     await ask('The area of the parallelogram is',
-      [{ v: '40', t: '40 sq. cm' }, { v: '13', t: '13 sq. cm' }, { v: '20', t: '20 sq. cm' }],
-      '40', right);
+      [{ v: '40', t: '40 sq. cm' }, { v: '13', t: '13 sq. cm' }, { v: '20', t: '20 sq. cm' }], '40',
+      right(null), wrong(PARA3.wrongArea, 'b', 'h'));
+    await heading(PARA3.rightArea);
+    headStay = false;
     feedback(FEEDBACK.done);
     onParaWord('para');
     swiftee.play('proud', 1);

@@ -413,6 +413,17 @@ body {
    short line never drifts away from the bird inside the box reserved for
    the section's longest line -- and a line that wraps keeps both rows left */
 .prompt .type { text-align: left; }
+/* A heading sentence stands on one row (user, 2026-09-29). A line with more
+   than one "=" is set as the "=" table (.eqgrid, for the working), which in
+   the heading stacked "= 40 sq. cm." under "Area = 8 × 5": here the table
+   is laid back out as a run of words, and neither the line nor its ghost
+   may break. `pre` rather than `nowrap`, so the spaces the words carry are
+   kept exactly as pre-wrap kept them. */
+.prompt .eqgrid,
+.prompt .eqgrid > .lhs,
+.prompt .eqgrid > .rhs { display: inline; }
+.prompt .type,
+.prompt .type-ghost { white-space: pre; }
 
 /* ---------- the words ease in ----------
  * script.js lays a line out whole, a span per word, and shows the words one
@@ -1475,23 +1486,6 @@ body {
   transition: opacity .36s ease;
 }
 .say-row.off .say-text { opacity: 0; }
-/* With the shape alone in the middle of the board, the aside stands up
-   beside its lower right edge rather than centred under it, so the bird
-   reads as talking about the shape (review, 2026-09-25). A transform lifts
-   it, so the foot keeps its height and the shape does not move. The line
-   stays on one row: letting it wrap in a flex item let the box shrink to
-   its longest word, one word a line (review, 2026-09-25). */
-.quad:not(.wide):not(.ask) .say-row {
-  justify-self: start;
-  /* clear of the shape's lower right corner, with room between the two
-     (user, 2026-09-28: more space between the bird and the shape) */
-  margin-left: 56%;
-  transform: translateY(calc(var(--mascot) * -.3));
-}
-.quad:not(.wide):not(.ask) .say-row .say-text { flex: none; }
-/* plain words here, no box behind them (review, 2026-09-25). Doubled class:
-   it has to outrank the shared box rule further down. */
-.quad:not(.wide):not(.ask) .say-row .say-text.say-text { background: none; padding: 0; border: 0; }
 .say-text .type-wrap { display: inline-block; vertical-align: top; }
 .say-text .type { white-space: nowrap; }
 
@@ -1586,25 +1580,6 @@ body {
   justify-self: stretch;     /* the row is the block's width, not the pair's */
   width: 100%;
 }
-/* ---------- the aside, in the quiz's half ----------
- * The shape stays in the left half from the quiz to the end of the page
- * (user, 2026-09-28: move it only when needed), so Swiftee's two lines
- * about it are said from the right half: the bird a little below the
- * middle, beside the shape's lower half and clear of it, with its line in
- * the box beside it. The box wraps inside the half the way the quiz's
- * does, and script.js pulls it snug round its rows (snug). */
-.quad.ask .say-row {
-  width: 100%;
-  box-sizing: border-box;
-  justify-content: flex-start;
-  padding-left: calc(var(--mascot) * .15);
-  transform: translateY(calc(var(--mascot) * .3));
-}
-.quad.ask .say-row .say-text { flex: 0 1 auto; min-width: 0; white-space: normal; }
-.quad.ask .say-row .say-text .type-wrap { display: block; }
-.quad.ask .say-row .say-text .type-ghost { display: block; }
-.quad.ask .say-row .say-text .type,
-.quad.ask .say-row .say-text .type-ghost { white-space: pre-wrap; text-wrap: balance; text-align: center; }
 
 /* ---------- the working, side by side ----------
  * Once the diagonal is in, the board's middle cell turns into two columns:
@@ -1732,6 +1707,56 @@ body {
 .para.sides .fact .type,
 .para.sides .fact .type-ghost { white-space: nowrap; }
 .para.sides .fact { font-size: max(var(--fs-min), min(clamp(var(--fs-min), 3vh, 28.6px), 5.6cqw)); }
+
+/* ---------- page 10: which formula is the area ----------
+ * Page 4's name quiz, carried over (user, 2026-09-29): the shape stays in
+ * the left half and the right half is Swiftee's -- the bird comes up in
+ * its box and asks, and the three formulas rise in under it one at a time.
+ * Exactly half and half, no gutter, as page 4 is. The formulas stand in one
+ * row, as page 4's names do (user, 2026-09-29: side by side, not stacked).
+ * The name quiz and the facts share their cell, and are taken out of the
+ * flow so they cannot size it. */
+.para.sides.formula { gap: 0; }
+/* the formulas stand close under the bird, so the three read as its
+   question's answers rather than a list of their own */
+.para.sides.formula .para-foot { row-gap: clamp(10px, 2.6vh, 28px); }
+.para.sides.formula .para-ask,
+.para.sides.formula .facts { display: none; }
+/* Three formulas at their usual size are wider than half the board, and a
+   row that wrapped would break two and one: in this half their lettering
+   (and so their padding, in em) is capped in the half's own width -- the
+   foot is the size container -- so the three always fit on one line. */
+.para.sides.formula .area-tray {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 1.8cqw;
+}
+.para.sides.formula .area-tray .chip.formula {
+  font-size: min(calc(var(--fs-chip) * 1.15), 3.7cqw);
+  padding-inline: .6em;
+  white-space: nowrap;
+}
+/* the bird keeps its place at the left of the half and the box grows and
+   shrinks to its right, as page 4's does: centred as one group, the pair
+   walked sideways each time the box refitted to a new line */
+.para.sides.formula .para-say {
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding-left: clamp(24px, 4vw, 80px);
+}
+/* The box fits each piece it says (script.js, paraFitSay): capped in the
+   line's own size, so a long piece breaks into rows the box closes round
+   rather than one the width of the half. It stands on its bottom edge over
+   the bird's head, and the row is held at the height of its tallest piece
+   (reserveParaRow), so a box that changes size grows and shrinks upward and
+   nothing under it moves. The ghost breaks balanced, as the live words do,
+   so the box can be pulled snug round the rows it actually has. */
+.para.sides.formula .para-text {
+  align-self: flex-end;
+  max-width: min(16em, calc(100% - var(--mascot) * .9));
+}
+.para.sides.formula .para-text .type-ghost { text-wrap: balance; }
 
 /* the working leaves before the shape comes back to the middle */
 .area-lines { transition: opacity .4s ease; }
@@ -2047,6 +2072,18 @@ body {
 .para-shape.focus-purple .c-green,
 .para-shape.focus-purple .d-bottom,
 .para-shape.focus-purple .d-left { opacity: .2; filter: blur(1.6px); }
+/* ...and the borders with them (user, 2026-09-29): the outline gives way to
+   the two triangles' own sides, the focused one drawn heavier -- the cut
+   too, since it is a side of either -- and the other one's faded */
+.para-shape .tri-outline { transition: opacity .5s ease, stroke-width .45s ease; }
+.para-shape.outline-split .shape-outline { opacity: 0; }
+.para-shape.outline-split .tri-outline   { opacity: 1; }
+.para-shape.focus-purple .ol-purple,
+.para-shape.focus-green  .ol-green { stroke-width: 6; }
+.para-shape.focus-purple .join-line,
+.para-shape.focus-green  .join-line { stroke-width: 5; }
+.para-shape.focus-purple .ol-green,
+.para-shape.focus-green  .ol-purple { stroke-width: 2.4; opacity: .24; }
 
 /* ---------- under the shape ----------
  * The two-chip quiz, the area quiz, the working and the facts share one
@@ -6302,3 +6339,32 @@ body {
 .quad-shape .lbl-purple { fill: var(--quad-base-lbl); }
 #dimArrowPurple path,
 #dimArrowGreen path { stroke: var(--quad-base-lbl); }
+
+/* ---------- page 11's drop-downs, a size up (user, 2026-09-29) ----------
+ * The answer in the box and the options under it were at the chip size, well
+ * under the question they finish. They now read at the question's own size.
+ * The options sit closer together to pay for it: at the old spacing the last
+ * one of the area's menu ran past the foot of the board on a short screen. */
+.para.wide .q-line .dd-btn,
+.para.wide .q-line .dd-opt { font-size: 1em; }
+.para.wide .q-line .dd-opt { padding: .2em .8em; }
+
+/* ---------- page 11's quiz hint (user, 2026-09-29) ----------
+ * Page 6's, on the parallelogram: a wrong answer glows the measurement the
+ * question asks about in gold -- the base's arrow and its length, or the
+ * height's line and its length; the area's glows both -- until the next try. */
+.para-shape.gold-b .d-bottom .d-arrow,
+.para-shape.gold-b .d-bottom .d-head,
+.para-shape.gold-b .d-bottom .d-label,
+.para-shape.gold-h .d-left .d-height,
+.para-shape.gold-h .d-left .d-head,
+.para-shape.gold-h .d-left .d-label { --fig-glow: var(--glow-gold); animation: fig-hint 1.1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .para-shape.gold-b .d-bottom .d-arrow, .para-shape.gold-b .d-bottom .d-head,
+  .para-shape.gold-b .d-bottom .d-label,
+  .para-shape.gold-h .d-left .d-height, .para-shape.gold-h .d-left .d-head,
+  .para-shape.gold-h .d-left .d-label {
+    animation: none;
+    filter: drop-shadow(0 0 4px var(--fig-glow)) drop-shadow(0 0 12px var(--fig-glow));
+  }
+}
