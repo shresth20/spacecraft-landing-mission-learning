@@ -122,11 +122,15 @@
      lavender blue so it cannot be taken for the pink one before it. The two sides
      the learner can move, and the points that move them, borrow the base
      highlight's orange; the angle marks at the crossing of the diagonals are
-     inked in the heading colour and go green the moment they are right
-     angles. */
+     inked in the heading colour and go gold the moment they are right
+     angles. Gold, not the feedback green: the green sat at the lavender's
+     own lightness and all but vanished into it (user, 2026-09-29). The
+     "90°" takes the gold's deep shade, which reads on the fill. */
   --rhom-fill:   var(--shape-lavender);
   --rhom-border: var(--border-lavender);
   --rhom-live:   var(--base-hl);
+  --rhom-right:     #FFC800;
+  --rhom-right-ink: #6B3A00;
 
   /* Section 6 -- the trapezium is the palette's berry: deeper than the
      parallelogram's pink, so it sits beside the peach triangle and the
@@ -234,6 +238,8 @@
   --tint-heading:    rgba(133, 52, 94, .14);    /* --heading       */
   --glow-heading:    rgba(133, 52, 94, .45);    /* --heading       */
   --tint-rhom:       rgba(76, 85, 214, .18);    /* --rhom-border   */
+  --tint-rhom-right: rgba(252, 241, 241, .55);  /* --board-highlight */
+  --edge-rhom-right: rgba(98, 31, 55, .85);     /* --rock-dark     */
   --tint-trap:       rgba(162, 48, 138, .18);   /* --trap-border   */
 
   /* ---- speech bubble ----
@@ -2384,14 +2390,15 @@ body {
 .rhom-shape.degrees .ang-lbl { opacity: 1; }
 .rhom-shape.clean   .ang-lbl { opacity: 0; }
 
-/* the moment the diagonals are perpendicular: every mark goes green */
+/* the moment the diagonals are perpendicular: every mark goes gold, edged
+   dark so it stands off the lavender, over a pale square */
 .rhom-shape.square .ang-stroke {
-  stroke: var(--correct);
+  stroke: var(--rhom-right);
   stroke-width: 3.6;
-  filter: drop-shadow(0 0 3px var(--glow-correct));
+  filter: drop-shadow(0 0 1.2px var(--edge-rhom-right));
 }
-.rhom-shape.square .ang-fill { fill: var(--tint-correct); }
-.rhom-shape.square .ang-lbl  { fill: var(--correct); }
+.rhom-shape.square .ang-fill { fill: var(--tint-rhom-right); }
+.rhom-shape.square .ang-lbl  { fill: var(--rhom-right-ink); }
 /* and swell once when the showcase points at them */
 .rhom-shape.pulse-sq .ang { animation: ang-pop .7s cubic-bezier(.2, .9, .3, 1.4); }
 @keyframes ang-pop {
@@ -2459,6 +2466,8 @@ body {
   transition: opacity .3s ease;
 }
 .rhom-hint.on { opacity: 1; }
+/* shown with the line, before the learner's turn: a guide, not a nudge */
+.rhom-hint.on.soft { opacity: .45; }
 .rhom-hint path {
   fill: var(--heading);
   stroke: var(--board-highlight);
@@ -2852,15 +2861,30 @@ body {
 /* every occupant shares the one cell, so the row is only as tall as the
    tallest of them and the shape above keeps its room */
 .rhom-foot > * { grid-area: 1 / 1; }
+/* The line stands in the middle of the board, under the shape, and Swiftee
+   beside it on the left (user, 2026-09-29): three columns, the line in the
+   middle one and the bird at the inner edge of the left one, so the bird is
+   not counted when the line is centred. */
 .rhom-say {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  justify-self: stretch;
   align-items: center;
   gap: clamp(10px, 2.2vw, 30px);
   opacity: 0;
   visibility: hidden;
   transition: opacity .4s ease, visibility 0s linear .4s;
 }
+.rhom-say > .mascot { grid-column: 1; justify-self: end; }
+.rhom-say > .say-text { grid-column: 2; }
 .rhom-say.show { opacity: 1; visibility: visible; transition: opacity .4s ease; }
+/* held for the whole of page 13, unseen: counted by the foot, so its room is
+   there before the board is -- even while the section is still hidden -- and
+   the shape above never shrinks when the line arrives (see rhombusSection).
+   Visible at once, not after the row's usual delay, or the room is measured
+   while the row still reads as hidden. */
+.rhom-say.held { visibility: visible; transition: opacity .4s ease; }
+.rhom-say.held:not(.show) { pointer-events: none; }
 /* the name lands in bold, with a highlighter in the shape's own hue */
 .rhom-say .w,
 .practice-say .w {
@@ -4300,7 +4324,22 @@ body {
    from shares its half with the bird. Later than the shared type sizes. */
 .trap.wide .trap-note .type,
 .trap.wide .trap-note .type-ghost { white-space: pre-wrap; }
-.trap.wide .trap-note { font-size: var(--fs-heading); }
+.trap.wide .trap-note { font-size: clamp(22px, 3.8vh, 34px); }
+/* The name quiz is page 4's (user, 2026-09-29): the bird stands at the left
+   end of the names under it, and its box is up over its head, refitted to
+   every piece it says -- .quad.ask's rules, for the same box. */
+.trap.wide .quiz-block .trap-note {
+  align-self: flex-start;
+  margin: 0 0 calc(var(--mascot) * 1.0) calc(var(--mascot) * -.4);
+  max-width: min(560px, calc(100% - var(--mascot) * .9));
+  padding: .42em .95em .46em;
+}
+.trap.wide .quiz-block .trap-say { margin: 0 0 clamp(10px, 2.6vh, 28px) clamp(30px, 5vw, 100px); }
+.trap.wide .quiz-block .trap-say.trap-say {
+  justify-content: flex-start;
+  justify-self: stretch;
+  width: 100%;
+}
 
 /* ---------- clearing the board for section 6 ----------
  * The rhombus scenes are finished: their section keeps its box but gives up
@@ -4559,6 +4598,9 @@ body {
      (review, 2026-09-25) */
   background: var(--board-highlight);
 }
+/* ...except the rhombus's name on page 13, which stands bare beside the
+   bird under the shape (user, 2026-09-29): no fill, no edge, no padding */
+#rhomText { background: none; border: 0; padding: 0; }
 /* the boxed verdict pops out of that tail, the way the greeting's does */
 .quiz-block .trap-note.ok,
 .quiz-block .trap-note.bad,

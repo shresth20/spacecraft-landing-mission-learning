@@ -33,10 +33,22 @@ typographic `’` used in the source.
 
 ### Audio already in the project
 
-Every line below has been cut from the master recording (`voice.mp3`) into a
-clip of its own under **`assets/VO/`**, named `<ID>-<first words>.mp3` — for
-example `P04-06-lets-try-and-find-its-area.mp3`. 114 clips in all, mono,
-128 kbps, ~6.4 MB together.
+Every line below has been cut from a master recording into a clip of its own
+under **`assets/VO/`**, named `<ID>-<first words>.mp3` — for example
+`P04-06-lets-try-and-find-its-area.mp3`. All clips are mono, 128 kbps.
+
+There are two recordings, in two voices:
+
+- **Pages 1–8** (P01-01 … P08-02, FB-01 … FB-04) are cut from the **new
+  voice**, `voice 1-2.mp3` (29 Sep 2026). This take also covers every line on
+  those pages that was marked *needs recording* before — the page 4 working
+  (P04-13 … P04-20), the page 5 formula boxes (P05-04 … P05-09) and the page 7
+  answers (P07-02 … P07-04).
+- **Pages 9–30** are still the clips cut from the **old voice** (`voice.mp3`).
+  They keep playing until the new voice records those pages; the four lines
+  the two pages share ("What shape is this?", "So, its area will be …",
+  "Let’s put in each triangle’s area." and the feedback bank) now play in
+  the new voice wherever they appear.
 
 The four hand-made clips that used to sit in `assets/audio/` have been
 replaced by these and removed; that folder now holds only the four sound
@@ -70,6 +82,7 @@ word lands a little before the voice finishes the sentence.
 | FB-01 | FEEDBACK | That’s Correct |
 | FB-02 | FEEDBACK | Try again |
 | FB-03 | REWARD | Well Done! |
+| FB-04 | FEEDBACK | Not quite! |
 
 These three are written into the heading box after a drop, a tap or a
 drop-down answer, on pages 2, 4–7, 9–12, 14–21, 23–24, 27–30. Record once; they
@@ -115,17 +128,17 @@ Feedback on this page: FB-01, FB-02, FB-03.
 | P04-06 | INSTRUCTION | Let’s try and find its area! | Swiftee's line beside the shape |
 | P04-07 | INSTRUCTION | Join the corners to draw a diagonal. | Heading (Swiftee comes up with it, having left after P04-06) |
 | P04-08 | FEEDBACK | Try again! Join the left and right corners. | Heading, on a wrong pair of corners |
-| P04-09 | NARRATION | Now, the quadrilateral is divided into two triangles. Let’s look at each triangle. | Heading — **re-record** (was "The quadrilateral is divided into two triangles."; the old clip plays under the new line until then) |
-| P04-13 | NARRATION | Let’s say the base of this triangle is b. | Heading, Triangle 1 forward — **needs recording** |
-| P04-14 | NARRATION | And its height is h₁. | Heading — **needs recording** |
-| P04-15 | NARRATION | So, its area will be … | Heading; the line writes itself beside the shape — **needs recording** |
-| P04-16 | NARRATION | This triangle has the same base b. | Heading, Triangle 2 forward (after Next) — **needs recording** |
-| P04-17 | NARRATION | And its height is h₂. | Heading — **needs recording** |
+| P04-09 | NARRATION | Now, the quadrilateral is divided into two triangles. Let’s look at each triangle. | Heading |
+| P04-13 | NARRATION | Let’s say the base of this triangle is b. | Heading, Triangle 1 forward |
+| P04-14 | NARRATION | And its height is h₁. | Heading |
+| P04-15 | NARRATION | So, its area will be … | Heading; the line writes itself beside the shape |
+| P04-16 | NARRATION | This triangle has the same base b. | Heading, Triangle 2 forward (after Next) |
+| P04-17 | NARRATION | And its height is h₂. | Heading |
 | P04-18 | NARRATION | So, its area will be … *(reuse of P04-15)* | Heading |
 | P04-10 | NARRATION | Let’s put in each triangle’s area. | Heading (after Next) |
 | P04-11 | NARRATION | Both triangles share the same base b. | Heading |
-| P04-19 | NARRATION | The base b is the diagonal. | Heading; a copy of the rule's b becomes "Diagonal" — **needs recording** |
-| P04-20 | NARRATION | And h₁ + h₂ is the sum of the perpendicular heights. | Heading; the bracket becomes "Sum of perpendicular heights" — **needs recording** |
+| P04-19 | NARRATION | The base b is the diagonal. | Heading; a copy of the rule's b becomes "Diagonal" |
+| P04-20 | NARRATION | And h₁ + h₂ is the sum of the perpendicular heights. | Heading; the bracket becomes "Sum of perpendicular heights" |
 | P04-12 | NARRATION | So this is the area of the quadrilateral! | Heading |
 
 ## Page 5 — Quadrilateral · the other diagonal
@@ -135,8 +148,13 @@ Feedback on this page: FB-01, FB-02, FB-03.
 | P05-01 | INSTRUCTION | Let’s try a different way! | Heading |
 | P05-02 | FEEDBACK | Try again! Join the top and bottom corners. | Heading, on a wrong pair of corners |
 | P05-03 | NARRATION | Two new triangles! Let’s find their areas. | Heading |
-| P05-04 | INSTRUCTION | Complete the formula for the area of the quadrilateral. | Heading, once the shape has moved aside — **needs recording** |
-| P05-06 | NARRATION | So this is the area of the quadrilateral! *(reuse of P04-12)* | Heading, once both boxes are right |
+| P05-04 | INSTRUCTION | Complete the formula for the area of the quadrilateral. | Heading, once the shape has moved aside |
+| P05-05 | INSTRUCTION | Choose the diagonal of the quadrilateral. | Heading, the first box |
+| P05-06 | FEEDBACK | This is the height of the orange triangle. | Heading, red — on h₁ in the first box |
+| P05-07 | FEEDBACK | This is the height of the purple triangle. | Heading, red — on h₂ in the first box |
+| P05-08 | INSTRUCTION | Choose the sum of the perpendicular heights. | Heading, the second box |
+| P05-09 | FEEDBACK | We add the two heights, not the diagonal. | Heading, red — on a wrong sum |
+| P05-10 | NARRATION | So this is the area of the quadrilateral! *(reuse of P04-12)* | Heading, once both boxes are right |
 
 On-screen only (no VO): the rule in words is typed out,
 "Area of Quadrilateral = ½ × (Diagonal) × (Sum of perpendicular heights)";
@@ -157,6 +175,9 @@ the first offers b / h₁ / h₂, the second h₁ + h₂ / b + h₁ / b + h₂.
 | ID | Type | Line | Where |
 |---|---|---|---|
 | P07-01 | INSTRUCTION | Now it’s your turn! Find the area of this quadrilateral. | Heading |
+| P07-02 | FEEDBACK | Not quite! Look at the measure of the heights. | Heading, on a wrong sum; the heights glow gold |
+| P07-03 | FEEDBACK | Not quite! Look at the measure of the diagonal. | Heading, on a wrong diagonal; the diagonal glows gold |
+| P07-04 | FEEDBACK | Area of a general quadrilateral = ½ × diagonal × sum of perpendicular heights. | Heading, on a wrong area |
 
 On-screen only — the three drop-down question labels: "The sum of the
 perpendicular heights is", "Diagonal length is", "The area of the
@@ -481,7 +502,7 @@ there too. No new recordings needed.
 | **New recordings needed (pages 1–30)** | **112** |
 | Shared feedback lines (FB-01…FB-03) | 3 |
 | Appendix lines (not currently played) | 6 |
-| Clips already recorded | 2 (plus 2 unused) |
+| Clips in `assets/VO/` | 131 (pages 1–8 in the new voice, pages 9–30 in the old) |
 
 ---
 
@@ -505,6 +526,7 @@ Great! Now let’s recall their area formulas.
 That’s Correct
 Try again
 Well Done!
+Not quite!
 
 — Page 3 · Triangles, base and height —
 Triangles can look different, but their area depends on the base and height.
@@ -512,8 +534,8 @@ Let’s observe their base and height.
 
 — Page 4 · Quadrilateral, one diagonal —
 What shape is this?
-Incorrect. A triangle has 3 sides.
-Incorrect. A pentagon has 5 sides.
+Not quite! A triangle has 3 sides.
+Not quite! A pentagon has 5 sides.
 Correct. A quadrilateral has 4 sides.
 This is a general quadrilateral.
 Let’s try and find its area!
@@ -536,6 +558,11 @@ Let’s try a different way!
 Try again! Join the top and bottom corners.
 Two new triangles! Let’s find their areas.
 Complete the formula for the area of the quadrilateral.
+Choose the diagonal of the quadrilateral.
+This is the height of the orange triangle.
+This is the height of the purple triangle.
+Choose the sum of the perpendicular heights.
+We add the two heights, not the diagonal.
 
 — Page 6 · Quadrilateral, with measurements —
 Here is a different quadrilateral.
@@ -547,6 +574,9 @@ Now it’s your turn! Find the area of this quadrilateral.
 The sum of the perpendicular heights is
 Diagonal length is
 The area of the quadrilateral is
+Not quite! Look at the measure of the heights.
+Not quite! Look at the measure of the diagonal.
+Area of a general quadrilateral = ½ × diagonal × sum of perpendicular heights.
 
 — Page 8 · Aside, special quadrilaterals —
 We know how to find the area of a general quadrilateral.

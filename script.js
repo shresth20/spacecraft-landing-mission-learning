@@ -121,7 +121,7 @@
  *      one slides the top side up and down its slant, the other the right
  *      side left and right, and the shape, its diagonals and the four angles
  *      follow every frame. The moment the sides come out equal the four arcs
- *      morph together into little squares and go green
+ *      morph together into little squares and go gold
  *   4. the showcase: a glow runs right round the shape and leaves a tick on
  *      each side ("All four sides are equal in length!"), the squares swell
  *      ("And the diagonals meet at a right angle (90°)."), and the heading
@@ -1338,6 +1338,17 @@
     void room.offsetHeight;
     room.style.transition = '';
   }
+  /* ...and the other way: a room opened to what it holds at once, while the
+     board is still out of sight, so the shape is first seen at the size it
+     keeps rather than shrinking as the room eases open under it */
+  function openRoomNow(room) {
+    const pending = roomClose.get(room);
+    if (pending) { clearTimeout(pending); roomClose.delete(room); }
+    room.style.transition = 'none';
+    setRoom(room, roomHeight(room));
+    void room.offsetHeight;
+    room.style.transition = '';
+  }
   if (rooms.length) {
     new MutationObserver(askRooms).observe(board, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden'] });
     /* the hopper carries the bird on and off the board from outside it, and
@@ -1413,8 +1424,10 @@
 
   /* ---------- voice-over ----------
    * Every spoken line in the mission has a clip of its own under assets/VO,
-   * cut from the one master recording and named for the page it belongs to
-   * (P04-06-lets-try-and-find-its-area.mp3).
+   * cut from the master recordings and named for the page it belongs to
+   * (P04-06-lets-try-and-find-its-area.mp3). Pages 1-8 are cut from the
+   * newer recording (voice 1-2.mp3); the rest still play the older voice
+   * until they are recorded again.
    *
    * The clips are keyed by THE LINE ITSELF rather than by the call site, and
    * that is the whole of the wiring:
@@ -1461,6 +1474,8 @@
       'FB-02-try-again',
     'well done!':
       'FB-03-well-done',
+    'not quite!':
+      'FB-04-not-quite',
     'triangles can look different, but their area depends on the base and height.':
       'P03-01-triangles-can-look-different-but-their-area-depends',
     'let\'s observe their base and height.':
@@ -1468,9 +1483,9 @@
     'what shape is this?':
       'P04-01-what-shape-is-this',
     'not quite! a triangle has 3 sides.':
-      'P04-02-incorrect-a-triangle-has-3-sides',
+      'P04-02-not-quite-a-triangle-has-3-sides',
     'not quite! a pentagon has 5 sides.':
-      'P04-03-incorrect-a-pentagon-has-5-sides',
+      'P04-03-not-quite-a-pentagon-has-5-sides',
     'correct. a quadrilateral has 4 sides.':
       'P04-04-correct-a-quadrilateral-has-4-sides',
     'this is a general quadrilateral.':
@@ -1478,15 +1493,29 @@
     'let\'s try and find its area!':
       'P04-06-lets-try-and-find-its-area',
     'join the corners to draw a diagonal.':
-      'P04-07-join-the-corners-to-divide-the-quadrilateral-into',
+      'P04-07-join-the-corners-to-draw-a-diagonal',
     'try again! join the left and right corners.':
       'P04-08-try-again-join-the-left-and-right-corners',
     'now, the quadrilateral is divided into two triangles. let\'s look at each triangle.':
-      'P04-09-the-quadrilateral-is-divided-into-two-triangles',
+      'P04-09-now-the-quadrilateral-is-divided-into-two-triangles',
+    'let\'s say the base of this triangle is b.':
+      'P04-13-lets-say-the-base-of-this-triangle-is',
+    'and its height is h₁.':
+      'P04-14-and-its-height-is-h1',
+    'so, its area will be …':
+      'P04-15-so-its-area-will-be',
+    'this triangle has the same base b.':
+      'P04-16-this-triangle-has-the-same-base-b',
+    'and its height is h₂.':
+      'P04-17-and-its-height-is-h2',
     'let\'s put in each triangle\'s area.':
       'P04-10-lets-put-in-each-triangles-area',
     'both triangles share the same base b.':
       'P04-11-both-triangles-share-the-same-base-b',
+    'the base b is the diagonal.':
+      'P04-19-the-base-b-is-the-diagonal',
+    'and h₁ + h₂ is the sum of the perpendicular heights.':
+      'P04-20-and-h1-h2-is-the-sum-of-the',
     'so this is the area of the quadrilateral!':
       'P04-12-so-this-is-the-area-of-the-quadrilateral',
     'let\'s try a different way!':
@@ -1495,6 +1524,18 @@
       'P05-02-try-again-join-the-top-and-bottom-corners',
     'two new triangles! let\'s find their areas.':
       'P05-03-two-new-triangles-lets-find-their-areas',
+    'complete the formula for the area of the quadrilateral.':
+      'P05-04-complete-the-formula-for-the-area-of-the',
+    'choose the diagonal of the quadrilateral.':
+      'P05-05-choose-the-diagonal-of-the-quadrilateral',
+    'this is the height of the orange triangle.':
+      'P05-06-this-is-the-height-of-the-orange-triangle',
+    'this is the height of the purple triangle.':
+      'P05-07-this-is-the-height-of-the-purple-triangle',
+    'choose the sum of the perpendicular heights.':
+      'P05-08-choose-the-sum-of-the-perpendicular-heights',
+    'we add the two heights, not the diagonal.':
+      'P05-09-we-add-the-two-heights-not-the-diagonal',
     'here is a different quadrilateral.':
       'P06-01-here-is-a-different-quadrilateral',
     'let\'s look at its base and heights.':
@@ -1503,6 +1544,12 @@
       'P06-03-choose-the-base-and-height-for-each-triangle',
     'now it\'s your turn! find the area of this quadrilateral.':
       'P07-01-now-its-your-turn-find-the-area-of',
+    'not quite! look at the measure of the heights.':
+      'P07-02-not-quite-look-at-the-measure-of-the',
+    'not quite! look at the measure of the diagonal.':
+      'P07-03-not-quite-look-at-the-measure-of-the',
+    'area of a general quadrilateral = ½ × diagonal × sum of perpendicular heights.':
+      'P07-04-area-of-a-general-quadrilateral-half-x-diagonal',
     'we know how to find the area of a general quadrilateral.':
       'P08-01-we-know-how-to-find-the-area-of',
     'now, let\'s find the area of some special quadrilaterals!':
@@ -2009,6 +2056,7 @@
      be replayed, and Replay stays down for it. */
   function sceneStart(again) {
     headStay = false;   /* only the warm-up holds the heading; it sets this itself */
+    birdStay = false;   /* ...and the trapezium pages hold the bird wherever it stands (holdBird) */
     sceneSeq++;
     noteScene(again, stageNow());
     showTools();
@@ -4654,6 +4702,13 @@
   /* the warm-up keeps the heading's bird up between its lines, until round
      2's line has been said (see startRound) */
   var headStay = false;
+  /* The trapezium pages (22 to 29) keep the bird up WHEREVER it is standing
+     -- the heading, or a spot beside the working -- until the scene is over:
+     a bird that hopped away after every line and back in for the next read
+     as flickering (user, 2026-09-29). Set by the scene, cleared by the next
+     sceneStart. */
+  var birdStay = false;
+  function holdBird() { headStay = true; birdStay = true; }
   const HEAD_KEEP_MS = 2600;
   function speaker(txt, spot, clear) {
     SPEAKERS.set(txt, { spot: spot, clear: clear || null, gone: false, timer: 0 });
@@ -4668,6 +4723,7 @@
   function speakerDone(txt) {
     const sp = SPEAKERS.get(txt);
     if (!sp) return;
+    if (birdStay) return;
     if (headStay && sp.spot === boardMascot) return;
     if (sp.timer) clearTimeout(sp.timer);
     const mine = runToken;
@@ -7828,7 +7884,7 @@
    * their labels. The diagonals of a parallelogram are perpendicular exactly
    * when its sides are all equal, so the moment a and b come within a whisker
    * of each other they lock together and the arcs morph into squares, all
-   * four at once, and go green; drag away and they unlock and morph back.
+   * four at once, and go gold; drag away and they unlock and morph back.
    *
    * Once the learner lets go with them locked: a glow runs right round the
    * shape and leaves a tick on each side, the squares swell, the heading
@@ -8047,7 +8103,7 @@
   }
 
   /* the lengths lock or unlock: the marks morph between arc and square, all
-     four together, and take or lose their green */
+     four together, and take or lose their gold */
   function setSnapped(on) {
     if (rh.snapped === on) return;
     rh.snapped = on;
@@ -8123,22 +8179,36 @@
   }
 
   /* the hint: a finger takes hold of the right-hand point and nudges it to
-     the left and back, twice, unless the learner takes hold first */
-  async function hintRhom(signal) {
+     the left and back, twice, unless the learner takes hold first. Given
+     `lead` -- the line Swiftee is saying -- it first shows the move once,
+     faintly, as the line is said (user, 2026-09-29), and waits for a stall
+     only once the line is done and the turn is the learner's. */
+  async function hintRhom(signal, lead) {
     const S = 1.5;                                  /* the hand's scale */
     const at = (x, y) => rhomHint.setAttribute('transform',
       'translate(' + fmt(x - 11.5 * S) + ' ' + fmt(y - 3 * S) + ') scale(' + S + ')');
-    await idleFor(signal);
-    for (let pass = 0; pass < 2 && !signal.done && !fastForward; pass++) {
+    const nudge = async () => {
       const P = rhomPts();
       const x0 = P.BR.x, y0 = P.BR.y + 4;           /* the fingertip on the point */
       at(x0, y0);
       rhomHint.classList.add('on');
       await wait(320);
-      if (signal.done) break;
+      if (signal.done) return;
       await tween(1100, e => at(x0 - 48 * Math.sin(e * Math.PI), y0), easeInOut);
       await wait(200);
+    };
+    if (lead) {
+      if (!signal.done && !fastForward) {
+        rhomHint.classList.add('soft');
+        await nudge();
+        rhomHint.classList.remove('on');
+        await wait(300);                            /* faded out before it is full again */
+        rhomHint.classList.remove('soft');
+      }
+      await lead;
     }
+    await idleFor(signal);
+    for (let pass = 0; pass < 2 && !signal.done && !fastForward; pass++) await nudge();
     rhomHint.classList.remove('on');
   }
 
@@ -8236,6 +8306,15 @@
     board.classList.add('sec5');
     promptReserve(longest([RHOM.drag, RHOM.sides, RHOM.right, RHOM.named]));
     buildRhom();
+    /* The shape keeps one size for the whole page (user, 2026-09-29): the
+       foot opening under it -- first for the trays as the section came in,
+       then for Swiftee's line at the end -- shrank it twice. The line's row
+       is held from here, before the board is seen, and let go on the next
+       page (rhombusArea). Swiftee stays at the heading for the whole page
+       too, the learner's turn included, until it hops down in step 7. */
+    rhomSay.classList.add('held');
+    openRoomNow(rhomSay.parentElement);
+    headStay = true;
     await wait(200);
     await showBoard();
     await wait(300);
@@ -8275,11 +8354,14 @@
           make the angles right angles. A finger shows the first nudge. */
     rhomShape.classList.add('live');
     await wait(300);
-    await heading(RHOM.drag);          /* the bird comes up with this line */
-    /* the finger shows the first nudge once the learner is free to move,
-       and stands down the moment they take hold themselves */
+    await mascotWithLine(RHOM.drag);   /* the bird comes up with this line */
+    /* the finger shows the nudge faintly as the line is said, again in full
+       if the learner then stalls, and stands down the moment they take hold
+       themselves */
     hintSignal = { done: false };
-    hintRhom(hintSignal);
+    const said = heading(RHOM.drag);
+    hintRhom(hintSignal, said);
+    await said;
     await awaitRhombus();
     /* A replay (or Back) lets go of the wait above too, having already
        retired this run of the scene -- so a wait() from here on would take
@@ -8321,7 +8403,9 @@
     /* 7. Swiftee hops down beside the shape and says so. The heading's line
           is cleared once the hop has handed the sprite to the flyer, not
           before: cleared first, the centred row shoved the still-standing
-          bird sideways before it moved. */
+          bird sideways before it moved. The heading's hold on the bird
+          ends here: the conversation is over and the hop takes it down. */
+    headStay = false;
     feedbackGen++;
     caret.hidden = true;
     rhomSay.classList.add('show');
@@ -8332,6 +8416,9 @@
     await wait(240);
     swiftee.hold('talking');
     await typeSegments(rhomTxt, rhomCaret, RHOM.final, TYPE_MS, 320, null);
+    /* the bird and its line stay up beside the shape until Next is
+       pressed (user, 2026-09-29); the next scene takes them down */
+    cancelDismiss(rhomTxt);
     swiftee.release();
     await wait(300);
     swiftee.play('happy', 1);
@@ -8519,6 +8606,12 @@
     sceneStart(rhombusArea);
     const mine = runToken;
     promptReserve(longest(Object.keys(RHOM2).map(k => RHOM2[k])));
+    /* From here to the end of the rhombus section (page 20) Swiftee stays
+       at the heading once it is up -- the questions, the answers and the
+       Next button included -- rather than leaving after each line and
+       jumping back for the next (user, 2026-09-29). Each scene sets it for
+       itself, as sceneStart drops it. */
+    headStay = true;
 
     /* 1. the last scene clears: Swiftee ducks behind the board from beside
           the shape, its line goes, and the shape stands alone */
@@ -8547,7 +8640,7 @@
       renderRhom();
     }
     if (rhomMascot.classList.contains('in')) await mascotJumpOut(rhomMascot);
-    rhomSay.classList.remove('show');
+    rhomSay.classList.remove('show', 'held');
     await wait(500);
 
     /* 2. the tilt: the marks of the last scene fade as the shape turns */
@@ -8648,6 +8741,7 @@
   async function rhombusSum() {
     lockInput(true);
     sceneStart(rhombusSum);
+    headStay = true;             /* Swiftee stays at the heading: see rhombusArea */
     promptReserve(longest(Object.keys(RHOM2).map(k => RHOM2[k])));
     feedbackGen++;
     promptTxt.textContent = '';
@@ -9007,6 +9101,7 @@
   async function rhombusNumbers() {
     lockInput(true);
     sceneStart(rhombusNumbers);
+    headStay = true;             /* Swiftee stays at the heading: see rhombusArea */
     const mine = runToken;
     promptReserve(longest([NUM.drag, NUM.right]));
     feedbackGen++;
@@ -9429,6 +9524,7 @@
   function practiceOpen(again) {
     lockInput(true);
     sceneStart(again);
+    headStay = true;             /* Swiftee stays at the heading: see rhombusArea */
     promptReserve(longest(PRACTICE_GHOST));
     feedbackGen++;
     promptTxt.textContent = '';
@@ -9671,6 +9767,9 @@
     await wait(REDUCED ? 80 : 300);
     swiftee.hold('talking');
     await typeSegments(rcTxt, rcCaret, [{ t: RC.ask }], TYPE_MS, 320, null);
+    /* ...and neither is the bird: both stay in the panel until Next, and
+       the next question hops the bird back up to the heading from here */
+    cancelDismiss(rcTxt);
     swiftee.release();
     await wait(REDUCED ? 100 : 380);
 
@@ -9779,13 +9878,15 @@
    * The third special quadrilateral, in two levels.
    *
    * Level 1. Swiftee's aside is over: the bird drops out of the frame, the
-   * board comes back blank and a trapezium draws itself in the middle of it.
-   * "This is a [ v ]" appears under it with a drop-down -- Kite,
-   * Parallelogram, Trapezium -- and Swiftee jumps in beside the sentence and
-   * points the learner at the arrow, as it did for the quadrilateral. Each
-   * choice is answered in a banner under the sentence, red or green, and
+   * board comes back blank and a trapezium draws itself in the middle of it,
+   * then glides to the left half. Swiftee jumps up into the right half and
+   * asks "What shape is this?" from its box; three names fade up under it
+   * -- Kite, Parallelogram, Trapezium -- one to tap, page 4's way (user,
+   * 2026-09-29). Each choice is answered in the same box, red for a wrong
+   * name with what that shape has instead, green for the right one, and
    * either way the shape takes its "parallel" marks, so the answer can be
-   * checked against the shape itself.
+   * checked against the shape itself. The bird stays beside its verdict
+   * until Next.
    *
    * Level 2. The sentence goes and Swiftee ducks behind the board; the
    * trapezium fades and six cards take its place, three of them trapeziums
@@ -9806,7 +9907,7 @@
   const trapCards  = document.getElementById('trapCards');
   const cardGrid   = document.getElementById('cardGrid');
   const trapQuiz   = document.getElementById('trapQuiz');
-  const trapDD     = document.getElementById('trapDD');
+  const trapNames  = Array.from(document.querySelectorAll('#trapNames .chip'));
   const trapNote   = document.getElementById('trapNote');
   const trapNoteTxt   = trapNote.querySelector('.txt');
   const trapNoteCaret = trapNote.querySelector('.caret');
@@ -9815,6 +9916,7 @@
   const trapChips  = Array.from(trapTray.querySelectorAll('.chip'));
 
   const TRAP = {
+    ask:    'What shape is this?',
     answer: 'trapezium',
     notes: {
       kite:          'Almost! A kite has two pairs of equal sides next to each other. Check the shape carefully.',
@@ -9826,17 +9928,28 @@
   };
   const TRAP_GHOST = [TRAP.select, TRAP.match, FEEDBACK.done];
 
-  /* the banner's ghost holds its longest line from the first frame */
-  trapNote.querySelector('.type-ghost').textContent =
-    longest(Object.keys(TRAP.notes).map(k => TRAP.notes[k]));
-  /* the answer's remark is not typed: it is laid out whole and every word
-     eases in together, so the learner reads one sentence rather than
-     watching it arrive */
-  function trapSay(text) {
+  /* ---- Swiftee's box ----
+   * The question and every verdict are spoken from the box beside the bird,
+   * page 4's way (quizSay): the box is fitted to the piece it is saying, the
+   * words come all at once, green for the right name and red for a wrong
+   * one -- and nothing takes the bird down between them. */
+  const trapGhost = trapNote.querySelector('.type-ghost');
+  speaker(trapNoteTxt, trapMascot, () => trapNote.classList.remove('show', 'ok', 'bad'));
+  async function trapQuizSay(text, tone) {
+    /* fitted before the bird is brought up, for the reason quizSay gives:
+       sized after the jump, the box shoves a bird that has already landed */
+    fitTo(trapGhost, firstPiece(text));
+    await speakerUp(trapNoteTxt);
+    feedbackGen++;
+    trapNote.classList.remove('ok', 'bad');
+    if (tone) trapNote.classList.add(tone);
     trapNoteCaret.hidden = true;
-    return sayPieces(trapNoteTxt, text);   /* a piece at a time, as it is said */
+    swiftee.hold('talking');
+    const said = sayPieces(trapNoteTxt, text, piece => fitTo(trapGhost, piece));
+    trapNote.classList.add('show');
+    await said;
+    swiftee.release();
   }
-  const trapQuizDD = ddController(trapDD);
 
   /* the trapezium's corners, clockwise from the top left, in the svg's units */
   const TRAP_PTS = [{ x: 62, y: 8 }, { x: 358, y: 8 }, { x: 412, y: 252 }, { x: 8, y: 252 }];
@@ -9868,89 +9981,19 @@
     trapShape.classList.remove('marked', 'away');
   }
 
-  /* ---- Swiftee's answer to a choice ----
-   * One shape of beat for both answers, so the learner learns to read it:
-   * the bird springs up from behind the board and lands under the sentence;
-   * its remark pops out beside it, green for the right name and red for a
-   * wrong one, in the words and the box's edge alike; the box shuts again,
-   * and the bird drops off the bottom of the screen.
-   *
-   * The shape takes its parallel marks on the first answer, whichever it is,
-   * so the learner can check the answer against the shape itself. */
-  let trapBeat = 0;                 /* the answer being played out */
-  let trapFlow = Promise.resolve(); /* ...and the tail of the run playing it */
-  let trapHoldGo = null;            /* lets go of a beat that is only reading time */
-
-  /* A wait that a later answer can cut short. The learner may try again the
-     moment the box empties, which is while the remark from the last try is
-     still standing; the sooner that run reaches its next check, the sooner
-     the new one has the bird. */
-  function trapHold(ms) {
-    return new Promise(res => {
-      const go = () => { clearTimeout(t); trapHoldGo = null; res(); };
-      const t = setTimeout(go, fastForward ? 0 : ms);
-      trapHoldGo = go;
-    });
-  }
-
-  async function playTrapAnswer(v, beat) {
-    const mine = runToken;
-    /* still the newest answer, and still this run of the scene */
-    const live = () => beat === trapBeat && mine === runToken;
-
-    if (!trapShape.classList.contains('marked')) {
-      trapShape.classList.add('marked');
-      sfx('click', .35);
-    }
-
-    /* 1. up from behind the board and down onto the spot under the sentence
-          -- unless it is already standing there from the last try */
-    if (!trapMascot.classList.contains('in')) {
-      await mascotJumpIn(trapMascot);
-      if (!live()) return;
-      await trapHold(REDUCED ? 100 : 240);
-      if (!live()) return;
-    }
-
-    /* 2. the remark pops out of the box beside it. The words are laid into
-          the box before it opens, so a second try never shows the last
-          try's line for the frame before its own is written. */
-    trapNote.classList.remove('ok', 'bad');
-    trapNote.classList.add(v === TRAP.answer ? 'ok' : 'bad');
-    const said = trapSay(TRAP.notes[v] || TRAP.notes.parallelogram);
-    trapNote.classList.add('show');
-    await said;
-    if (!live()) return;
-
-    /* 3. said: only a beat, then the remark and the bird go (user,
-          2026-09-25) -- the voice-over has already been heard to its end */
-    await trapHold(REDUCED ? 300 : 500);
-    if (!live()) return;
-
-    /* 4. ...then the box shuts and the bird drops out of the screen */
-    trapNote.classList.remove('show');
-    await trapHold(REDUCED ? 120 : 300);
-    if (!live()) return;
-    await mascotDropOut(trapMascot);
-  }
-
-  /* Each answer takes over from the one before rather than racing it: the
-     run in flight is released at its next check and leaves the bird where
-     it stands, and the new run picks it up from there. */
-  function trapAnswer(v) {
-    const beat = ++trapBeat;
-    if (trapHoldGo) trapHoldGo();
-    trapFlow = trapFlow.catch(() => {}).then(() => playTrapAnswer(v, beat));
-    return trapFlow;
-  }
-
-  /* the quiz is over, by an answer or by a replay: the bird and its box go
-     back to where the scene expects to find them */
+  /* the quiz is over, by an answer or by a replay: the box shuts, the names
+     go back to untouched, and the bird -- if it is still standing beside the
+     box -- is put back behind the board for the scene to bring up again */
   function resetTrapSay() {
-    trapBeat++;
-    if (trapHoldGo) trapHoldGo();
+    feedbackGen++;
     trapNote.classList.remove('show', 'ok', 'bad');
+    trapNoteTxt.textContent = '';
+    trapNoteCaret.hidden = true;
     trapMascot.classList.remove('in', 'dropping');
+    trapNames.forEach(c => {
+      c.classList.remove('reveal', 'correct', 'reject', 'spent');
+      c.disabled = false;
+    });
   }
 
   /* the names go home between scenes: a replay may find them docked in a
@@ -9977,7 +10020,7 @@
        Back into this scene may find both otherwise */
     boardMascot.classList.remove('in');
     resetTrapSay();
-    trapDD.querySelector('.dd-value').textContent = '';
+    holdBird();                            /* the bird stays beside its box until Next */
 
     /* 1. the aside ends: the bubble pops away and Swiftee drops out of the
           frame, as it did before the board first arrived */
@@ -10010,23 +10053,41 @@
     await layoutWide(trap, trapSvg, true);
     await wait(300);
 
-    /* 3. "This is a ..." with a drop-down; the box's own placeholder and
-          the hand beside it point the learner at the arrow */
+    /* 3. Swiftee comes up from behind the board into the right half and
+          asks what the shape is first; the three names then fade up under
+          it, one to tap (page 4's way, user, 2026-09-29). The names are
+          inert until dealt -- askChips is what takes their taps. */
     trapNote.classList.remove('show', 'ok', 'bad');
+    trapQuiz.classList.remove('off', 'done');
     trapQuiz.classList.add('show');
     await wait(REDUCED ? 200 : 440);
-    trapDD.classList.add('hint');
-    lockInput(false);
-    await trapQuizDD.ask(v => v === TRAP.answer, trapAnswer, trapAnswer);
-    lockInput(true);
+    await mascotJumpIn(trapMascot);
+    await wait(REDUCED ? 100 : 260);
+    await trapQuizSay(TRAP.ask);
+    await wait(REDUCED ? 100 : 320);
+    await dealChips(trapNames);
+    /* the shape takes its parallel marks on the first answer, whichever it
+       is, so the answer can be checked against the shape itself */
+    const mark = () => {
+      if (trapShape.classList.contains('marked')) return;
+      trapShape.classList.add('marked');
+      sfx('click', .35);
+    };
+    /* a wrong name is turned down in the box, in red, with what that shape
+       has instead; the right one is confirmed in green */
+    await askChips(trapNames, TRAP.answer, chip => {
+      mark();
+      trapQuizSay(TRAP.notes[chip.dataset.answer] || TRAP.notes.parallelogram, 'bad');
+    });
     /* a replay lets go of the wait above too, having already retired this
        run of the scene: unwind here rather than carry on into the fresh one */
     if (mine !== runToken) throw CANCELLED;
-    /* the right answer's own beat plays out in full -- bird down, remark,
-       bird away -- and Next waits for it rather than for a guessed clock */
-    await trapFlow.catch(() => {});
+    mark();
+    await trapQuizSay(TRAP.notes[TRAP.answer], 'ok');
     if (mine !== runToken) throw CANCELLED;
-    await wait(REDUCED ? 120 : 320);
+    /* the verdict stays up, and the bird with it, until Next: nothing pops
+       away the moment it has been said (user, 2026-09-29) */
+    await wait(REDUCED ? 300 : 1200);
 
     /* 4. named: Next */
     await showNext();
@@ -10501,20 +10562,32 @@
     sceneStart(trapSelect);
     const mine = runToken;
     homeTrapChips();
-    resetTrapSay();                        /* a Back may find the quiz's bird still down there */
-    boardMascot.classList.remove('in');    /* it jumps in from behind the board below */
+    holdBird();                            /* the bird stays at the heading for the whole page */
     promptReserve(longest(TRAP_GHOST));
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
 
-    /* 1. the sentence goes; the trapezium fades while it is mid-air */
+    /* 1. the verdict and the names go, and the bird hops from beside the
+          shape up to the heading -- the trapezium fading and the halves
+          closing while it is mid-air -- rather than vanishing where it
+          stood and jumping in again from behind the board (user,
+          2026-09-29). A Back or a jump into this scene finds the bird
+          wherever the last scene left it, and the hop brings it up from
+          there. */
+    trapNote.classList.remove('show');
     trapQuiz.classList.add('off');
     await wait(260);
-    trapShape.classList.add('away');
-    trapQuiz.classList.remove('show', 'off');
-    trap.classList.remove('wide');         /* the halves close back into one */
-    trap.classList.add('lvl2');            /* the sentence's row gives up its room */
+    const shut = () => {
+      trapShape.classList.add('away');
+      trapQuiz.classList.remove('show', 'off');
+      trapNote.classList.remove('ok', 'bad');
+      trapNoteTxt.textContent = '';
+      trap.classList.remove('wide');       /* the halves close back into one */
+      trap.classList.add('lvl2');          /* the names' row gives up its room */
+    };
+    if (trapMascot.classList.contains('in')) await hopBetween(trapMascot, boardMascot, shut);
+    else shut();
     await wait(REDUCED ? 200 : 480);
 
     /* 2. the six cards, dealt one after another */
@@ -10530,31 +10603,20 @@
     }
     await wait(500);
 
-    /* 3. Swiftee jumps up from behind the board, says what to do, and
-          ducks back down to leave the board to the learner -- taking the
-          line with it, so the board is the cards and nothing else */
-    await heading(TRAP.select);        /* the bird comes up with this line */
-    await wait(900);
-    const down = mascotJumpOut();
-    await wait(260);
-    feedbackGen++;
-    promptTxt.textContent = '';
-    caret.hidden = true;
-    await down;
-    /* the line is gone and nothing is coming to replace it: the heading's
-       row gives up its box, and the cards take the room */
-    trap.classList.add('bare');
-    await wait(620);
+    /* 3. Swiftee says what to do from the heading, and stays there with
+          the line while the learner picks: it is the instruction, and the
+          bird is not sent away and brought back around it (user,
+          2026-09-29) */
+    await heading(TRAP.select);
+    await wait(REDUCED ? 200 : 600);
 
     /* 4. the learner picks the trapeziums out, each tap answered at once */
     await selectCards();
     if (mine !== runToken) throw CANCELLED;
     await wait(1400);
 
-    /* 5. the heading's row opens again, and Next -- straight on into the
-          scalene trapezium's area, the naming-the-kinds step skipped */
-    trap.classList.remove('bare');
-    await wait(620);
+    /* 5. Next -- straight on into the scalene trapezium's area, the
+          naming-the-kinds step skipped */
     await showNext();
     await scalArea();
   }
@@ -11316,6 +11378,7 @@
   async function rtArea(kind, entry) {
     lockInput(true);
     sceneStart(entry);
+    holdBird();                  /* Swiftee stays at the heading for the whole derivation */
     promptReserve(longest(rtHeadLines(kind)));
     feedbackGen++;
     promptTxt.textContent = '';
@@ -11424,6 +11487,7 @@
   async function rtHalf(kind, entry) {
     lockInput(true);
     sceneStart(entry);
+    holdBird();                  /* ...and beside the working, once it has hopped down */
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
@@ -12014,6 +12078,7 @@
   async function trapNumbers() {
     /* the bird goes behind the board: the shape draws itself alone */
     const mine = await tpOpen(trapNumbers, true);
+    holdBird();                  /* up with its first line, and there for the whole page */
     homeTpChips();
     rtrapQuiz.classList.remove('show');
     rtrapFormula.classList.remove('show');
@@ -12074,16 +12139,11 @@
     tnPanel.classList.add('show');
     await layoutWide(rtrap, fig.querySelector('svg'), true, 'solve');
 
-    /* ---- 7. the line has had its three and a half seconds; the bird takes
-         it back behind the board, and the formula builds on a quiet board ---- */
-    await wait(REDUCED ? 300 : 3500);
-    const out = mascotJumpOut();
-    await wait(REDUCED ? 60 : 260);
-    feedbackGen++;
-    promptTxt.textContent = '';
-    caret.hidden = true;
-    await out;
-    await wait(REDUCED ? 100 : 320);
+    /* ---- 7. a moment with the line, then the formula builds. The bird
+         stays at the heading with it, and for every question after: it used
+         to duck out here and come back for the first question, and out and
+         back between the questions too (user, 2026-09-29) ---- */
+    await wait(REDUCED ? 200 : 1400);
     await tnReveal();
     await wait(REDUCED ? 120 : 460);
 
@@ -12349,6 +12409,7 @@
   async function trapPractice1() {
     /* the bird goes behind the board: the shape draws itself alone */
     const mine = await tpOpen(trapPractice1, true);
+    holdBird();                  /* up with its first line, and there for the whole page */
     homeTpChips();
     rtrapQuiz.classList.remove('show');
     rtrapFormula.classList.remove('show');
@@ -12415,16 +12476,9 @@
     tnPanel.classList.add('show');
     await layoutWide(rtrap, fig.querySelector('svg'), true, 'solve');
 
-    /* ---- 7. the line has had its two seconds; the bird takes it back
-         behind the board and the questions begin on a quiet one ---- */
-    await wait(REDUCED ? 200 : 2000);
-    const out = mascotJumpOut();
-    await wait(REDUCED ? 60 : 260);
-    feedbackGen++;
-    promptTxt.textContent = '';
-    caret.hidden = true;
-    await out;
-    await wait(REDUCED ? 100 : 320);
+    /* ---- 7. a moment with the line, and the questions begin under it; the
+         bird stays at the heading throughout (user, 2026-09-29) ---- */
+    await wait(REDUCED ? 200 : 1000);
 
     /* ---- 8. one value at a time, and each answer writes itself out under
          the question as the working it was read off ---- */
@@ -12486,6 +12540,7 @@
   /* 4. the area of the same trapezium, out of the two values just found */
   async function trapPractice2() {
     const mine = await tvOpen(trapPractice2);
+    holdBird();                  /* the bird is still at the heading from page 27, and stays */
 
     /* whatever page 29 left is taken as given, and built outright when a
        replay or a jump has landed here without it */
@@ -12678,6 +12733,7 @@
   async function trapPractice3() {
     /* the bird goes behind the board: the shape draws itself alone */
     const mine = await tpOpen(trapPractice3, true);
+    holdBird();                  /* the question's bird stays beside it while the learner solves */
     homeTpChips();
     rtrapQuiz.classList.remove('show');
     rtrapFormula.classList.remove('show');
