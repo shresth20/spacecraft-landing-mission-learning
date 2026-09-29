@@ -1476,7 +1476,7 @@
       'FB-03-well-done',
     'not quite!':
       'FB-04-not-quite',
-    'triangles can look different, but their area depends on the base and height.':
+    'triangles can look different. but their area depends on the base and height.':
       'P03-01-triangles-can-look-different-but-their-area-depends',
     'let\'s observe their base and height.':
       'P03-02-lets-observe-their-base-and-height',
@@ -1554,10 +1554,10 @@
       'P08-01-we-know-how-to-find-the-area-of',
     'now, let\'s find the area of some special quadrilaterals!':
       'P08-02-now-lets-find-the-area-of-some-special',
-    'that\'s correct! this is a parallelogram.':
-      'P09-02-thats-correct-this-is-a-parallelogram',
-    'check it has two parallel sides.':
-      'P09-03-check-it-has-two-parallel-sides',
+    'correct!':
+      'P09-02-thats-correct',
+    'this is a parallelogram.':
+      'P09-12-this-is-a-parallelogram',
     'look at the top and bottom sides.':
       'P09-04-look-at-the-top-and-bottom-sides',
     'they run side by side and never meet.':
@@ -1722,6 +1722,35 @@
       'P30-02-use-half-x-sum-of-the-parallel-sides',
   };
 
+  /* The same line with its punctuation set aside. A comma that became a
+     full stop -- "different. But" for "different, but" -- or a dropped
+     exclamation mark is still the same sentence to the ear, so a line that
+     misses the map on its exact words is looked up once more this way. The
+     exact key is always tried first: "That's Correct" and "That's Correct!"
+     keep their own clips. */
+  function voLoose(key) {
+    return key.replace(/[^a-z0-9½×₁₂+= ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  const VO_LOOSE = Object.create(null);
+  Object.keys(VO_FILE).forEach(function (k) {
+    const l = voLoose(k);
+    if (!(l in VO_LOOSE)) VO_LOOSE[l] = VO_FILE[k];
+  });
+
+  /* A line with no clip is typed in silence, as it always was -- but it is
+     also named once in the console, so a line whose words drift away from
+     its key is found by playing the page rather than by ear. */
+  const voMissed = Object.create(null);
+  function voStem(text) {
+    const key = voKey(text);
+    const stem = VO_FILE[key] || VO_LOOSE[voLoose(key)] || null;
+    if (!stem && !voMissed[key]) {
+      voMissed[key] = true;
+      if (typeof console !== 'undefined' && console.warn) console.warn('[VO] no clip for: ' + text);
+    }
+    return stem;
+  }
+
   /* Built on first use and kept: a line said again -- on this page or six
      pages later -- plays the element it played the first time. */
   const voBank = Object.create(null);
@@ -1729,7 +1758,7 @@
 
   function voFor(text) {
     const key = voKey(text);
-    const stem = VO_FILE[key];
+    const stem = voStem(text);
     if (!stem) return null;
     let a = voBank[key];
     if (!a) {

@@ -72,6 +72,9 @@ word lands a little before the voice finishes the sentence.
 
 | ID | Line | Why |
 |---|---|---|
+| P09-13 | Parallelogram has two pairs of parallel sides. | page 9 verdict, third sentence — needs recording |
+| P09-14 | This is not a trapezium. | page 9, wrong name, second sentence — needs recording |
+| P09-15 | Trapezium has only one pair of parallel sides. | page 9, wrong name, third sentence — needs recording |
 | P30-03 | The parallel sides are 30 cm and 40 cm, and the height is 15 cm. | **reachable in the game** (page 30, second wrong try) — needs recording |
 | X-01 … X-06 | the appendix lines below | those scenes are not in the running order |
 
@@ -113,7 +116,7 @@ Feedback on this page: FB-01, FB-02, FB-03.
 
 | ID | Type | Line | Where |
 |---|---|---|---|
-| P03-01 | NARRATION | Triangles can look different, but their area depends on the base and height. | Heading |
+| P03-01 | NARRATION | Triangles can look different. But their area depends on the base and height. | Heading |
 | P03-02 | INSTRUCTION | Let’s observe their base and height. | Heading |
 
 ## Page 4 — Quadrilateral · one diagonal
@@ -197,8 +200,12 @@ Board goes; Swiftee speaks from its speech bubble on the landscape.
 | ID | Type | Line | Where |
 |---|---|---|---|
 | P09-01 | INSTRUCTION | What shape is this? *(reuse of P04-01)* | Swiftee's banner beside the shape |
-| P09-02 | FEEDBACK | That’s Correct! This is a parallelogram. | Banner, green |
-| P09-03 | HINT | Check it has two parallel sides. | Banner, red |
+| P09-02 | FEEDBACK | Correct! | Banner, green — the verdict is said a sentence at a time; this plays the "That’s Correct!" half of the old take |
+| P09-12 | FEEDBACK | This is a parallelogram. | Banner, green — the other half of the old take |
+| P09-13 | FEEDBACK | Parallelogram has two pairs of parallel sides. | Banner, green — **needs recording** |
+| P09-03 | HINT | Not quite! *(FB-04)* | Banner, red |
+| P09-14 | HINT | This is not a trapezium. | Banner, red — **needs recording** |
+| P09-15 | HINT | Trapezium has only one pair of parallel sides. | Banner, red — **needs recording** |
 | P09-04 | NARRATION | Look at the top and bottom sides. | Banner |
 | P09-05 | NARRATION | They run side by side and never meet. | Banner |
 | P09-06 | NARRATION | The left and right sides do the same! | Banner |
@@ -229,6 +236,9 @@ Board goes; Swiftee speaks from its speech bubble on the landscape.
 | P10-14 | NARRATION | Two halves of b × h make one whole b × h. | Heading |
 | P10-15 | NARRATION | That is base × height! | Heading |
 | P10-16 | NARRATION | So this is the area of the parallelogram! | Heading |
+
+P10-05 … P10-16 (the two triangles' working) have no clip yet — they were
+not on either recording and type in silence. **Needs recording.**
 
 ## Page 11 — Parallelogram · the formula
 
@@ -529,7 +539,7 @@ Well Done!
 Not quite!
 
 — Page 3 · Triangles, base and height —
-Triangles can look different, but their area depends on the base and height.
+Triangles can look different. But their area depends on the base and height.
 Let’s observe their base and height.
 
 — Page 4 · Quadrilateral, one diagonal —
@@ -583,8 +593,12 @@ We know how to find the area of a general quadrilateral.
 Now, let’s find the area of some special quadrilaterals!
 
 — Page 9 · Parallelogram, its sides —
-That’s Correct! This is a parallelogram.
-Check it has two parallel sides.
+Correct!
+This is a parallelogram.
+Parallelogram has two pairs of parallel sides.
+Not quite!
+This is not a trapezium.
+Trapezium has only one pair of parallel sides.
 Look at the top and bottom sides.
 They run side by side and never meet.
 The left and right sides do the same!
