@@ -1610,6 +1610,9 @@ body {
    questions are long sentences with a drop-down on the end. */
 .para.wide,
 .rhom.wide { grid-template-columns: minmax(0, 1fr) minmax(min-content, 1fr); }
+/* no gutter between the rhombus's halves either, as page 4's and the
+   parallelogram's (user, 2026-09-29) */
+.rhom.wide { gap: 0; }
 /* no gutter between the parallelogram's halves either (user, 2026-09-28) */
 .para.wide { gap: 0; }
 /* ...and section 5, the learner's own go, is half and half for the same
@@ -1635,16 +1638,12 @@ body {
 .para.wide .facts,
 .rhom.wide .rhom-say,
 .rhom.wide .rhom-quiz,
-.rhom.wide .practice-tray,
-.rhom.wide .rhom-tray { display: none; }
+.rhom.wide .practice-tray { display: none; }
 /* the parallelogram's working only exists while the shape is aside; back in
-   the middle the cell is the quiz's again. The rhombus has one more place
-   for it: `.work`, the line each triangle's answer is written on with the
-   shape still in the middle of the board, in the cell the chips just left */
+   the middle the cell is the quiz's again. The rhombus's the same. */
 .para .area-lines,
 .rhom .area-lines { display: none; }
 .para.wide .area-lines,
-.rhom.work .area-lines,
 .rhom.wide .area-lines { display: grid; }
 .quad.wide .area-lines,
 .para.wide .area-lines,
@@ -1791,6 +1790,9 @@ body {
 .area-line .w.lit.w-h1,
 .area-line .w.lit.w-h2       { background: var(--height-hl);        color: var(--board-highlight); }
 .area-line .w.lit.w-rhom     { background: var(--rhom-fill);        color: var(--rock-dark); }
+/* the rule in words: "Product of Diagonals" in d1's hue, as page 4's
+   "Diagonal" is in its base's */
+.area-line .w.lit.w-diags    { background: var(--base-hl);          color: var(--rock-dark); }
 
 /* ---------- lines with drop-downs in them ----------
  * A formula line runs as one sentence -- words, coloured chips and two small
@@ -2299,7 +2301,13 @@ body {
   opacity: 0;
   transition: opacity .45s ease, visibility 0s linear .45s;
 }
-.rhom.on { visibility: visible; opacity: 1; transition: opacity .45s ease; }
+.rhom.on { visibility: visible; opacity: 1; transition: opacity .45s ease, transform .9s cubic-bezier(.22, 1, .36, 1); }
+/* the area page's closing zoom once Swiftee has left the heading
+   (script.js, zoomContent sets the scale and the origin), as the
+   quadrilateral's and the parallelogram's */
+.rhom.zoomed {
+  transform: translate(var(--scene-tx, 0px), var(--scene-ty, 0px)) scale(var(--scene-zoom, 1));
+}
 
 /* ---------- clearing the board for section 5 ----------
  * The parallelogram scenes are finished: their section keeps its box but
@@ -2325,7 +2333,9 @@ body {
   display: grid;
   place-items: center;
   --shape-fill: var(--rhom-fill);
-  --shape-border: var(--rhom-border);
+  /* the rhombus's border matches the quadrilateral's (user, 2026-09-29);
+     the short diagonal and the word "Rhombus" keep --rhom-border */
+  --shape-border: var(--quad-border);
 }
 .rhom-shape svg {
   display: block;
@@ -2339,6 +2349,11 @@ body {
   max-height: calc(100% - var(--art-lift));
   overflow: visible;
 }
+/* ...except beside the working: in half the board the width binds, and a
+   drawing this wide and short was left at the top of a tall column with the
+   lines centred beside it. It keeps the middle of its room there, level
+   with them (user, 2026-09-29). */
+.rhom.wide .rhom-shape svg { --art-lift: max(0px, (100cqh - 56.8cqw) / 2); }
 .rhom-shape .art { filter: drop-shadow(0 3px 5px var(--shadow-soft)); }
 
 /* the diagonals, grown corner to corner in the shape's own border colour */
@@ -2497,15 +2512,43 @@ body {
 
 /* ---------- the area lesson ----------
  * The shape has been tilted so its diagonals lie flat and upright. d1 is
- * drawn along the long diagonal in the base hue and d2 up the short one in
- * the height hue, with a right-angle mark at their crossing; each half of d2
+ * drawn along the long diagonal the way page 4 draws its diagonal -- the
+ * line in the quadrilateral's border colour, its name in the deep teal of
+ * page 4's b (user, 2026-09-29) -- and d2 up the short one in the height
+ * hue, with a right-angle mark at their crossing; each half of d2
  * is later drawn again as a height, dotted, from the crossing to a corner.
- * The two halves of the shape are shaded green (lower) and purple (upper)
- * as each is asked about. */
+ * The two halves of the shape are shaded purple (upper, Triangle 1) and
+ * orange (lower, Triangle 2 -- the "green" hue, as page 4's). */
 .rhom-shape .tri-fill { transition: opacity .7s ease; }
 .rhom-shape.fill-green  .rt-green  { opacity: 1; }
-.rhom-shape.quiet-green .rt-green  { opacity: .38; }
 .rhom-shape.fill-purple .rt-purple { opacity: 1; }
+
+/* ---- one half at a time (page 4's way, user 2026-09-29) ----
+ * While a triangle's area is written its half comes forward: the outline
+ * gives way to the two triangles' own sides, the focused one drawn heavy --
+ * d1 too, a side of either -- and the other half steps back with its
+ * border, its colour and, once drawn, its height, the height's name and its
+ * right angle. A height's opacity is set inline by the draw that grows it,
+ * so it steps back by its stroke instead. Guarded by .on / .fill-*, so a
+ * part not yet shown is never shown faint. */
+.rhom-shape .tri-outline { stroke-width: 2.4; transition: opacity .5s ease, stroke-width .45s ease; }
+.rhom-shape.outline-split .shape-outline { opacity: 0; }
+.rhom-shape.outline-split .tri-outline   { opacity: 1; }
+.rhom-shape.focus-purple .ol-purple,
+.rhom-shape.focus-green  .ol-green { stroke-width: 6; }
+.rhom-shape.focus-purple .rd-d1,
+.rhom-shape.focus-green  .rd-d1 { stroke-width: 5; }
+.rhom-shape.focus-purple .ol-green,
+.rhom-shape.focus-green  .ol-purple { opacity: .24; }
+.rhom-shape.fill-green.focus-purple  .rt-green,
+.rhom-shape.fill-purple.focus-green  .rt-purple { opacity: .24; }
+.rhom-shape .rd-h { transition: opacity .5s ease, stroke-opacity .5s ease, stroke-width .4s ease, filter .4s ease; }
+.rhom-shape.focus-purple .rd-h2,
+.rhom-shape.focus-green  .rd-h1 { stroke-opacity: .24; }
+.rhom-shape.focus-purple .lbl-h2.on,
+.rhom-shape.focus-purple .mark-down.on,
+.rhom-shape.focus-green  .lbl-h1.on,
+.rhom-shape.focus-green  .mark-up.on { opacity: .24; }
 
 /* the tilt: the marks of the last scene leave, the plain diagonals with them */
 .rhom-shape.tilt .ang,
@@ -2519,7 +2562,7 @@ body {
   stroke-linecap: round;
   transition: opacity .5s ease, stroke-width .4s ease, filter .4s ease;
 }
-.rd-d1 { stroke: var(--base-hl); }
+.rd-d1 { stroke: var(--quad-border); }
 .rd-d2 { stroke: var(--height-hl); }
 .rd-h {
   stroke: var(--height-hl);
@@ -2538,7 +2581,7 @@ body {
   transition: opacity .45s ease, fill .4s ease, filter .4s ease;
 }
 .rd-lbl.on { opacity: 1; }
-.rd-lbl.lbl-d1 { fill: var(--base-hl); }
+.rd-lbl.lbl-d1 { fill: var(--quad-base-lbl); }
 .rd-lbl.lbl-d2,
 .rd-lbl.lbl-h  { fill: var(--height-hl); }
 .rmark {
@@ -2621,6 +2664,41 @@ body {
 .rhom.wide.numbers .rhom-foot { justify-items: center; }
 .rhom.wide.numbers .len-tray { flex-wrap: wrap; gap: clamp(8px, 1.1vw, 16px); }
 
+/* ---------- page 16, choose the area (user, 2026-09-30) ----------
+ * The measured rhombus keeps the left half it had for the numbers, and the
+ * right half is page 4's name quiz over again: the bird at the left end of
+ * the answers, its box up over its head and refitted to every line it says,
+ * the answers under it. The working's column and the numbers' formula both
+ * stand down; the panel is the foot's only occupant. */
+.rp-panel { display: none; }
+.rhom.wide.ask .area-lines { display: none; }
+.rhom.wide.ask .rp-panel { display: grid; width: 100%; }
+.rhom.wide.ask .rhom-foot { justify-items: center; container-type: inline-size; }
+/* the verdicts are sentences: nowrap would run them off the half-width
+   column, so here they may break at a word, and they read a size down from
+   the body since the box shares its half with the bird -- page 4's rules */
+.rhom.wide.ask .rp-note .type,
+.rhom.wide.ask .rp-note .type-ghost { white-space: pre-wrap; }
+.rhom.wide.ask .rp-note { font-size: clamp(22px, 3.8vh, 34px); }
+.rhom.wide.ask .rp-panel .rp-note {
+  align-self: flex-start;
+  margin: 0 0 calc(var(--mascot) * 1.0) calc(var(--mascot) * -.4);
+  max-width: min(560px, calc(100% - var(--mascot) * .9));
+  padding: .42em .95em .46em;
+}
+/* more room between the bird and the answers under it (user, 2026-09-30) */
+.rhom.wide.ask .rp-panel .rp-say { margin: 0 0 clamp(24px, 5.5vh, 60px) clamp(30px, 5vw, 100px); }
+/* the box refits every piece it says, so the pair is not centred as one
+   group: the bird keeps its place and the box grows and shrinks to its
+   right (page 4's rule, restated here to outrank the shared centring) */
+.rhom.wide.ask .rp-panel .rp-say.rp-say {
+  justify-content: flex-start;
+  justify-self: stretch;
+  width: 100%;
+}
+.rhom.wide.ask .rp-tray .chip.reveal:hover,
+.rhom.wide.ask .rp-tray .chip.reveal:focus-visible { border-color: var(--rhom-border); }
+
 /* ---------- page 21, the area of a rhombus ----------
  * The board halves 50/50: the rhombus is READ on the left and the question
  * ANSWERED on the right, and neither ever stands on the other. Swiftee
@@ -2642,7 +2720,6 @@ body {
 /* everything else that shares the foot's one cell stays out of the way */
 .rhom.cfu .rhom-say,
 .rhom.cfu .rhom-quiz,
-.rhom.cfu .rhom-tray,
 .rhom.cfu .practice-tray { display: none; }
 /* and this panel belongs to this layout alone, so it can never size a row
    it is not showing in */
@@ -2781,6 +2858,62 @@ body {
   0%   { filter: drop-shadow(0 0 0 transparent) drop-shadow(0 3px 5px var(--shadow-soft)); }
   35%  { filter: drop-shadow(0 0 20px var(--glow-correct)) drop-shadow(0 3px 5px var(--shadow-soft)); }
   100% { filter: drop-shadow(0 0 9px var(--glow-correct)) drop-shadow(0 3px 5px var(--shadow-soft)); }
+}
+
+/* ---------- the practice figures, pages 17 to 19 (user, 2026-09-30) ----------
+ * Drawn in page 16's scale (script.js, pFigRhombus / pFigSlant) and given
+ * the same room: the whole board while drawing, the left half once the
+ * question is asked. The diagonals are solid, as page 16's are; a
+ * diagonal asked for is dashed (.rd-d2.dashed). The pulses, the lit
+ * lengths and the glow on the right answer are page 21's, kept. */
+/* drawn at the size it will keep: half the board's width in the middle,
+   so the glide to the left half is a slide and never a resize */
+.fig-row.single .fig.p-fig { flex-basis: 50%; }
+.rhom.wide .fig-row.single .fig.p-fig { flex-basis: 100%; }
+/* the art box is the drawing's own height, not the column's, so a line
+   written over the shape (.fig-fact) and the shape centre together as one
+   group; a column too short for the drawing shrinks the box and the
+   drawing with it */
+.p-fig .fig-art { align-items: center; flex: 0 1 auto; height: auto; min-height: 0; }
+.p-fig .fig-art svg { height: auto; max-height: 100%; }
+.rhom.wide.ask .fig-work { display: none; }
+/* what is given, written over the shape (page 17): laid out from the first
+   frame and faded in once the shape has its marks */
+.fig-fact {
+  flex: none;
+  max-width: 100%;
+  margin: 0 0 clamp(6px, 1.6vh, 16px);
+  color: var(--heading);
+  font-weight: 700;
+  /* the size Swiftee's box reads at, on the other side (user, 2026-09-30) */
+  font-size: clamp(22px, 3.8vh, 34px);
+  line-height: 1.3;
+  text-align: center;
+  opacity: 0;
+  transition: opacity .4s ease;
+}
+.fig-fact.show { opacity: 1; }
+.fig-fact .type-wrap { display: inline-block; vertical-align: top; max-width: 100%; }
+.fig-fact .type,
+.fig-fact .type-ghost { white-space: normal; }
+.fig-fact .caret { background: var(--heading); }
+/* the halves are equal here (user, 2026-09-30): the panel's answers wrap
+   rather than widen their column, so the shape's half is a true half and
+   what stands in it is centred in it */
+.rhom.wide.ask { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.p-fig .rd-d1.flash { animation: rc-flash-d1 .9s ease-in-out both; }
+.p-fig .rd-d2.flash { animation: rc-flash-d2 .9s ease-in-out both; }
+.p-fig .rd-d1.lit { filter: drop-shadow(0 0 4px var(--glow-base)); }
+.p-fig .rd-d2.lit { filter: drop-shadow(0 0 4px var(--glow-height)); }
+.rhom-stage .p-fig .d-group.lit.d-d1 .d-arrow,
+.rhom-stage .p-fig .d-group.lit.d-d1 .d-head { filter: drop-shadow(0 0 3px var(--glow-base)); }
+.rhom-stage .p-fig .d-group.lit.d-d1 .d-label { filter: drop-shadow(0 0 4px var(--glow-base)); }
+.rhom-stage .p-fig .d-group.lit.d-d2 .d-arrow,
+.rhom-stage .p-fig .d-group.lit.d-d2 .d-head { filter: drop-shadow(0 0 3px var(--glow-height)); }
+.rhom-stage .p-fig .d-group.lit.d-d2 .d-label { filter: drop-shadow(0 0 4px var(--glow-height)); }
+.p-fig.win .art {
+  filter: drop-shadow(0 0 9px var(--glow-correct)) drop-shadow(0 3px 5px var(--shadow-soft));
+  animation: rc-win 1.9s cubic-bezier(.3, .8, .4, 1);
 }
 
 /* "Area = ½ × [   ] × [   ]": the slots are the warm-up's, at the size of
@@ -2932,6 +3065,8 @@ body {
   transition: opacity .4s ease;
 }
 .fig-row.off { opacity: 0; }
+/* the practice rhombi take the rhombus's border too: the quadrilateral's */
+.rhom-practice .fig { --shape-border: var(--quad-border); }
 
 .fig {
   /* a column: the art on top takes whatever height the name and the
@@ -5948,7 +6083,8 @@ body {
      sizes its line and wrap it */
 }
 .formula-box .w.lit.w-base, .area-line .w.lit.w-base, .area-line .w.lit.w-b,
-.area-line .w.lit.w-d1, .area-line .w.lit.w-ab, .rtrap-text .w.lit.w-ab      { background: transparent; color: var(--base-hl); }
+.area-line .w.lit.w-d1, .area-line .w.lit.w-diags,
+.area-line .w.lit.w-ab, .rtrap-text .w.lit.w-ab                              { background: transparent; color: var(--base-hl); }
 .formula-box .w.lit.w-height, .area-line .w.lit.w-height, .area-line .w.lit.w-h,
 .area-line .w.lit.w-h1, .area-line .w.lit.w-h2, .area-line .w.lit.w-d2,
 .rtrap-text .w.lit.w-h                                                       { background: transparent; color: var(--height-hl); }
@@ -6361,11 +6497,105 @@ body {
 /* ---------- page 4's working, a size up (user, 2026-09-28) ----------
  * The lines beside the quadrilateral never read smaller than the heading,
  * and grow with the half they stand in. Later than the shared caps above. */
-/* page 9's working beside the parallelogram reads at the same size */
+/* page 9's working beside the parallelogram reads at the same size, and so
+   does the rhombus's area working (user, 2026-09-29) -- its lines only: the
+   numbers' formula, which shares the rhombus's foot, keeps its own */
 .quad.wide .area-line,
-.para.wide .area-line { font-size: max(var(--fs-heading), min(var(--fs-body) * 1.25, 4.6cqw)); }
+.para.wide .area-line,
+.rhom.wide .area-lines .area-line { font-size: max(var(--fs-heading), min(var(--fs-body) * 1.25, 4.6cqw)); }
 .quad.wide .area-line.solving,
-.para.wide .area-line.solving { font-size: calc(max(var(--fs-heading), min(var(--fs-body) * 1.25, 4.6cqw)) * 1.1); }
+.para.wide .area-line.solving,
+.rhom.wide .area-lines .area-line.solving { font-size: calc(max(var(--fs-heading), min(var(--fs-body) * 1.25, 4.6cqw)) * 1.1); }
+
+/* ---------- page 15's formula, at the working's size (user, 2026-09-29) ----------
+ * "Area = ½ × [ ] × [ ]" reads at the same size as the lines that stood in
+ * this half a page ago, and its two slots are made to be dropped into: each
+ * is an empty pill the shape and size of the chips under it, a step roomier
+ * than one. The slot whose turn it is stands out from the board -- white,
+ * with the chips' own border and a soft ring that breathes -- and the second
+ * waits locked, dimmed and dotted, until the first holds the right length.
+ * No placeholder in either (user, 2026-09-29). */
+.rhom.wide.numbers .len-formula {
+  font-size: max(var(--fs-heading), min(var(--fs-body) * 1.25, 4.6cqw));
+  gap: .35em;
+}
+/* more room between the formula and the lengths under it (user, 2026-09-29) */
+.rhom.wide.numbers .rhom-quiz { gap: clamp(30px, 10vh, 60px); }
+.rhom-quiz .fslot {
+  --slot-border: 3px;
+  --slot-radius: 999px;
+  /* the chips' own padding and a little over, in the chips' own size, so a
+     length lands in a pill a step larger than the one it left */
+  --slot-pad: calc(clamp(4.15px, 1.23vh, 11.4px) + .16em);
+  min-width: 6.4em;
+  height: auto;
+  /* an empty slot is as tall as a filled one: one line of the chips'
+     lettering between the two pads */
+  min-height: calc(1.15em + 2 * var(--slot-pad) + 2 * var(--slot-border));
+  padding: var(--slot-pad) clamp(8px, 1.6vw, 20px);
+  font-size: calc(var(--fs-chip) * 1.25);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: .2px;
+  /* the open slot: white on the pink board, the chips' border, and a ring
+     that pulses out from it until something is dropped in */
+  position: relative;
+  background: var(--board-highlight);
+  border-color: var(--button-border);
+  box-shadow: inset 0 2px 6px var(--shadow-soft);
+}
+/* The pulse is a ring of its own, laid over the slot's border, that swells
+   out and fades: only transform and opacity move, which the compositor
+   plays without a repaint, so it stays smooth beside the drag. It sits on a
+   pseudo-element rather than the slot's box-shadow, whose own transition
+   would fight a shadow animation. */
+.rhom-quiz .fslot::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--slot-border));
+  border-radius: inherit;
+  border: var(--slot-border) solid var(--button-border);
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: center;
+  animation: fslot-pulse 1.8s cubic-bezier(.25, .6, .35, 1) infinite;
+  will-change: transform, opacity;
+}
+@keyframes fslot-pulse {
+  0%   { transform: scale(1);          opacity: .55; }
+  75%  { transform: scale(1.1, 1.28);  opacity: 0; }
+  100% { transform: scale(1.1, 1.28);  opacity: 0; }
+}
+.rhom-quiz .fslot.over {
+  background: #fff;
+  border-color: var(--shape-border);
+}
+/* the ring belongs to the slot whose turn it is, and to no other state */
+.rhom-quiz .fslot.over::after,
+.rhom-quiz .fslot.filled::after,
+.rhom-quiz .fslot.reject::after,
+.rhom-quiz .fslot.locked::after { animation: none; opacity: 0; }
+/* a docked length keeps the size it had in the tray */
+.rhom-quiz .fslot .chip { padding: 0; font-size: 1em; }
+.rhom-quiz .fslot.filled {
+  background: var(--button-bg);
+  border-color: var(--button-border);
+  box-shadow: none;
+}
+.rhom-quiz .fslot.correct { box-shadow: 0 0 0 4px var(--tint-correct); }
+.rhom-quiz .fslot.reject  { box-shadow: 0 0 0 4px var(--glow-wrong); }
+/* the second slot waits its turn */
+.rhom-quiz .fslot.locked {
+  background: var(--drop-bg);
+  border-color: var(--drop-border);
+  border-style: dotted;
+  opacity: .5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rhom-quiz .fslot::after { animation: none; opacity: .35; transform: scale(1.06, 1.16); }
+}
 
 /* ---------- the heights in the base's colour (user, 2026-09-28) ----------
  * h1 and h2 -- the dashed lines, their arrowheads, the right-angle marks

@@ -2,7 +2,10 @@
 
 Every spoken line in the mission, in play order, keyed to the **page numbers**
 of the in-game section jump menu (the numbers shown beside each section name in
-the header drop-down). Pages run 1–30.
+the header drop-down). Pages run 1–30. Two pages have since been cut from the game
+(page 6, and page 16 folded into page 15), so from page 6 on the jump menu's
+own numbers run lower than these; this script keeps its numbering so the clip
+IDs stay stable.
 
 - **ID** — suggested filename stem for the recorded clip (`P04-06.mp3`).
 - **Type** — `INSTRUCTION` (tells the learner to act), `NARRATION` (explains
@@ -286,63 +289,90 @@ height is", "The area of the parallelogram is".
 
 ## Page 15 — Rhombus · its area
 
+Worked the way page 4 works the quadrilateral (29 Sep 2026). The formula quiz
+that used to open this page is cut, and page 16's working is now this page's
+second half: Next on page 14 comes straight here. Swiftee stays at the heading
+for every line and leaves after the last one; the page then zooms in a little
+and Next appears.
+
 | ID | Type | Line | Where |
 |---|---|---|---|
-| P15-01 | NARRATION | Here, is a Rhombus. | Heading |
-| P15-02 | INSTRUCTION | Choose the correct area of the orange triangle. | Heading |
-| P15-03 | FEEDBACK | That’s Correct! | Heading |
-| P15-04 | INSTRUCTION | Choose the correct area of the purple triangle. | Heading |
-| P15-05 | FEEDBACK | That’s Correct! *(reuse of P15-03)* | Heading |
+| P15-01 | NARRATION | Here, is a Rhombus. | Heading, once the shape has tilted and d₁ and d₂ are drawn |
+| P16-01 | INSTRUCTION | Let’s find the area of the whole rhombus. | Heading; d₂ steps back and the two halves shade |
+| P15-06 | NARRATION | Let’s look at Triangle 1. *(same words as P10-05)* | Heading; "Area of Triangle 1 = ½ × base × height" writes itself beside the shape |
+| P15-07 | NARRATION | Its base is the diagonal d₁. | Heading; the upper half comes forward with a heavy border and d₁ floats onto "base" |
+| P04-14 | NARRATION | And its height is h₁. *(page 4’s clip, reused)* | Heading; h₁ drops from the crossing and floats onto "height" |
+| P15-08 | NARRATION | Now let’s look at Triangle 2. *(same words as P10-09)* | Heading (after Next); "Area of Triangle 2 = ½ × base × height" |
+| P15-09 | NARRATION | It has the same base d₁. | Heading; the lower half comes forward, d₁ floats onto "base" |
+| P04-17 | NARRATION | And its height is h₂. *(page 4’s clip, reused)* | Heading; h₂ drops and floats onto "height" |
+| P04-10 | NARRATION | Let’s put in each triangle’s area. *(page 4’s clip, reused)* | Heading (after Next); line 3, "Area of Rhombus = Area of Triangle 1 + Area of Triangle 2", becomes ½ × d₁ × h₁ + ½ × d₁ × h₂ |
+| P16-03 | NARRATION | Both parts have ½ × d₁ in them, so take it out. | Heading; ½ × d₁ × (h₁ + h₂) |
+| P16-04 | NARRATION | And h₁ and h₂ together make the whole of d₂. | Heading; ½ × d₁ × d₂ |
+| P15-10 | NARRATION | And d₁ × d₂ is the product of the diagonals. | Heading; line 4, a copy of line 3 after its "=", becomes "= ½ × Product of Diagonals" |
+| P16-05 | NARRATION | So the area of a rhombus is ½ × d₁ × d₂. | Heading; confetti, then Swiftee leaves |
+
+P15-06 … P15-10 have no clip yet — they were not on either recording and type
+in silence. **Needs recording.** P15-06 and P15-08 are the same words as
+P10-05 and P10-09 (also unrecorded), so one take serves both pages.
+
+No longer said anywhere: P15-02 "Choose the correct area of the orange
+triangle.", P15-04 "Choose the correct area of the purple triangle." and
+P16-02 "Put in what each triangle’s area is." — the quiz they belonged to is
+cut, and page 4’s P04-10 takes P16-02’s place. Their clips are still in
+`assets/VO/` but nothing plays them. P15-03’s clip ("That’s Correct!") is
+kept: it is the take pages 17, 18, 27 and 29 play.
 
 ## Page 16 — Rhombus · the sum
 
-| ID | Type | Line | Where |
-|---|---|---|---|
-| P16-01 | INSTRUCTION | Let’s find the area of the whole rhombus. | Heading |
-| P16-02 | INSTRUCTION | Put in what each triangle’s area is. | Heading |
-| P16-03 | NARRATION | Both parts have ½ × d₁ in them, so take it out. | Heading |
-| P16-04 | NARRATION | And h₁ and h₂ together make the whole of d₂. | Heading |
-| P16-05 | NARRATION | So the area of a rhombus is ½ × d₁ × d₂. | Heading |
+Merged into page 15 (29 Sep 2026); it is no longer in the jump menu.
 
 ## Page 17 — Rhombus · with numbers
 
 | ID | Type | Line | Where |
 |---|---|---|---|
 | P17-01 | INSTRUCTION | Drag the two lengths into the formula. | Heading |
-| P17-02 | FEEDBACK | That’s Correct! *(reuse of P15-03)* | Heading |
+| P17-02 | FEEDBACK | Not quite! The length written under the shape is d₁. | Heading, on a wrong length in the first slot — **needs recording** |
+| P17-03 | FEEDBACK | That’s Correct! The first diagonal is 16 cm. Now drag d₂ into the formula. | Heading, on 16 cm in the first slot — **needs recording** |
+| P17-04 | FEEDBACK | Not quite! The length written beside the shape is d₂. | Heading, on a wrong length in the second slot — **needs recording** |
+| P17-05 | FEEDBACK | Fill d₁ first, then d₂. | Heading, on a drop into the locked second slot — **needs recording** |
+| P17-06 | FEEDBACK | That’s Correct! *(plays P15-03’s clip; the quiz it was recorded for is cut)* | Heading, on both lengths in |
 
 ## Page 18 — Rhombus · practice 1
 
 | ID | Type | Line | Where |
 |---|---|---|---|
-| P18-01 | INSTRUCTION | Choose the correct area. | Heading |
-| P18-02 | FEEDBACK | That’s Correct! *(reuse of P15-03)* | Heading |
+| P18-01 | INSTRUCTION | Choose the correct area. | Swiftee’s box, beside the answers (page 4’s way, 30 Sep 2026) |
+| P18-02 | FEEDBACK | Not quite! That is 16 × 12 without the half. Look at the formula again. | The box, on 192 — **needs recording** |
+| P18-03 | FEEDBACK | Not quite! That is 16 + 12. The diagonals are multiplied, not added. | The box, on 28 — **needs recording** |
+| P18-04 | FEEDBACK | That’s Correct! Half of 16 × 12 is 96 sq. cm. | The box, on 96 — **needs recording** |
 
 ## Page 19 — Rhombus · practice 2
 
 | ID | Type | Line | Where |
 |---|---|---|---|
-| P19-01 | INSTRUCTION | This rhombus has an area of 240 sq. cm. Find the other diagonal. | Heading |
-| P19-02 | FEEDBACK | That’s Correct! ½ × 30 × d₂ = 240, so d₂ is 16 cm. | Heading |
+| P19-01 | INSTRUCTION | Find the other diagonal. | Swiftee’s box, beside the answers (30 Sep 2026: the first sentence, "This rhombus has an area of 240 sq. cm.", is now written over the shape instead, on screen only) — **needs recording** |
+| P19-02 | FEEDBACK | Not quite! Half of 30 × 8 is only 120 sq. cm. | The box, on 8 cm — **needs recording** |
+| P19-03 | FEEDBACK | Not quite! Half of 30 × 32 is 480 sq. cm. That is too much. | The box, on 32 cm — **needs recording** |
+| P19-04 | FEEDBACK | That’s Correct! ½ × 30 × d₂ = 240, so d₂ is 16 cm. | The box, on 16 cm |
 
 ## Page 20 — Rhombus · practice 3
 
-The board halves; Swiftee asks from a panel on the right.
+Page 16’s flow (30 Sep 2026): the rhombus draws itself in the middle, glides left, and Swiftee asks from its box on the right. The hint line and the self-solving working are gone; every answer is met with a sentence in the box.
 
 | ID | Type | Line | Where |
 |---|---|---|---|
-| P20-01 | INSTRUCTION | What is the area of the rhombus? | Panel, beside Swiftee |
-| P20-02 | HINT | The diagonals are 24 cm and 15 cm. | Hint line under the answers (second wrong try) |
-
-On-screen only — the working that solves itself after the right answer:
-"Area = ½ × 24 × 15", "Area = 12 × 15", "Area = 180 sq. cm".
+| P20-01 | INSTRUCTION | What is the area of the rhombus? | Swiftee’s box, beside the answers |
+| P20-02 | FEEDBACK | Not quite! That is 24 × 15 without the half. | The box, on 360 — **needs recording** |
+| P20-03 | FEEDBACK | Not quite! That is 24 + 15. The diagonals are multiplied, not added. | The box, on 39 — **needs recording** |
+| P20-04 | FEEDBACK | That’s Correct! Half of 24 × 15 is 180 sq. cm. | The box, on 180 — **needs recording** |
 
 ## Page 21 — Rhombus · practice 4
 
 | ID | Type | Line | Where |
 |---|---|---|---|
-| P21-01 | INSTRUCTION | Which formula can you use here? | Heading |
-| P21-02 | FEEDBACK | That’s Correct! No diagonals are given, so use base × height. | Heading |
+| P21-01 | INSTRUCTION | Which formula can you use here? | Swiftee’s box, beside the answers (page 4’s way, 30 Sep 2026) |
+| P21-02 | FEEDBACK | Not quite! No diagonals are given here. Look at what is marked. | The box, on the diagonals formula — **needs recording** |
+| P21-03 | FEEDBACK | That’s Correct! No diagonals are given, so use base × height. | The box, on base × height |
 
 ## Page 22 — Aside · on to the trapezium
 
@@ -507,8 +537,8 @@ there too. No new recordings needed.
 
 | | Count |
 |---|---|
-| Line slots on pages 1–30 | 123 |
-| Of which reuse an earlier recording | 11 |
+| Line slots on pages 1–30 | 126 |
+| Of which reuse an earlier recording | 14 |
 | **New recordings needed (pages 1–30)** | **112** |
 | Shared feedback lines (FB-01…FB-03) | 3 |
 | Appendix lines (not currently played) | 6 |
@@ -656,33 +686,43 @@ This is the special parallelogram called Rhombus.
 
 — Page 15 · Rhombus, its area —
 Here, is a Rhombus.
-Choose the correct area of the orange triangle.
-That’s Correct!
-Choose the correct area of the purple triangle.
-
-— Page 16 · Rhombus, the sum —
 Let’s find the area of the whole rhombus.
-Put in what each triangle’s area is.
+Its base is the diagonal d₁.
+It has the same base d₁.
 Both parts have ½ × d₁ in them, so take it out.
 And h₁ and h₂ together make the whole of d₂.
+And d₁ × d₂ is the product of the diagonals.
 So the area of a rhombus is ½ × d₁ × d₂.
 
 — Page 17 · Rhombus, with numbers —
 Drag the two lengths into the formula.
+Not quite! The length written under the shape is d₁.
+That’s Correct! The first diagonal is 16 cm. Now drag d₂ into the formula.
+Not quite! The length written beside the shape is d₂.
+Fill d₁ first, then d₂.
+That’s Correct!
 
 — Page 18 · Rhombus, practice 1 —
 Choose the correct area.
+Not quite! That is 16 × 12 without the half. Look at the formula again.
+Not quite! That is 16 + 12. The diagonals are multiplied, not added.
+That’s Correct! Half of 16 × 12 is 96 sq. cm.
 
 — Page 19 · Rhombus, practice 2 —
-This rhombus has an area of 240 sq. cm. Find the other diagonal.
+Find the other diagonal.
+Not quite! Half of 30 × 8 is only 120 sq. cm.
+Not quite! Half of 30 × 32 is 480 sq. cm. That is too much.
 That’s Correct! ½ × 30 × d₂ = 240, so d₂ is 16 cm.
 
 — Page 20 · Rhombus, practice 3 —
 What is the area of the rhombus?
-The diagonals are 24 cm and 15 cm.
+Not quite! That is 24 × 15 without the half.
+Not quite! That is 24 + 15. The diagonals are multiplied, not added.
+That’s Correct! Half of 24 × 15 is 180 sq. cm.
 
 — Page 21 · Rhombus, practice 4 —
 Which formula can you use here?
+Not quite! No diagonals are given here. Look at what is marked.
 That’s Correct! No diagonals are given, so use base × height.
 
 — Page 22 · Aside, on to the trapezium —
@@ -691,6 +731,7 @@ Ready for the next challenge?
 Let’s find the area of another special quadrilateral!
 
 — Page 23 · Trapezium, its name —
+What shape is this?
 Almost! A kite has two pairs of equal sides next to each other. Check the shape carefully.
 Almost! A parallelogram has two pairs of parallel sides. Check the shape carefully.
 Correct! Look at the shape — it has only one pair of parallel sides.

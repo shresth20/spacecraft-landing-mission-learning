@@ -523,9 +523,9 @@
         </div>
       </div>
 
-      <!-- four occupants of one cell, so the shape above never moves:
-           Swiftee's line about the rhombus, the two formula quizzes, and the
-           working beside the shape once it has moved left -->
+      <!-- the occupants of one cell, so the shape above never moves:
+           Swiftee's line about the rhombus, the working beside the shape
+           once it has moved left, and the numbers' formula -->
       <div class="rhom-foot">
         <div class="rhom-say" id="rhomSay">
           <div class="mascot" id="rhomMascot" aria-hidden="true"></div>
@@ -537,18 +537,6 @@
           </p>
         </div>
 
-        <!-- the area of the green (lower) triangle: two formulas, tap the right one -->
-        <div class="para-tray rhom-tray" id="rhomTray1">
-          <button class="chip formula" type="button" data-answer="half"><span><span class="frac"><span class="num">1</span><span class="den">2</span></span> × d₁ × h₁</span></button>
-          <button class="chip formula" type="button" data-answer="double"><span>2 × d₁ × h₁</span></button>
-        </div>
-
-        <!-- the area of the purple (upper) triangle -->
-        <div class="para-tray rhom-tray" id="rhomTray2">
-          <button class="chip formula" type="button" data-answer="plain"><span>d₁ × h₂</span></button>
-          <button class="chip formula" type="button" data-answer="half"><span><span class="frac"><span class="num">1</span><span class="den">2</span></span> × d₁ × h₂</span></button>
-        </div>
-
         <!-- the working, beside the shape once it has moved left -->
         <div class="area-lines" id="rhomLines" aria-live="polite"></div>
 
@@ -557,9 +545,12 @@
         <div class="rhom-quiz" id="rhomQuiz">
           <div class="area-line len-formula" id="rhomFormula">
             <span class="seg">Area = <span class="frac"><span class="num">1</span><span class="den">2</span></span> ×</span>
-            <span class="fslot" data-slot="1" role="button" tabindex="-1" aria-label="First length"></span>
+            <!-- the first slot wants d₁ and the second d₂; the second is
+                 locked until the first holds the right length, so the two go
+                 in the order the formula reads -->
+            <span class="fslot" data-slot="1" role="button" tabindex="-1" aria-label="First diagonal, d one"></span>
             <span class="seg">×</span>
-            <span class="fslot" data-slot="2" role="button" tabindex="-1" aria-label="Second length"></span>
+            <span class="fslot locked" data-slot="2" role="button" tabindex="-1" aria-label="Second diagonal, d two" aria-disabled="true"></span>
           </div>
           <div class="para-tray len-tray" id="rhomTray3">
             <button class="chip" type="button" data-len="16"><span>16 cm</span></button>
@@ -571,6 +562,27 @@
 
         <!-- the practice questions' answers: chips built by script.js -->
         <div class="para-tray practice-tray" id="practiceTray"></div>
+
+        <!-- page 16, the area of the measured rhombus: the shape keeps the
+             left half and this panel takes the right, page 4's way (user,
+             2026-09-30). Swiftee hops down from the heading to the left end
+             of the answers, its box up over its head, and asks from there;
+             every verdict is said in the same box, red for a wrong area
+             and green for the right one, and the box is refitted to each
+             line it says. The answers are built by script.js. -->
+        <div class="quiz-block rp-panel" id="rpPanel">
+          <div class="quiz-say rp-say">
+            <div class="mascot" id="rpMascot" aria-hidden="true"></div>
+            <p class="quiz-bubble msg rp-note" id="rpNote" aria-live="polite">
+              <span class="type-wrap">
+                <span class="type-ghost"></span>
+                <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+              </span>
+              <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true"><use href="#ico-tail" /></svg>
+            </p>
+          </div>
+          <div class="para-tray quiz-tray rp-tray" id="rpTray"></div>
+        </div>
 
         <!-- the area of the rhombus, asked of one figure (page 21): the
              board halves, the rhombus keeps the left of it and this panel

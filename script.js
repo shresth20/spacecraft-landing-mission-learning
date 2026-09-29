@@ -129,19 +129,29 @@
  *   5. Swiftee hops down beside the shape: "This is the special
  *      parallelogram called Rhombus." -- and Next
  *   6. Next -- the same rhombus tilts until its long diagonal lies flat; d1
- *      and d2 draw along the diagonals with a right angle marked between
- *      them, and Swiftee jumps up to the heading: "Here, is a Rhombus."
- *   7. d2 leaves; the lower half shades green and its height drops from the
- *      crossing: which of two formulas is its area? Then the upper half in
- *      purple, with its own height, and the same question. Next
- *   8. the shape moves left and the working types out beside it: a line for
- *      each triangle, and a third for the rhombus as the two together. That
- *      third line is then taken the rest of the way where it stands, a step
- *      at a time, only the words that change crossing over: the triangles'
- *      names become 1/2 x d1 x h1 + 1/2 x d1 x h2, that becomes
- *      1/2 x d1 x (h1 + h2), and then -- a ring holding the two heights
- *      together while they give way to the short diagonal drawn solid --
- *      1/2 x d1 x d2, which is boxed. Next
+ *      draws along it -- d1 alone: d2 only appears at the end, when the two
+ *      heights join up into it -- and Swiftee jumps up to the heading:
+ *      "Here, is a Rhombus."
+ *      (the quiz that came next -- which of two formulas is each half's
+ *      area -- was cut, user 2026-09-29: this page is worked the way page 4
+ *      works the quadrilateral)
+ *   7. the upper half shades purple and the lower orange,
+ *      and the shape moves left. A triangle at a time, a Next after each:
+ *      "Area of Triangle 1 = 1/2 x base x height" is written in words; the
+ *      upper half comes forward with its border drawn heavy; d1's name
+ *      floats off the drawing onto "base" and becomes it, and its height
+ *      drops from the crossing and h1 floats onto "height". Then the lower
+ *      half, Triangle 2, with h2
+ *   8. the third line, the rhombus as the two together, is taken the rest
+ *      of the way where it stands, a step at a time, only the words that
+ *      change crossing over: the triangles' names become
+ *      1/2 x d1 x h1 + 1/2 x d1 x h2, that becomes 1/2 x d1 x (h1 + h2), and
+ *      then -- a ring holding the two heights together while they give way
+ *      to the short diagonal drawn solid -- 1/2 x d1 x d2. A copy of its
+ *      right-hand side peels off onto a fourth row and is put into words,
+ *      "= 1/2 x Product of Diagonals"; the celebration, then Swiftee leaves
+ *      the heading, the shape and the working come forward a little into
+ *      the room it leaves, and Next
  *   9. the numbers: the shape comes back to the middle, plain, with both
  *      diagonals; "Drag the two lengths into the formula." -- the
  *      diagonals are measured (16 cm and 12 cm) and four lengths appear
@@ -970,7 +980,7 @@
     const S = window.SWIFTEE;
     const nodes = ['mascot', 'welcomeMascot', 'introMascot', 'hopper',
                    'quizMascot', 'sideMascot', 'factMascot', 'paraMascot',
-                   'rhomMascot', 'rcMascot',
+                   'rhomMascot', 'rcMascot', 'rpMascot',
                    'trapMascot', 'rtrapMascot', 'rtrapPMascot', 'tcMascot', 'flyer']
       .map(id => document.getElementById(id))
       .filter(Boolean);
@@ -1604,16 +1614,10 @@
       'P14-05-this-is-the-special-parallelogram-called-rhombus',
     'here, is a rhombus.':
       'P15-01-here-is-a-rhombus',
-    'choose the correct area of the orange triangle.':
-      'P15-02-choose-the-correct-area-of-the-orange-triangle',
     'that\'s correct!':
       'P15-03-thats-correct',
-    'choose the correct area of the purple triangle.':
-      'P15-04-choose-the-correct-area-of-the-purple-triangle',
     'let\'s find the area of the whole rhombus.':
       'P16-01-lets-find-the-area-of-the-whole-rhombus',
-    'put in what each triangle\'s area is.':
-      'P16-02-put-in-what-each-triangles-area-is',
     'both parts have ½ × d₁ in them, so take it out.':
       'P16-03-both-parts-have-half-x-d1-in-them',
     'and h₁ and h₂ together make the whole of d₂.':
@@ -1997,8 +2001,10 @@
     { entry: paraCheck,         name: 'Parallelogram \u00b7 your own go' },
     { entry: paraAside,         name: 'Aside \u00b7 on to the rhombus' },
     { entry: rhombusSection,    name: 'Rhombus \u00b7 its sides' },
+    /* the quiz that stood here -- which of two formulas is each half's
+       area -- was cut (user, 2026-09-29): Next on the rhombus's sides goes
+       straight to its area, worked the way page 4 works the quadrilateral's */
     { entry: rhombusArea,       name: 'Rhombus \u00b7 its area' },
-    { entry: rhombusSum,        name: 'Rhombus \u00b7 the sum' },
     { entry: rhombusNumbers,    name: 'Rhombus \u00b7 with numbers' },
     { entry: rhombusPractice1,  name: 'Rhombus \u00b7 practice 1' },
     { entry: rhombusPractice2,  name: 'Rhombus \u00b7 practice 2' },
@@ -5531,8 +5537,9 @@
     if (color) el.classList.add('focus-' + color);
     /* the quadrilateral's outline splits into its two halves' own sides
        while a half is focused, so the other one's border can dim along
-       with the rest of it -- see .tri-outline */
-    if (el === quadShape || el === paraShape) el.classList.toggle('outline-split', !!color);
+       with the rest of it -- see .tri-outline. The parallelogram's and the
+       rhombus's do the same, the focused half's drawn heavy. */
+    if (el === quadShape || el === paraShape || el === rhomShape) el.classList.toggle('outline-split', !!color);
   }
 
   /* a key word has landed in the working: light the part of the drawing it
@@ -7930,10 +7937,6 @@
   const rhomHint   = document.getElementById('rhomHint');
   const rhomSay    = document.getElementById('rhomSay');
   const rhomArea   = document.getElementById('rhomArea');
-  const rhomTray1  = document.getElementById('rhomTray1');
-  const rhomTray2  = document.getElementById('rhomTray2');
-  const rhomChips1 = Array.from(rhomTray1.querySelectorAll('.chip'));
-  const rhomChips2 = Array.from(rhomTray2.querySelectorAll('.chip'));
   const rhomLines  = document.getElementById('rhomLines');
   const rhomQuiz   = document.getElementById('rhomQuiz');
   const rhomFormula = document.getElementById('rhomFormula');
@@ -7960,6 +7963,15 @@
   const rhomCaret  = rhomText.querySelector('.caret');
   speaker(rcTxt, rcMascot);
   speaker(rhomTxt, rhomMascot);
+  /* page 16's panel: Swiftee's box over the answers */
+  const rpPanel  = document.getElementById('rpPanel');
+  const rpMascot = document.getElementById('rpMascot');
+  const rpNote   = document.getElementById('rpNote');
+  const rpGhost  = rpNote.querySelector('.type-ghost');
+  const rpTxt    = rpNote.querySelector('.txt');
+  const rpCaret  = rpNote.querySelector('.caret');
+  const rpTray   = document.getElementById('rpTray');
+  speaker(rpTxt, rpMascot, () => rpNote.classList.remove('show', 'ok', 'bad'));
 
   const RHOM = {
     drag:  'Drag the points to make each angle 90 degrees.',
@@ -8459,29 +8471,62 @@
   }
 
   /* ---------- the area of the rhombus ----------
-   * The same rhombus the learner made, carried on with. Swiftee ducks
-   * behind the board and the shape turns about the crossing of its
-   * diagonals until the long one lies flat, growing or shrinking to one
-   * size on the way, so whatever rhombus was made the lesson is laid out
-   * the same. The long diagonal is drawn as d1 and the short one as d2,
-   * with the right angle between them marked, and Swiftee jumps up to the
-   * heading. Then d2 leaves: the lower half shades green and its height --
-   * half of d2 -- drops from the crossing, and the learner picks its area
-   * from two formulas; the upper half in purple, with its own height, and
-   * the same question. Then the shape moves left and the working types out
-   * beside it: the two triangles, and the rhombus as their sum. */
+   * The same rhombus the learner made, carried on with, and worked the way
+   * page 4 works the quadrilateral (user, 2026-09-29). The quiz that used to
+   * come first -- which of two formulas is each half's area -- is gone: Next
+   * on the rhombus's sides comes straight here. One conversation from the
+   * heading, Swiftee staying up for all of it:
+   *   1. Swiftee ducks behind the board from beside the shape and the shape
+   *      turns about the crossing of its diagonals until the long one lies
+   *      flat, growing or shrinking to one size on the way, so whatever
+   *      rhombus was made the lesson is laid out the same. d1 draws along
+   *      the long diagonal -- d1 alone, d2 comes at the end -- and Swiftee
+   *      jumps up to the heading: "Here, is a Rhombus."
+   *   2. the halves d1 cuts it into shade -- purple above, orange below --
+   *      and the shape moves left for the working
+   *   3. a triangle at a time, a Next after each: "Area of Triangle 1 = ½ ×
+   *      base × height" is written in words; then the upper half comes
+   *      forward, its border drawn heavy, and d1's name floats off the
+   *      drawing onto "base" and becomes it; its height drops from the
+   *      crossing and h1 floats onto "height" the same way. Then the lower
+   *      half, with h2
+   *   4. the third line, the rhombus as the two together, worked where it
+   *      stands to ½ × d1 × d2 -- the two heights, end to end along the short
+   *      diagonal, becoming it -- and then a copy of its right-hand side
+   *      peels off onto a fourth row and is put into words:
+   *      "= ½ × Product of Diagonals"
+   *   5. the rule and the celebration; then Swiftee leaves the heading, the
+   *      shape and the working come forward a little into the room it
+   *      leaves, and only then Next -- page 4's close */
   const RHOM2 = {
-    here:   'Here, is a Rhombus.',
-    askG:   'Choose the correct area of the orange triangle.',
-    rightG: 'That’s Correct!',
-    askP:   'Choose the correct area of the purple triangle.',
-    rightP: 'That’s Correct!',
-    sum:    'Let’s find the area of the whole rhombus.',
-    both:   'Put in what each triangle’s area is.',
-    share:  'Both parts have ½ × d₁ in them, so take it out.',
-    join:   'And h₁ and h₂ together make the whole of d₂.',
-    rule:   'So the area of a rhombus is ½ × d₁ × d₂.'
+    here:  'Here, is a Rhombus.',
+    whole: 'Let’s find the area of the whole rhombus.',
+    /* a triangle at a time, each part said as it floats off the drawing
+       into its line. The heights are page 4's own lines, and clips (P04-14,
+       P04-17); the look lines are the parallelogram's (P10-05, P10-09) */
+    tri1: {
+      look: 'Let’s look at Triangle 1.',
+      base: 'Its base is the diagonal d₁.',
+      h:    'And its height is h₁.'
+    },
+    tri2: {
+      look: 'Now let’s look at Triangle 2.',
+      base: 'It has the same base d₁.',
+      h:    'And its height is h₂.'
+    },
+    /* page 4's own line, and its clip (P04-10) */
+    swap:  'Let’s put in each triangle’s area.',
+    share: 'Both parts have ½ × d₁ in them, so take it out.',
+    join:  'And h₁ and h₂ together make the whole of d₂.',
+    words: 'And d₁ × d₂ is the product of the diagonals.',
+    rule:  'So the area of a rhombus is ½ × d₁ × d₂.'
   };
+  /* every line above, for the heading's ghost */
+  const RHOM2_ALL = [].concat.apply([], Object.keys(RHOM2).map(k =>
+    typeof RHOM2[k] === 'string' ? [RHOM2[k]] : Object.keys(RHOM2[k]).map(j => RHOM2[k][j])));
+  /* how far the page comes forward once Swiftee has gone: a little, as the
+     parallelogram's does (user, 2026-09-29: a light zoom) */
+  const RHOM_ZOOM = 1.1;
   const RHOM_D1 = 330;                    /* how long the long diagonal is shown, once settled */
   const RHOM_CENTRE = { x: 220, y: 148 }; /* where the crossing is put: the middle of the viewBox */
 
@@ -8514,53 +8559,52 @@
   }
 
   /* the working: every word that names a part of the drawing is its own
-     span, so it lights up -- and denotes the part it names -- as it lands */
+     span, so it lights up -- and denotes the part it names -- as it lands.
+     Triangle 1 is the upper half, in purple, and Triangle 2 the lower, in
+     orange (the "green" hue draws orange, as page 4's does), so the names,
+     the colours and h1 and h2 run the same way as page 4's working.
+     `fly`: the part is written as a word first -- "base", "height" -- and
+     then floated in, a copy of the drawing's own label for it (floatLine) */
   const RHOM_LINES = [
-    [{ t: 'Area of ' }, { t: 'Orange Triangle', w: 'green' },  { t: ' = ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × ' }, { t: 'h₁', w: 'h1' }],
-    [{ t: 'Area of ' }, { t: 'Purple Triangle', w: 'purple' }, { t: ' = ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × ' }, { t: 'h₂', w: 'h2' }]
+    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' = ½ × ' }, { t: 'd₁', w: 'd1', fly: 'base' }, { t: ' × ' }, { t: 'h₁', w: 'h1', fly: 'h' }],
+    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 'green' },  { t: ' = ½ × ' }, { t: 'd₁', w: 'd1', fly: 'base' }, { t: ' × ' }, { t: 'h₂', w: 'h2', fly: 'h' }]
   ];
   /* and the third line, which is not four lines but one: it is typed out as
      the first of these and then changes into each of the others where it
      stands, only the words that differ crossing over. The head is shared, so
-     the morph leaves "Area of Rhombus =" alone every time. */
+     the morph leaves "Area of Rhombus =" alone every time. The no-break
+     spaces keep "= Area of" and "+ Area of" whole, as page 4's do, so the
+     long first step wraps before an operator rather than leaving one
+     dangling. */
   const RHOM_HEAD = [{ t: 'Area of ' }, { t: 'Rhombus', w: 'rhom' }];
   const RHOM_STEPS = [
-    RHOM_HEAD.concat([{ t: ' = Area of ' }, { t: 'Orange Triangle', w: 'green' }, { t: ' + Area of ' }, { t: 'Purple Triangle', w: 'purple' }]),
+    RHOM_HEAD.concat([{ t: ' = Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' + Area of ' }, { t: 'Triangle 2', w: 'green' }]),
     RHOM_HEAD.concat([{ t: ' = ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × ' }, { t: 'h₁', w: 'h1' }, { t: ' + ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × ' }, { t: 'h₂', w: 'h2' }]),
     RHOM_HEAD.concat([{ t: ' = ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × (' }, { t: 'h₁', w: 'h1' }, { t: ' + ' }, { t: 'h₂', w: 'h2' }, { t: ')' }]),
     RHOM_HEAD.concat([{ t: ' = ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × ' }, { t: 'd₂', w: 'd2' }])
   ];
+  /* The rule again in words, on a fourth row (page 4's way): a copy of the
+     third line's right-hand side, set under its "=" (copyLine), whose
+     d1 × d2 becomes "Product of Diagonals" */
+  const RHOM_WORDS = RHOM_HEAD.concat([{ t: ' = ½ × ' }, { t: 'Product of Diagonals', w: 'diags' }]);
 
   const areaEl = cls => rhomArea.querySelector('.' + cls);
 
-  /* ---- the line an answer is written on ----
-   * A triangle's area is not said in the heading any more (user,
-   * 2026-09-17: do not show the area at the top): once the chip is picked
-   * the line is WRITTEN, under the shape, in the cell the chips have just
-   * stepped out of -- and as each part of it lands it is pointed at on the
-   * drawing, one at a time. It is taken back before the next question, so
-   * the two questions are asked on the same clear board; the derivation
-   * that follows puts both lines up together beside the shape. */
-  async function showRhomWork(segs) {
-    rhom.classList.add('work');
-    fitRooms();
-    await wait(REDUCED ? 80 : 240);
-    return showTypedLine(segs, rhomLines, onRhomWord);
-  }
-  async function clearRhomWork() {
-    if (!rhomLines.firstChild) { rhom.classList.remove('work'); return; }
-    Array.from(rhomLines.children).forEach(l => l.classList.add('off'));
-    await wait(REDUCED ? 100 : 420);
-    rhomLines.textContent = '';
-    rhom.classList.remove('work');
-    fitRooms();
-    await wait(REDUCED ? 60 : 200);
+  /* the lesson's marks come off the shape, and the halves and the
+     triangles' own borders with them (buildRhomArea puts them back) */
+  function clearRhomArea() {
+    rhomArea.innerHTML = '';
+    rhomArt.querySelectorAll('.tri-fill, .tri-outline').forEach(el => el.remove());
   }
 
   /* the lesson's marks, laid over the tilted shape: the diagonals with their
      names, a right angle in the upper-right corner of the crossing and one in
-     the lower-right, and the two heights with theirs. The halves of the
-     shape go into the art, under the outline.
+     the lower-right, and the two heights with theirs -- h₁ up to the top
+     corner, Triangle 1's, and h₂ down to the bottom one, Triangle 2's. The
+     halves of the shape go into the art, under the outline, and each
+     triangle's two outer sides over it: invisible until a half is in focus,
+     when they take over from the outline so one can be drawn heavy and the
+     other stepped back (see .tri-outline, focusTri).
      d₁ is written OVER the left half of its own diagonal (user, 2026-09-17),
      clear of the crossing: the upright lines run through the middle of d₁,
      and a name sitting there had to be cut out of them to be read. Out to
@@ -8576,24 +8620,36 @@
     rhomArea.innerHTML =
       ln('rd rd-d1', P.BL, P.TR) +
       ln('rd rd-d2', P.BR, P.TL) +
-      ln('rd rd-h rd-h1', O, P.BR) +
-      ln('rd rd-h rd-h2', O, P.TL) +
+      ln('rd rd-h rd-h1', O, P.TL) +
+      ln('rd rd-h rd-h2', O, P.BR) +
       '<path class="rmark mark-up" d="M' + fmt(O.x) + ' ' + fmt(O.y - M) + ' H' + fmt(O.x + M) + ' V' + fmt(O.y) + '" />' +
       '<path class="rmark mark-down" d="M' + fmt(O.x) + ' ' + fmt(O.y + M) + ' H' + fmt(O.x + M) + ' V' + fmt(O.y) + '" />' +
       lbl('lbl-d1', O.x + D1_AT.x, O.y + D1_AT.y, 'middle', 'd₁') +
       lbl('lbl-d2', O.x + 14, (O.y + P.TL.y) / 2, 'start', 'd₂') +
-      lbl('lbl-h lbl-h1', O.x + 14, (O.y + P.BR.y) / 2, 'start', 'h₁') +
-      lbl('lbl-h lbl-h2', O.x + 14, (O.y + P.TL.y) / 2, 'start', 'h₂');
+      lbl('lbl-h lbl-h1', O.x + 14, (O.y + P.TL.y) / 2, 'start', 'h₁') +
+      lbl('lbl-h lbl-h2', O.x + 14, (O.y + P.BR.y) / 2, 'start', 'h₂');
 
+    const SVG_NS = 'http://www.w3.org/2000/svg';
     const outline = rhomEls.outline;
     const half = (cls, a, b, c) => {
-      const el = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      const el = document.createElementNS(SVG_NS, 'polygon');
       el.setAttribute('class', 'tri-fill ' + cls);
       el.setAttribute('points', pt(a) + ' ' + pt(b) + ' ' + pt(c));
       outline.parentNode.insertBefore(el, outline);
     };
     half('c-green rt-green',   P.BL, P.BR, P.TR);
     half('c-purple rt-purple', P.BL, P.TL, P.TR);
+    /* each triangle's outer sides, corner to corner round the far one: the
+       third side is d₁, which is drawn on its own */
+    const sides = (cls, a, b, c) => {
+      const el = document.createElementNS(SVG_NS, 'path');
+      el.setAttribute('class', 'tri-outline ' + cls);
+      el.setAttribute('d', 'M' + [a, b, c].map(p => fmt(p.x) + ' ' + fmt(p.y)).join(' L'));
+      el.setAttribute('fill', 'none');
+      outline.parentNode.appendChild(el);
+    };
+    sides('ol-purple', P.BL, P.TL, P.TR);
+    sides('ol-green',  P.BL, P.BR, P.TR);
   }
 
   /* the diagonal, or a height, grows along its line and takes its name */
@@ -8615,6 +8671,8 @@
   function onRhomWord(w) {
     if (w === 'green' || w === 'purple') { pulseTri(rhomShape, w); return; }
     if (w === 'd1' || w === 'd2' || w === 'h1' || w === 'h2') { denote(w); return; }
+    /* the product of the diagonals: both of them, lit together */
+    if (w === 'diags') { lineDenote(['rd-d1', 'lbl-d1', 'rd-d2', 'lbl-d2'].map(areaEl)); return; }
     /* the whole shape: both halves swell and the outline glows */
     pulseTri(rhomShape, 'purple');
     pulseTri(rhomShape, 'green');
@@ -8630,16 +8688,78 @@
     await poseTo(settledPose(-Math.atan2(d.dy, d.dx)), 1600);
   }
 
+  /* a line of Swiftee's at the heading that stays up until the next one --
+     the bird stays for the whole page (headStay) */
+  const rhomSays = t => heading(t).then(holdHeading);
+
+  /* The halves d₁ cuts the shape into take its colour: purple above,
+     orange below, one and then the other. Once both are in, the whole
+     shape's own fill under them is let go -- unseen, since the two halves
+     cover it exactly -- so a half stepped back while the other is in focus
+     fades onto the board, not onto the lavender. rhombusNumbers puts it
+     back as the halves go. */
+  async function splitRhom() {
+    rhomShape.classList.add('fill-purple');
+    pulseTri(rhomShape, 'purple');
+    await wait(REDUCED ? 150 : 520);
+    rhomShape.classList.add('fill-green');
+    pulseTri(rhomShape, 'green');
+    await wait(REDUCED ? 100 : 760);
+    rhomEls.fill.style.opacity = '0';
+  }
+
+  /* One triangle's area, in conversation -- page 4's triangleTalk, as the
+     parallelogram has it: the line is written in words while Swiftee says
+     which triangle it is about; then that half comes forward, its own
+     border drawn heavy and d₁ with it, while the other half steps back; and
+     d₁'s name floats off the drawing onto "base" and becomes it, then the
+     height drops from the crossing and its name floats onto "height", each
+     as Swiftee names it. `i` is 0 for the upper half, 1 for the lower. */
+  async function rhomTriangle(i) {
+    const color = i ? 'green' : 'purple';
+    const h = i ? 'h2' : 'h1';
+    const mark = i ? 'mark-down' : 'mark-up';
+    const talkLines = i ? RHOM2.tri2 : RHOM2.tri1;
+    let talk = rhomSays(talkLines.look);
+    await wait(REDUCED ? 100 : 300);
+    await floatLine(RHOM_LINES[i], { base: areaEl('lbl-d1'), h: areaEl('lbl-' + h) }, {
+      root: rhomLines, onWord: onRhomWord,
+      beforeFly: async key => {
+        await talk;
+        if (key === 'base') {
+          /* the line is written: now the triangle it is about comes
+             forward, with a heavy border (user, 2026-09-29) */
+          focusTri(color, rhomShape);
+          pulseTri(rhomShape, color);
+          await wait(REDUCED ? 200 : 900);
+        }
+        talk = rhomSays(talkLines[key]);
+        if (key === 'h') {
+          /* the height drops from the crossing as it is named, with its
+             right angle, and it is its name that floats */
+          await wait(REDUCED ? 100 : 400);
+          await drawDiag('rd-' + h, 'lbl-' + h, 560);
+          areaEl(mark).classList.add('on');
+          await wait(REDUCED ? 60 : 200);
+        } else {
+          await wait(REDUCED ? 100 : 500);
+        }
+      }
+    });
+    await talk;
+    await wait(REDUCED ? 200 : 700);
+  }
+
   async function rhombusArea() {
     lockInput(true);
     sceneStart(rhombusArea);
-    const mine = runToken;
-    promptReserve(longest(Object.keys(RHOM2).map(k => RHOM2[k])));
-    /* From here to the end of the rhombus section (page 20) Swiftee stays
-       at the heading once it is up -- the questions, the answers and the
-       Next button included -- rather than leaving after each line and
-       jumping back for the next (user, 2026-09-29). Each scene sets it for
-       itself, as sceneStart drops it. */
+    promptReserve(longest(RHOM2_ALL));
+    /* From here to the end of the rhombus section Swiftee stays at the
+       heading once it is up -- the questions, the answers and the Next
+       button included -- rather than leaving after each line and jumping
+       back for the next (user, 2026-09-29). Each scene sets it for itself,
+       as sceneStart drops it. This page lets it go at its very end, once
+       the formula is complete (page 4's close). */
     headStay = true;
 
     /* 1. the last scene clears: Swiftee ducks behind the board from beside
@@ -8647,14 +8767,14 @@
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
-    rhom.classList.remove('wide', 'numbers', 'work');
+    unzoomContent(rhom);          /* a replay comes back to the closing zoom */
+    rhom.classList.remove('wide', 'numbers');
     rhomLines.textContent = '';
     rhomLines.classList.remove('off');
     /* a replay has taken the built shape away: it is built again from the
        lengths the learner left it with, already revealed */
     if (!rhomEls || !rhomArt.contains(rhomEls.outline)) {
       buildRhom(true);
-      rhomEls.fill.style.opacity = 1;
       rhomEls.outline.style.strokeDasharray = 'none';
       rhomEls.outline.style.strokeDashoffset = '0';
       rhomEls.diag1.style.opacity = 1;
@@ -8662,14 +8782,23 @@
       rhomShape.classList.add('square', 'done', 'clean');
       ANGLE_KEYS.forEach(k => rhomEls.ang[k].g.classList.add('show'));
       rh.pose = settledPose(0);
-      renderRhom();
     } else {
-      rhomArea.innerHTML = '';
-      rhomArt.querySelectorAll('.tri-fill').forEach(el => el.remove());
-      renderRhom();
+      clearRhomArea();
     }
+    rhomEls.fill.style.opacity = 1;
+    renderRhom();
     if (rhomMascot.classList.contains('in')) await mascotJumpOut(rhomMascot);
+    /* The heading's room is held for the rest of the page from here, as
+       page 4's is: the row under the shape that held Swiftee's line lets
+       go as the heading's opens, so the shape changes size this once, while
+       the board is still, and keeps it -- through every line from the
+       heading, Swiftee leaving it at the end, and the zoom into the room it
+       leaves. rhombusNumbers lets go once the bird is back up. The foot is
+       eased shut in the same frame the heading starts to open, rather than
+       a beat later (ROOM_CLOSE_DELAY), so the two moves are one. */
     rhomSay.classList.remove('show', 'held');
+    board.classList.add('head-held');
+    setRoom(rhomSay.parentElement, 0);
     await wait(500);
 
     /* 2. the tilt: the marks of the last scene fade as the shape turns */
@@ -8680,180 +8809,144 @@
     await tiltRhom();
     await wait(400);
 
-    /* 3. d1 along the flat diagonal, d2 up the other, the right angle
-          between them; Swiftee jumps up and names the shape */
+    /* 3. d1 along the flat diagonal, and only d1 (user, 2026-09-29): d2 is
+          not drawn yet -- it first appears at the end of the working, where
+          the two heights join up into it; Swiftee jumps up and names the
+          shape */
     buildRhomArea();
     await drawDiag('rd-d1', 'lbl-d1', 760);
-    await drawDiag('rd-d2', 'lbl-d2', 620);
-    areaEl('mark-up').classList.add('on');
-    sfx('click', .4);
     await wait(REDUCED ? 200 : 700);
-    await heading(RHOM2.here);
-    await wait(1400);
+    await rhomSays(RHOM2.here);
+    await wait(REDUCED ? 300 : 900);
 
-    /* 4. d2 leaves; the lower half shades green and its height drops from
-          the crossing; which formula is its area? */
-    areaEl('rd-d2').style.opacity = '';
-    areaEl('lbl-d2').classList.remove('on');
-    areaEl('mark-up').classList.remove('on');
-    await wait(560);
-    rhomShape.classList.add('fill-green');
-    pulseTri(rhomShape, 'green');
-    await wait(700);
-    await drawDiag('rd-h1', 'lbl-h1', 560);
-    areaEl('mark-down').classList.add('on');
-    await wait(400);
-    await dealChips(rhomChips1);
-    await wait(200);
-    await heading(RHOM2.askG);
-    await askChips(rhomChips1, 'half');
-    if (mine !== runToken) throw CANCELLED;
-    await heading(RHOM2.rightG);
+    /* 4. the whole of it is what is wanted: as Swiftee says so, the two
+          halves d1 cuts the shape into take their colours */
+    let talk = rhomSays(RHOM2.whole);
+    await wait(REDUCED ? 250 : 960);
+    await splitRhom();
+    await talk;
+    await wait(REDUCED ? 100 : 400);
 
-    /* the answer, written out under the shape: d₁ and h₁ light on the
-       drawing as the line names them */
-    rhomTray1.classList.add('off');
-    await wait(560);
-    await showRhomWork(RHOM_LINES[0]);
-    await wait(REDUCED ? 400 : 1700);
-    await clearRhomWork();
+    /* 5. the shape moves to the left, and the working follows on the right */
+    await layoutWide(rhom, rhomSvg);
+    await wait(REDUCED ? 100 : 300);
 
-    /* 5. the green steps back; the upper half shades purple with its own
-          height, and the same question */
-    rhomShape.classList.add('quiet-green');
-    areaEl('mark-down').classList.remove('on');
-    areaEl('rd-h1').style.opacity = '';
-    areaEl('lbl-h1').classList.remove('on');
-    await wait(560);
-    rhomShape.classList.add('fill-purple');
-    pulseTri(rhomShape, 'purple');
-    await wait(700);
-    await drawDiag('rd-h2', 'lbl-h2', 560);
-    areaEl('mark-up').classList.add('on');
-    await wait(400);
-    await dealChips(rhomChips2);
-    await wait(200);
-    await heading(RHOM2.askP);
-    await askChips(rhomChips2, 'half');
-    if (mine !== runToken) throw CANCELLED;
-    await heading(RHOM2.rightP);
-    swiftee.play('happy', 1);
-
-    /* and the purple triangle's line the same way */
-    rhomTray2.classList.add('off');
-    await wait(560);
-    await showRhomWork(RHOM_LINES[1]);
-    await wait(REDUCED ? 400 : 1700);
-    await clearRhomWork();
+    /* 6. one triangle at a time, in conversation, with a Next after each */
+    await rhomTriangle(0);
     await showNext();
-    await rhombusSum();
+    await rhomTriangle(1);
+    await showNext();
+
+    /* 7. the two together: the sum, worked and then put into words */
+    await rhomSum();
+    await rhombusNumbers();
   }
 
-  /* ---- the sum, and the rule it becomes ----
-     Its own function so that it, like every other scene, has a re-entry
-     point Replay can call. The chips go, both halves come fully on with
-     both heights, the shape moves to the left, and the working types out on
-     the right: a line for each triangle, and a third for the rhombus as the
-     two together. That third line is then taken the rest of the way without
-     ever leaving the screen -- it changes in place, one step at a time, with
-     Swiftee saying what is being done and a ring denoting the part on the
-     drawing each step is about:
+  /* ---- the two halves together, and the rule it becomes ----
+     Page 4's workSum, on the rhombus. The third line is written as the sum
+     of the two above it and then carries on being worked where it stands,
+     one step at a time, Swiftee saying what is being done and the part on
+     the drawing each step is about pointed at:
 
-       Area of Rhombus = Area of Orange Triangle + Area of Purple Triangle
+       Area of Rhombus = Area of Triangle 1 + Area of Triangle 2
                        = ½ × d₁ × h₁ + ½ × d₁ × h₂
                        = ½ × d₁ × (h₁ + h₂)
                        = ½ × d₁ × d₂
 
      and at the last step the two heights, which already lie end to end
      along the short diagonal, become it: one ring holds them together while
-     the dashed halves give way to d₂ drawn solid. */
-  async function rhombusSum() {
-    lockInput(true);
-    sceneStart(rhombusSum);
-    headStay = true;             /* Swiftee stays at the heading: see rhombusArea */
-    promptReserve(longest(Object.keys(RHOM2).map(k => RHOM2[k])));
-    feedbackGen++;
-    promptTxt.textContent = '';
-    caret.hidden = true;
-
-    /* a replay comes back to a bare shape: everything the lesson drew is put
-       back as it stood at the hand-off */
-    if (ensureTilted()) {
-      areaEl('rd-h2').style.opacity = 1;
-      ['lbl-h2', 'mark-up'].forEach(c => areaEl(c).classList.add('on'));
-      rhomShape.classList.add('fill-green', 'quiet-green', 'fill-purple');
-    }
-    rhomTray2.classList.add('off');
-    rhom.classList.remove('wide', 'numbers', 'work');
-    rhomLines.textContent = '';
-    rhomLines.classList.remove('off');
-    await wait(460);
-
-    /* 1. both halves fully on, and h₁ back beside h₂ -- it is not drawn
-          again, it simply comes back where it was and a ring points it out */
-    rhomShape.classList.remove('quiet-green');
-    areaEl('rd-h1').style.opacity = 1;
-    areaEl('lbl-h1').classList.add('on');
-    areaEl('mark-down').classList.add('on');
-    await denote('h1', 360);
-    await heading(RHOM2.sum);
-    await wait(600);
-
-    /* 2. the shape moves to the left, and the working follows on the right:
-          each triangle, and the rhombus as the two together */
-    await layoutWide(rhom, rhomSvg);
-    await wait(300);
-    await showTypedLine(RHOM_LINES[0], rhomLines, onRhomWord);
-    await wait(760);
-    await showTypedLine(RHOM_LINES[1], rhomLines, onRhomWord);
-    await wait(760);
+     the dashed halves give way to d₂ drawn solid. Then a copy of that
+     line's right-hand side peels off onto the row below and is put into
+     words -- "= ½ × Product of Diagonals" -- the rule, the celebration, and
+     page 4's close. */
+  async function rhomSum() {
+    /* the sum is about both halves: neither is held back for it, and the
+       triangles' heavy borders give way to the whole outline again */
+    focusTri(null, rhomShape);
+    await wait(REDUCED ? 160 : 420);
     const sum = await showTypedLine(RHOM_STEPS[0], rhomLines, onRhomWord);
     const txt = sum.querySelector('.txt');
-    await wait(REDUCED ? 300 : 1200);
+    await wait(REDUCED ? 300 : 1300);
 
-    /* 3. and that line is taken the rest of the way, in place. Each step is
-          said first, then shown on the drawing, then written -- and what it
-          is about is pointed at on the drawing ONE PART AT A TIME, in the
-          order the line will put them in */
-    await heading(RHOM2.both);
+    /* each triangle's area put in: the line comes forward a step for as
+       long as it is being worked on, settled at its new size before
+       anything in it moves, since a morph measures the width it eases to */
+    await rhomSays(RHOM2.swap);
     await wait(REDUCED ? 200 : 500);
+    sum.classList.add('solving');
+    await wait(REDUCED ? 100 : 620);
     await denote('h1', 340);
     await denote('h2', 340);
     await morphTo(txt, RHOM_STEPS[1], false, true);
-    await wait(REDUCED ? 300 : 1500);
+    await wait(REDUCED ? 300 : 1400);
 
-    await heading(RHOM2.share);
+    /* ½ × d₁, in both, taken out */
+    await rhomSays(RHOM2.share);
     await denote('d1', 700);
     await morphTo(txt, RHOM_STEPS[2], false, true);
-    await wait(REDUCED ? 300 : 1500);
+    await wait(REDUCED ? 300 : 1400);
 
-    await heading(RHOM2.join);
+    /* and the two heights become the short diagonal */
+    await rhomSays(RHOM2.join);
     await wait(REDUCED ? 150 : 400);
     await joinHeights();
     await morphTo(txt, RHOM_STEPS[3], false, true);
     await wait(REDUCED ? 300 : 1100);
 
-    /* 4. the rule the whole section was built for. It stands bare (user,
-          2026-09-18): no box, as the trapezium's rule has none either. The
-          line has been carrying the break its FIRST step needed -- "= Area
-          of Orange Triangle + Area of Purple Triangle" did not fit its
-          column, so the "=" dropped to a second row -- and the rule is far
-          shorter than that. The ghost is re-cut to what the line now says
-          and re-fitted, so the break goes and the rule closes up onto one
-          row; .rule holds it there. */
-    await heading(RHOM2.rule);
-    await wait(REDUCED ? 150 : 350);
+    /* worked out: the line settles back to the size of the two above it.
+       It has been carrying the break its FIRST step needed -- "= Area of
+       Triangle 1 + Area of Triangle 2" did not fit its column, so the "="
+       dropped to a second row -- and it is far shorter now: the ghost is
+       re-cut to what the line says and re-fitted, so the break goes and it
+       closes up onto one row (.rule holds it there), before the copy below
+       measures where its "=" is */
+    sum.classList.remove('solving');
+    await wait(REDUCED ? 100 : 620);
     lineSpans(sum.querySelector('.type-ghost'), RHOM_STEPS[3]);
     fitEq(sum);
     sum.classList.add('rule');
-    sfx('click', .4);
+    await wait(REDUCED ? 100 : 500);
+
+    /* the fourth line: the copy comes off the third, and d₁ × d₂ becomes
+       its name as Swiftee says it */
+    const words = rhsOf(RHOM_WORDS);
+    const rule = await copyLine(sum, rhsOf(RHOM_STEPS[3]), words, rhomLines);
+    const ruleTxt = rule.querySelector('.txt');
+    await wait(REDUCED ? 200 : 500);
+    const named = (async () => {
+      await wait(REDUCED ? 100 : 900);
+      onRhomWord('diags');
+      await morphTo(ruleTxt, words, false, true);
+    })();
+    await rhomSays(RHOM2.words);
+    await named;
+    await wait(REDUCED ? 200 : 700);
+
+    /* the rule the whole section was built for */
+    await heading(RHOM2.rule);
+    await wait(REDUCED ? 150 : 350);
     feedback(FEEDBACK.done);
+    onRhomWord('rhom');
     swiftee.play('proud', 1);
     skyConfetti(120, 3200);
     sfx('confetti', .8);
-    await wait(2800);
+    await wait(REDUCED ? 400 : 1800);
+
+    /* the formula is complete: Swiftee and its line leave the heading, and
+       the shape and the working come forward a little into the room it
+       leaves -- held open, so nothing slides up as the bird goes -- and only
+       then the Next button (page 4's close, user 2026-09-29) */
+    headStay = false;
+    feedbackGen++;
+    caret.hidden = true;
+    if (boardMascot.classList.contains('in')) {
+      await mascotJumpOut(boardMascot, () => { promptTxt.textContent = ''; });
+    } else promptTxt.textContent = '';
+    await wait(REDUCED ? 60 : 220);
+    zoomContent(rhom, [drawnRect(rhomSvg)].concat(
+      Array.from(rhomLines.querySelectorAll('.area-line')).map(lineBox)), RHOM_ZOOM);
+    await wait(REDUCED ? 300 : 900 + 1500);
     await showNext();
-    await rhombusNumbers();
   }
 
   /* h₁ and h₂ already lie end to end along the short diagonal, so nothing
@@ -8869,17 +8962,18 @@
     lit.forEach(el => { el.dataset.seq = mine; el.classList.add('denote'); });
     await wait(REDUCED ? 140 : 900);
 
-    /* held together, the two become one */
-    const dy = (+ld2.getAttribute('y')) - (+l1.getAttribute('y'));
+    /* held together, the two become one. h₁ is already written where d₂'s
+       name goes, up the top half; h₂'s travels up to it */
+    const dy = (+ld2.getAttribute('y')) - (+l2.getAttribute('y'));
     d2.style.opacity = 1;
     h1.style.opacity = '';
     h2.style.opacity = '';
     sfx('click', .35);
-    /* the two names fade out well before h₁'s finishes its travel, so they
+    /* the two names fade out well before h₂'s finishes its travel, so they
        are never both sitting on the same spot */
     await tween(700, e => {
       const gone = Math.max(0, 1 - e * 2.1);
-      l1.style.transform = 'translateY(' + fmt(dy * e) + 'px)';
+      l2.style.transform = 'translateY(' + fmt(dy * e) + 'px)';
       l1.style.opacity = gone;
       l2.style.opacity = gone;
     }, easeInOut);
@@ -8930,6 +9024,13 @@
    * answer is said in the heading, and Next. */
   const NUM = {
     drag:  'Drag the two lengths into the formula.',
+    /* the verdict on each drop is said in a sentence in the heading (user,
+       2026-09-29): a wrong length is told where the right one is written,
+       and the first right one is named and the second asked for */
+    wrong1: 'Not quite! The length written under the shape is d₁.',
+    right1: 'That’s Correct! The first diagonal is 16 cm. Now drag d₂ into the formula.',
+    wrong2: 'Not quite! The length written beside the shape is d₂.',
+    first:  'Fill d₁ first, then d₂.',
     /* the working the learner has just built IS the answer; saying it again
        at the top would also give away the question the next page asks */
     right: 'That’s Correct!'
@@ -8944,7 +9045,7 @@
      and the length written on it */
   function buildRhomDims() {
     const P = rhomPts();
-    const H = 9;
+    const H = 6;                 /* the arrowheads, a size down (user, 2026-09-29) */
     const ln = (cls, a, b, dash) => '<line class="' + cls + '" x1="' + fmt(a.x) + '" y1="' + fmt(a.y) + '" x2="' + fmt(b.x) + '" y2="' + fmt(b.y) + '"' + dashAttr(dash) + ' />';
     /* an arrowhead at `tip`, pointing along (dx, dy) */
     const head = (tip, dx, dy) => {
@@ -8987,23 +9088,48 @@
     await wait(REDUCED ? 160 : 520);
   }
 
+  /* the lengths back in the tray, the slots empty, the first open and the
+     second locked: the state the page starts in */
+  function resetLenSlots() {
+    rhomTray3.classList.remove('off');
+    rhomChips3.forEach(c => {
+      rhomTray3.appendChild(c);
+      c.disabled = false;
+      c.classList.remove('picked', 'dragging', 'reject');
+    });
+    rhomSlots.forEach((s, i) => {
+      s.classList.remove('filled', 'over', 'correct', 'reject');
+      s.classList.toggle('locked', i > 0);
+      if (i > 0) s.setAttribute('aria-disabled', 'true');
+      else s.removeAttribute('aria-disabled');
+    });
+  }
+
   /* The drag. Its own small plumbing, on the warm-up's pattern: a copy of
      the chip follows the pointer, the slot under it lights, and a release
      over a slot is judged. A chip may also be tapped and then a slot tapped.
-     Either of the two lengths may go in either slot, but not the same one
-     twice; a wrong one is shaken off and stays in the tray. A skip docks the
-     two itself; a replay takes the listeners off. */
+     The slots go in order (user, 2026-09-29): the first wants d₁ and the
+     second, locked until the first is right, wants d₂; a wrong length is
+     shaken off and stays in the tray, and each drop is answered in a
+     sentence in the heading. A skip docks the two itself; a replay takes
+     the listeners off. */
   function dragLengths() {
     return waitForScene(resolve => {
       let ldrag = null, lpicked = null, over = false;
       const filled = () => rhomSlots.filter(s => s.classList.contains('filled'));
-      const taken  = () => filled().map(s => s.querySelector('.chip').dataset.len);
+      const locked = s => s.classList.contains('locked');
+      const open   = s => !s.classList.contains('filled') && !locked(s);
       const slotAt = (x, y) => rhomSlots.find(s => {
         const r = s.getBoundingClientRect();
         return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
       }) || null;
       const clearOver = () => rhomSlots.forEach(s => s.classList.remove('over'));
       const unpick = () => { if (lpicked) lpicked.classList.remove('picked'); lpicked = null; };
+      const unlock = s => { s.classList.remove('locked'); s.removeAttribute('aria-disabled'); };
+      /* Swiftee's sentence on a drop: not awaited, the chip is already on
+         its way back or settling, and the next drop simply retypes over it
+         (feedbackGen) */
+      const say = text => { heading(text).catch(() => {}); };
 
       const dockLen = (chip, slot, earned) => {
         slot.appendChild(chip);
@@ -9023,19 +9149,30 @@
 
       const tryPlace = (chip, slot) => {
         if (!slot || slot.classList.contains('filled')) return;
-        const ok = NUM_NEED.indexOf(chip.dataset.len) !== -1 && taken().indexOf(chip.dataset.len) === -1;
-        if (!ok) {
+        const i = rhomSlots.indexOf(slot);
+        /* the second slot before the first: the chip goes home, and the
+           order is said */
+        if (locked(slot)) {
           sfx('wrong');
-          feedback(FEEDBACK.wrong);
+          swiftee.play('confused', 1);
+          markWrong(chip);
+          setTimeout(() => chip.classList.remove('reject'), 430);
+          say(NUM.first);
+          return;
+        }
+        if (chip.dataset.len !== NUM_NEED[i]) {
+          sfx('wrong');
           swiftee.play('confused', 1);
           markWrong(slot);
           markWrong(chip);
           setTimeout(() => { slot.classList.remove('reject'); chip.classList.remove('reject'); }, 430);
+          say(i === 0 ? NUM.wrong1 : NUM.wrong2);
           return;
         }
         dockLen(chip, slot, true);
-        if (filled().length === rhomSlots.length) finish(false);
-        else feedback(FEEDBACK.right);
+        if (filled().length === rhomSlots.length) { finish(false); return; }
+        rhomSlots.slice(i + 1).forEach(unlock);
+        say(NUM.right1);
       };
 
       const onDownL = e => {
@@ -9057,7 +9194,7 @@
         moveGhost(ldrag, e.clientX, e.clientY);
         clearOver();
         const slot = slotAt(e.clientX, e.clientY);
-        if (slot && !slot.classList.contains('filled')) slot.classList.add('over');
+        if (slot && open(slot)) slot.classList.add('over');
       };
       const onUpL = e => {
         if (!ldrag) return;
@@ -9104,15 +9241,16 @@
         lockInput(true);
         resolve();
       };
-      /* a skip: the two right lengths go in by themselves */
+      /* a skip: the two right lengths go in by themselves, each in its own
+         slot */
       const fill = () => {
         if (over) return;
-        const free = () => rhomSlots.find(s => !s.classList.contains('filled'));
-        NUM_NEED.forEach(v => {
-          if (taken().indexOf(v) !== -1) return;
+        NUM_NEED.forEach((v, i) => {
+          const slot = rhomSlots[i];
+          unlock(slot);
+          if (slot.classList.contains('filled')) return;
           const chip = rhomChips3.find(c => c.dataset.len === v && !c.disabled);
-          const slot = free();
-          if (chip && slot) dockLen(chip, slot, false);
+          if (chip) dockLen(chip, slot, false);
         });
         finish(true);
       };
@@ -9132,22 +9270,38 @@
     sceneStart(rhombusNumbers);
     headStay = true;             /* Swiftee stays at the heading: see rhombusArea */
     const mine = runToken;
-    promptReserve(longest([NUM.drag, NUM.right]));
+    promptReserve(longest([NUM.drag, NUM.wrong1, NUM.right1, NUM.wrong2, NUM.first, NUM.right]));
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
 
     /* a replay comes back to a bare shape, and to lengths still sitting in
-       the slots they were dropped in: the shape is put back and the lengths
-       go home */
+       the slots they were dropped in: the shape is put back, the lengths
+       go home, and the slots are emptied and locked in order again */
     const rebuilt = ensureTilted();
-    rhomChips3.forEach(c => { rhomTray3.appendChild(c); c.disabled = false; });
+    resetLenSlots();
+    /* a Back from page 16 finds the bird down in that page's panel: up to
+       the heading first, then the panel goes */
+    if (rpMascot.classList.contains('in')) {
+      await hopBetween(rpMascot, boardMascot);
+      await wait(REDUCED ? 60 : 240);
+    }
+    rhom.classList.remove('ask');
+    rpClear();
     rhomArea.querySelectorAll('.d-group').forEach(g => g.remove());
 
-    /* 1. the working leaves; the shape keeps the left two fifths and the
-          right three fifths are cleared for the formula */
+    /* 1. the working leaves, and the area page's closing zoom with it -- the
+          zoom class first and its origin only once the scale is back to 1,
+          as the parallelogram's is let go (mendPara); the shape keeps the
+          left two fifths and the right three fifths are cleared for the
+          formula */
     rhomLines.classList.add('off');
     await wait(450);
+    if (rhom.classList.contains('zoomed')) {
+      zoomOut(rhom);
+      await wait(REDUCED ? 100 : 900);
+    }
+    unzoomContent(rhom);
     rhom.classList.add('numbers');
     await layoutWide(rhom, rhomSvg, true);
     rhomLines.textContent = '';
@@ -9158,8 +9312,12 @@
           two lengths that arrive in a moment name them better than the
           letters do -- the letters are left to the pages that reason about
           them. d2 comes back, so the shape stands plain with both diagonals
-          and the right angle between them. */
-    rhomShape.classList.remove('fill-green', 'quiet-green', 'fill-purple', 'lit-d1', 'lit-d2', 'lit-quad');
+          and the right angle between them. The whole shape's own fill,
+          let go under the halves on the area page (splitRhom), is put back
+          first -- unseen under them -- so the colour stays as they go. */
+    rhomEls.fill.style.opacity = 1;
+    focusTri(null, rhomShape);
+    rhomShape.classList.remove('fill-green', 'fill-purple', 'lit-d1', 'lit-d2', 'lit-quad');
     ['rd-h1', 'rd-h2'].forEach(c => { areaEl(c).style.opacity = ''; });
     ['lbl-h1', 'lbl-h2', 'lbl-d1', 'lbl-d2', 'mark-down'].forEach(c => areaEl(c).classList.remove('on'));
     await wait(600);
@@ -9173,8 +9331,12 @@
     areaEl('mark-up').classList.add('on');
     await wait(400);
 
-    /* 3. Swiftee asks */
+    /* 3. Swiftee asks. The area page left the heading's room held open,
+          empty, for its zoom; with the bird back up in it, the hold is let
+          go -- the row stays open for as long as Swiftee stands there, so
+          nothing moves. */
     await heading(NUM.drag);
+    board.classList.remove('head-held');
     await wait(300);
 
     /* 4. the diagonals are measured */
@@ -9193,7 +9355,9 @@
     await dragLengths();
     if (mine !== runToken) throw CANCELLED;
 
-    /* 6. both lengths are in: the answer, and on */
+    /* 6. both lengths are in: the lengths left over go (user, 2026-09-30),
+          then the answer, and on */
+    rhomTray3.classList.add('off');
     feedback(FEEDBACK.done);
     onRhomWord('rhom');
     await wait(900);
@@ -9222,6 +9386,58 @@
   };
   const PRACTICE_GHOST = [PRACTICE.area, PRACTICE.areaOk, PRACTICE.find, PRACTICE.findOk, PRACTICE.which, PRACTICE.whichOk];
 
+  /* ---- page 16: the area of the measured rhombus ----
+   * Asked from the box beside the bird, page 4's way (user, 2026-09-30),
+   * and every answer is met with a sentence in the same box: a wrong area
+   * is told what it is instead -- the product without the half, or the sum
+   * -- and the right one is worked out in a line. */
+  const RP = {
+    ask:   'Choose the correct area.',
+    opts:  [{ v: '96', t: '96 sq. cm' }, { v: '192', t: '192 sq. cm' }, { v: '28', t: '28 sq. cm' }],
+    right: '96',
+    notes: {
+      '192': 'Not quite! That is 16 × 12 without the half. Look at the formula again.',
+      '28':  'Not quite! That is 16 + 12. The diagonals are multiplied, not added.',
+      '96':  'That’s Correct! Half of 16 × 12 is 96 sq. cm.'
+    }
+  };
+  /* the box fits the piece it is saying, and is fitted before the bird is
+     brought up, for the reason quizSay gives. The ghost is set the way the
+     live line is (setTxt): a "½" in it is drawn as a stacked fraction, and
+     a ghost holding the plain glyph measured narrower than the line and
+     wrapped it. */
+  const rpFit = text => { setTxt(rpGhost, text); snug(rpGhost); };
+  async function rpSay(text, tone) {
+    rpFit(firstPiece(text));
+    await speakerUp(rpTxt);
+    feedbackGen++;
+    rpNote.classList.remove('ok', 'bad');
+    if (tone) rpNote.classList.add(tone);
+    rpCaret.hidden = true;
+    swiftee.hold('talking');
+    const said = sayPieces(rpTxt, text, piece => rpFit(piece));
+    rpNote.classList.add('show');
+    await said;
+    swiftee.release();
+  }
+  /* the panel as another scene must find it: empty and unpainted */
+  function rpClear() {
+    rpPanel.classList.remove('show', 'off', 'done');
+    rpNote.classList.remove('show', 'ok', 'bad');
+    rpTxt.textContent = '';
+    rpGhost.textContent = '';
+    rpCaret.hidden = true;
+    rpTray.innerHTML = '';
+  }
+  /* the answers come up one at a time, each with its own click */
+  async function dealOneByOne(chips) {
+    for (const chip of chips) {
+      chip.classList.add('reveal');
+      sfx('click', .25);
+      await wait(REDUCED ? 80 : 420);
+    }
+  }
+
   /* the answers to a question: chips built fresh each time */
   function practiceChips(list, tray) {
     tray = tray || practiceTray;
@@ -9236,29 +9452,32 @@
    * an outline that draws itself, and the lesson's marks over it. */
   const FIG_W = 360, FIG_H = 260;
   const figLine = (cls, a, b, dash) => '<line class="' + cls + '" x1="' + fmt(a.x) + '" y1="' + fmt(a.y) + '" x2="' + fmt(b.x) + '" y2="' + fmt(b.y) + '"' + dashAttr(dash) + ' />';
-  const figHead = (tip, dx, dy) => {
-    const H = 9, nx = -dy, ny = dx;
+  const figHead = (tip, dx, dy, H) => {
+    H = H || 9;
+    const nx = -dy, ny = dx;
     return '<path class="d-head" d="M' + fmt(tip.x - dx * H + nx * H * .65) + ' ' + fmt(tip.y - dy * H + ny * H * .65) +
            ' L' + fmt(tip.x) + ' ' + fmt(tip.y) +
            ' L' + fmt(tip.x - dx * H - nx * H * .65) + ' ' + fmt(tip.y - dy * H - ny * H * .65) + '" />';
   };
   /* a two-headed arrow between a and b with its length written on it;
      `ext` are the corners it measures from */
-  function figMeasure(cls, a, b, label, ext, rotate) {
+  function figMeasure(cls, a, b, label, ext, rotate, size) {
     const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     const u = rhUnit(b, a);
+    const font = (size && size.font) || 17, head = (size && size.head) || 9;
     return '<g class="d-group ' + cls + '">' +
       ext.map(e => figLine('d-ext', e.from, e.to)).join('') +
-      figLine('d-arrow', a, b, arrowDash(a, b, label, 17)) + figHead(a, -u.x, -u.y) + figHead(b, u.x, u.y) +
-      '<text class="d-label" x="' + fmt(mid.x) + '" y="' + fmt(mid.y) + '" font-size="17" text-anchor="middle" dominant-baseline="middle"' +
+      figLine('d-arrow', a, b, arrowDash(a, b, label, font)) + figHead(a, -u.x, -u.y, head) + figHead(b, u.x, u.y, head) +
+      '<text class="d-label" x="' + fmt(mid.x) + '" y="' + fmt(mid.y) + '" font-size="' + font + '" text-anchor="middle" dominant-baseline="middle"' +
         (rotate ? ' transform="rotate(-90 ' + fmt(mid.x) + ' ' + fmt(mid.y) + ')"' : '') + '>' + label + '</text>' +
     '</g>';
   }
-  function figShell(key, name, art, over, h) {
+  function figShell(key, name, art, over, h, w) {
     h = h || FIG_H;
+    w = w || FIG_W;
     return '<div class="fig" data-fig="' + key + '" tabindex="-1">' +
-      '<div class="fig-art"><svg viewBox="0 0 ' + FIG_W + ' ' + h + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
-        '<defs><clipPath id="wipeFig' + key + '"><rect class="wipe" x="0" y="0" width="' + FIG_W + '" height="' + h + '" /></clipPath></defs>' +
+      '<div class="fig-art"><svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
+        '<defs><clipPath id="wipeFig' + key + '"><rect class="wipe" x="0" y="0" width="' + w + '" height="' + h + '" /></clipPath></defs>' +
         '<g class="art">' + art + '</g>' +
         '<g class="fig-over" style="--pair: var(--heading)">' + over + '</g>' +
       '</svg></div>' +
@@ -9327,6 +9546,217 @@
   }
 
   const figEl = (key, row) => (row || figRow).querySelector('.fig[data-fig="' + key + '"]');
+
+  /* ---- the practice figures, in page 16's own scale (user, 2026-09-30) ----
+   * Every figure asked about on pages 17 to 19 is drawn in the same
+   * 440-wide box the measured rhombus of page 16 has (its viewBox), with
+   * its lengths written at the same size (19) and its arrowheads the same
+   * (6), so the four pages read as one set: an outline, a diagonal, a
+   * length line or a label is the same weight on every one of them. The
+   * second diagonal's length stands up the RIGHT of the shape, as page
+   * 16's does. */
+  const PF_W = 440, PF_H = 250, PF = { font: 19, head: 6 };
+  function pFigRhombus(key, d1, d2, labD1, labD2, unknown) {
+    /* the drawing is centred in its box, the length up the right side
+       counted: without one the rhombus itself stands in the middle */
+    const cx = (labD2 && !unknown) ? 200 : 220, cy = 118;
+    const L = { x: cx - d1 / 2, y: cy }, R = { x: cx + d1 / 2, y: cy };
+    const T = { x: cx, y: cy - d2 / 2 }, B = { x: cx, y: cy + d2 / 2 };
+    const O = { x: cx, y: cy }, M = 12;
+    const art =
+      '<polygon class="shape-fill" clip-path="url(#wipeFig' + key + ')" points="' + [L, T, R, B].map(pt).join(' ') + '" />' +
+      '<path class="shape-outline" d="M' + [L, T, R, B].map(p => fmt(p.x) + ' ' + fmt(p.y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
+    let over =
+      figLine('rd rd-d1', L, R) +
+      figLine('rd rd-d2' + (unknown ? ' dashed' : ''), T, B) +
+      '<path class="rmark mark-up" d="M' + fmt(O.x) + ' ' + fmt(O.y - M) + ' H' + fmt(O.x + M) + ' V' + fmt(O.y) + '" />';
+    if (unknown) {
+      over += '<text class="rd-lbl lbl-d2 lbl-q" x="' + fmt(cx + 14) + '" y="' + fmt(cy - d2 / 4) + '" font-size="26" text-anchor="start" dominant-baseline="middle">?</text>';
+    }
+    const y = B.y + 16;
+    over += figMeasure('d-d1', { x: L.x, y: y }, { x: R.x, y: y }, labD1,
+      [{ from: L, to: { x: L.x, y: y } }, { from: R, to: { x: R.x, y: y } }], false, PF);
+    if (labD2 && !unknown) {
+      const x = R.x + 24;
+      over += figMeasure('d-d2', { x: x, y: T.y }, { x: x, y: B.y }, labD2,
+        [{ from: T, to: { x: x, y: T.y } }, { from: B, to: { x: x, y: B.y } }], true, PF);
+    }
+    return figShell(key, '', art, over, PF_H, PF_W);
+  }
+  /* the slanted shape with four equal sides, given by its base and its
+     height only: a base of 214 and a height of 128 (10 : 6), the slant
+     chosen so the side comes out the length of the base */
+  function pFigSlant(key) {
+    const BL = { x: 28, y: 200 }, BR = { x: 242, y: 200 }, TL = { x: 199, y: 72 }, TR = { x: 413, y: 72 };
+    const F = { x: TL.x, y: BL.y };
+    const art =
+      '<polygon class="shape-fill" clip-path="url(#wipeFig' + key + ')" points="' + [BL, TL, TR, BR].map(pt).join(' ') + '" />' +
+      '<path class="shape-outline" d="M' + [BL, TL, TR, BR].map(p => fmt(p.x) + ' ' + fmt(p.y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
+    let over = '';
+    [[BL, TL], [TL, TR], [TR, BR], [BR, BL]].forEach(([a, b]) => {
+      const u = rhUnit(b, a), n = { x: -u.y, y: u.x }, C = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, t = 11;
+      const d = 'M' + fmt(C.x + n.x * t) + ' ' + fmt(C.y + n.y * t) + ' L' + fmt(C.x - n.x * t) + ' ' + fmt(C.y - n.y * t);
+      over += '<g class="eq-mark"><path class="halo" d="' + d + '" /><path class="ink" d="' + d + '" /></g>';
+    });
+    const M = 12, hv = rhUnit(F, TL);
+    over += '<g class="d-group d-hgt">' +
+      figLine('d-height', TL, F) + figHead(TL, -hv.x, -hv.y, PF.head) + figHead(F, hv.x, hv.y, PF.head) +
+      '<path class="d-mark" d="M' + fmt(F.x) + ' ' + fmt(F.y - M) + ' H' + fmt(F.x + M) + ' V' + fmt(F.y) + '" />' +
+      '<text class="d-label" x="' + fmt(F.x + 10) + '" y="' + fmt((TL.y + F.y) / 2) + '" font-size="' + PF.font + '" text-anchor="start" dominant-baseline="middle">6 cm</text>' +
+    '</g>';
+    const y = BL.y + 20;
+    over += figMeasure('d-d1', { x: BL.x, y: y }, { x: BR.x, y: y }, '10 cm',
+      [{ from: BL, to: { x: BL.x, y: y } }, { from: BR, to: { x: BR.x, y: y } }], false, PF);
+    return figShell(key, '', art, over, PF_H, PF_W);
+  }
+
+  /* the marks a practice figure takes once it is drawn, at page 16's pace:
+     the diagonals one after the other, the right angle between them, the
+     "?" on a diagonal that is asked for, a height, the equal-side ticks,
+     and each length on its own arrow, its line pulsing once as the number
+     lands */
+  async function pMarks(f) {
+    const d1 = f.querySelector('.rd-d1'), d2 = f.querySelector('.rd-d2');
+    if (d1) { await growLine(d1, REDUCED ? 120 : 900); await wait(REDUCED ? 100 : 420); }
+    if (d2) { await growLine(d2, REDUCED ? 120 : 760); await wait(REDUCED ? 100 : 320); }
+    const mark = f.querySelector('.rmark');
+    if (mark) { mark.classList.add('on'); sfx('click', .35); await wait(REDUCED ? 120 : 620); }
+    const q = f.querySelector('.lbl-q');
+    if (q) { q.classList.add('on'); sfx('click', .35); await wait(REDUCED ? 120 : 520); }
+    const hgt = f.querySelector('.d-hgt');
+    if (hgt) {
+      await growLine(hgt.querySelector('.d-height'), REDUCED ? 120 : 760);
+      hgt.classList.add('on');
+      sfx('click', .35);
+      await wait(REDUCED ? 120 : 620);
+    }
+    f.querySelectorAll('.eq-mark').forEach(m => m.classList.add('on'));
+    for (const g of Array.from(f.querySelectorAll('.d-group:not(.d-hgt)'))) {
+      await showDimGroup(g);
+      const cls = g.classList.contains('d-d1') ? 'd1' : g.classList.contains('d-d2') ? 'd2' : null;
+      if (cls && f.querySelector('.rd-' + cls)) rcFlash(f, cls);
+      await wait(REDUCED ? 140 : 820);
+    }
+  }
+
+  /* ---- leaving a practice page (user, 2026-09-30) ----
+   * Next: the answers and the box fade, the shape goes, and the bird jumps
+   * back behind the board, so the next question opens on a blank board
+   * with nothing on it to move as its layout is set. A replay of any of
+   * them lands here too, whatever the last run left standing. */
+  async function practiceLeave() {
+    rpPanel.classList.add('done');          /* the answers fade */
+    rpNote.classList.remove('show');        /* the box shuts */
+    rhomShape.classList.add('away');        /* page 16's rhombus */
+    const cleared = clearFigures();         /* a practice figure */
+    const spot = [rpMascot, rcMascot, boardMascot].find(m => m.classList.contains('in'));
+    await wait(REDUCED ? 80 : 260);
+    const ducking = spot ? mascotJumpOut(spot) : Promise.resolve();
+    await wait(REDUCED ? 60 : 200);
+    rpPanel.classList.add('off');
+    await cleared;
+    await ducking;
+    /* the board is blank: the layout can change with nothing on it to move */
+    rpClear();
+    rcClear();
+    practiceTray.classList.add('off');
+    rhomPractice.classList.remove('on');
+    board.classList.remove('head-held');
+    rhom.classList.remove('wide', 'cfu', 'ask', 'numbers');
+    rhomLines.textContent = '';
+    await wait(REDUCED ? 100 : 320);
+  }
+
+  /* ---- one practice question, page 16's way (user, 2026-09-30) ----
+   *   1. the last page leaves (practiceLeave)
+   *   2. the figure draws itself in the middle of the empty board, slowly,
+   *      and takes its marks -- nothing to read but the shape
+   *   3. it glides to the left half; the panel is painted on the right,
+   *      empty, with the answers built and the box fitted, so the bird's
+   *      spot is laid out before it arrives
+   *   4. Swiftee comes up from behind the board into the panel and asks
+   *      from its box, and the answers come up one by one
+   *   5. a wrong answer is met with a sentence in red in the box, the
+   *      right one in green with the working, and confetti; then Next
+   */
+  async function practiceAsk(entry, q) {
+    const mine = practiceOpen(entry);
+    await practiceLeave();
+
+    /* 2. the figure, drawn slowly on an empty board */
+    figRow.innerHTML = q.fig;
+    fitFigArt(figRow);
+    figRow.classList.remove('off', 'stepped', 'working');
+    figRow.classList.add('single');
+    const f = figEl(q.key);
+    f.classList.add('p-fig');
+    /* a line of what is given, over the shape: in the column from the first
+       frame, unseen, so its arrival moves nothing */
+    if (q.fact) {
+      f.insertAdjacentHTML('afterbegin', '<p class="fig-fact"><span class="type-wrap"><span class="type-ghost"></span>' +
+        '<span class="type"><span class="txt"></span><i class="caret" hidden aria-hidden="true"></i></span></span></p>');
+      wordSpans(f.querySelector('.fig-fact .type-ghost'), q.fact);
+    }
+    rhomPractice.classList.add('on');
+    await wait(REDUCED ? 120 : 420);
+    await revealShape(f, REDUCED ? 120 : 1500, REDUCED ? 80 : 820);
+    await wait(REDUCED ? 120 : 560);
+    await pMarks(f);
+    /* what is given is written over the shape, a word at a time */
+    const fact = q.fact ? f.querySelector('.fig-fact') : null;
+    if (fact) {
+      fact.classList.add('show');
+      sfx('click', .3);
+      await wait(REDUCED ? 120 : 380);
+      await typer(fact.querySelector('.txt'), fact.querySelector('.caret'), TYPE_MS)(q.fact);
+      await wait(REDUCED ? 200 : 900);
+    }
+    await wait(REDUCED ? 100 : 420);
+
+    /* 3. the board halves: the figure keeps the left and the panel takes
+          the right, painted empty first */
+    rhom.classList.add('ask');
+    const chips = practiceChips(q.opts, rpTray);
+    rpFit(firstPiece(q.ask));
+    rpPanel.classList.add('show');
+    askRooms();
+    /* the shape glides (layoutWide moves its svg); the line over it is
+       carried along by the same move, measured the same way, so the two
+       travel as one */
+    const fb = fact && fact.getBoundingClientRect();
+    const glide = layoutWide(rhom, f.querySelector('svg'), true);
+    if (fact && !REDUCED && fb.width) {
+      const fa = fact.getBoundingClientRect();
+      const dx = (fb.left + fb.width / 2) - (fa.left + fa.width / 2), dy = fb.top - fa.top;
+      if (dx || dy) fact.animate(
+        [{ transform: 'translate(' + dx + 'px, ' + dy + 'px)' }, { transform: 'none' }],
+        { duration: 900, easing: 'cubic-bezier(.45, 0, .15, 1)' });
+    }
+    await glide;
+    await wait(REDUCED ? 120 : 620);
+
+    /* 4. Swiftee comes up into the panel and asks; the answers follow one
+          by one */
+    holdBird();                            /* the bird stays beside its box until Next */
+    await mascotJumpIn(rpMascot);
+    await wait(REDUCED ? 100 : 260);
+    await rpSay(q.ask);
+    await wait(REDUCED ? 100 : 320);
+    await dealOneByOne(chips);
+    await wait(REDUCED ? 80 : 200);
+
+    /* 5. the verdicts, in the box */
+    await askChips(chips, q.right, chip => { rpSay(q.notes[chip.dataset.answer] || q.notes[q.wrongDefault], 'bad').catch(() => {}); });
+    if (mine !== runToken) throw CANCELLED;
+    if (q.onRight) await q.onRight(f);
+    await rpSay(q.notes[q.right], 'ok');
+    if (mine !== runToken) throw CANCELLED;
+    swiftee.play('proud', 1);
+    skyConfetti(90, 2800);
+    sfx('confetti', .7);
+    await wait(REDUCED ? 300 : 1800);
+    await showNext();
+  }
 
   /* the figures are put up in place of the rhombus and draw themselves,
      one a beat after the other; then each takes its marks */
@@ -9558,9 +9988,9 @@
     feedbackGen++;
     promptTxt.textContent = '';
     caret.hidden = true;
-    rhom.classList.remove('numbers', 'work');
+    rhom.classList.remove('numbers');
     rhomQuiz.classList.remove('show');
-    rhomChips3.forEach(c => { rhomTray3.appendChild(c); c.disabled = false; });
+    resetLenSlots();
     rcClear();
     return runToken;
   }
@@ -9662,232 +10092,157 @@
     const mine = practiceOpen(rhombusPractice1);
     rhom.classList.remove('cfu');
     rhomPractice.classList.remove('on');
+    figRow.innerHTML = '';                 /* a Back from page 17 leaves its figure */
     rhomShape.classList.remove('away', 'lit-d1', 'lit-d2', 'lit-quad');
     ensureMeasured();
+    /* a replay lands with the bird down in the panel from the last run: it
+       goes back up to the heading first, so the panel is not pulled out
+       from under its feet, and the panel is emptied */
+    if (rpMascot.classList.contains('in')) {
+      await hopBetween(rpMascot, boardMascot);
+      await wait(REDUCED ? 60 : 240);
+    }
+    rhom.classList.remove('ask');
+    rpClear();
     await wait(460);
 
-    /* the shape comes back to the middle, the formula gone */
-    await layoutWide(rhom, rhomSvg, false);
-    await wait(300);
+    /* 1. the shape keeps the left half it had for the numbers (user,
+          2026-09-30); a way in from anywhere else glides it there. The
+          panel is painted first, empty, so the bird's spot is laid out
+          before it arrives. */
+    if (!rhom.classList.contains('wide')) {
+      await layoutWide(rhom, rhomSvg, true);
+    }
+    rhom.classList.add('ask');
+    /* The heading's room is held open while the bird leaves it for the
+       panel, so the spot it is jumping to stays put under it; it is let go
+       once the bird has landed (below), and the fold is what carries the
+       section up to the middle of the board (user, 2026-09-30). */
+    board.classList.add('head-held');
+    /* the answers are built now, unrevealed, so the tray holds its room
+       under the bird from the first frame: dealt into an empty tray they
+       opened it under a bird that had already landed and shoved it up
+       (user, 2026-09-30) */
+    const chips = practiceChips(RP.opts, rpTray);
+    /* ...and the box is fitted to the question before the panel is shown,
+       for the same reason: the foot's room is measured from the panel as
+       it comes on (fitRooms), and a box with nothing in it yet measured a
+       row short, which the chips' arrival then opened under the bird */
+    rpFit(firstPiece(RP.ask));
+    rpPanel.classList.add('show');
+    askRooms();
+    /* the foot opens to the panel's height over half a second (setRoom):
+       the bird waits for it, so it lands in a room that has stopped moving */
+    await wait(620);
 
-    const chips = practiceChips([{ v: '96', t: '96 sq. cm' }, { v: '192', t: '192 sq. cm' }, { v: '28', t: '28 sq. cm' }]);
-    await dealChips(chips);
-    await wait(200);
-    await heading(PRACTICE.area);
-    await askChips(chips, '96');
+    /* 2. Swiftee hops down from the heading into the right half and asks
+          from its box, which is already its size */
+    holdBird();                            /* the bird stays beside its box until Next */
+    await hopBetween(boardMascot, rpMascot);
+    /* landed: the heading's room, empty now, is let go, and the row folds
+       over half a second -- the shape, the panel and the bird glide up
+       together to the middle of the board, and the question waits for
+       them to settle (user, 2026-09-30) */
+    board.classList.remove('head-held');
+    await wait(REDUCED ? 240 : 980);
+    await rpSay(RP.ask);
+    await wait(REDUCED ? 100 : 320);
+
+    /* 3. the three areas come up one by one under the box */
+    await dealOneByOne(chips);
+    await wait(REDUCED ? 80 : 200);
+
+    /* 4. a wrong area is answered in red in the box, with what that number
+          is instead; the right one in green, with the working */
+    await askChips(chips, RP.right, chip => { rpSay(RP.notes[chip.dataset.answer] || RP.notes['192'], 'bad').catch(() => {}); });
     if (mine !== runToken) throw CANCELLED;
     onRhomWord('rhom');
-    await heading(PRACTICE.areaOk);
-    await wait(1800);
+    await rpSay(RP.notes[RP.right], 'ok');
+    if (mine !== runToken) throw CANCELLED;
+    swiftee.play('proud', 1);
+    skyConfetti(90, 2800);
+    sfx('confetti', .7);
+    await wait(REDUCED ? 300 : 1800);
     await showNext();
     await rhombusPractice2();
   }
 
-  /* 2. a rhombus of 240 sq. cm with one diagonal known */
+  /* 2. a rhombus of 240 sq. cm with one diagonal known: find the other.
+        A wrong length is told what area it would give; the right one turns
+        the dashed diagonal solid and writes its length on it. */
+  const P2 = {
+    key:  'a',
+    fig:  pFigRhombus('a', 300, 180, '30 cm', '', true),
+    /* what is given is written over the shape (user, 2026-09-30), and the
+       box asks only for what is wanted */
+    fact: 'This rhombus has an area of 240 sq. cm.',
+    ask:  'Find the other diagonal.',
+    opts: [{ v: '8', t: '8 cm' }, { v: '16', t: '16 cm' }, { v: '32', t: '32 cm' }],
+    right: '16', wrongDefault: '8',
+    notes: {
+      '8':  'Not quite! Half of 30 × 8 is only 120 sq. cm.',
+      '32': 'Not quite! Half of 30 × 32 is 480 sq. cm. That is too much.',
+      '16': PRACTICE.findOk
+    },
+    onRight: async f => {
+      f.querySelector('.rd-d2').classList.remove('dashed');
+      f.querySelector('.lbl-q').textContent = '16 cm';
+      rcLight(f, 'd2');
+      sfx('click', .35);
+      await wait(REDUCED ? 100 : 420);
+    }
+  };
   async function rhombusPractice2() {
-    const mine = practiceOpen(rhombusPractice2);
-    rhom.classList.remove('cfu');
-    practiceTray.classList.add('off');
-
-    /* the measured rhombus gives way to the question's own */
-    rhomShape.classList.add('away');
-    await clearFigures();
-    await wait(300);
-    await showFigures(figRhombus('a', '', 260, 150, '30 cm', '', true));
-    await wait(300);
-
-    const chips = practiceChips([{ v: '8', t: '8 cm' }, { v: '16', t: '16 cm' }, { v: '32', t: '32 cm' }]);
-    await dealChips(chips);
-    await wait(200);
-    await heading(PRACTICE.find);
-    await askChips(chips, '16');
-    if (mine !== runToken) throw CANCELLED;
-    /* the answer: the dashed diagonal becomes solid and takes its length */
-    const f = figEl('a');
-    f.querySelector('.rd-d2').classList.remove('dashed');
-    f.querySelector('.lbl-q').textContent = '16 cm';
-    await heading(PRACTICE.findOk);
-    await wait(1800);
-    await showNext();
+    await practiceAsk(rhombusPractice2, P2);
     await rhombusPractice3();
   }
 
-  /* 3. one rhombus, measured on the board: what is its area?
-   *
-   *   1. the rhombus draws itself in the middle of an empty board, slowly,
-   *      with no instruction anywhere: there is nothing to read but the
-   *      shape, and Swiftee waits behind the board
-   *   2. its two diagonals run out from the crossing as dashed lines, one
-   *      after the other, and the right angle between them squares off
-   *   3. 24 cm arrives under it and then 15 cm beside it, each on its own
-   *      arrow, its diagonal pulsing once as the number lands
-   *   4. only now does the board halve: the figure glides into the left of
-   *      it and the panel takes the right, Swiftee jumps up into the panel
-   *      and asks, and the formula the question wants appears under it
-   *   5. four answers. A wrong one shakes and steps back under a nudge that
-   *      goes a step further every time it is needed -- the second one
-   *      pointing at 24 cm and then at 15 cm on the figure -- and the right
-   *      one lights both diagonals before the working solves itself out
-   */
-  async function rhombusPractice3() {
-    const mine = practiceOpen(rhombusPractice3);
-    practiceTray.classList.add('off');
-    rhomShape.classList.add('away');
-    rhom.classList.remove('wide', 'numbers', 'cfu', 'work');
-    /* the question before left Swiftee up at the heading: it goes behind the
-       board, so the rhombus draws itself on an empty one and the bird comes
-       up with the question rather than standing beside an empty heading for
-       the ten seconds the drawing takes */
-    const ducking = mascotJumpOut(rcMascot.classList.contains('in') ? rcMascot : boardMascot);
-    await clearFigures();
-    await ducking;
-    await wait(REDUCED ? 100 : 300);
-
-    /* ---- 1. the rhombus, drawn slowly on an empty board ---- */
-    figRow.innerHTML = rcFig();
-    fitFigArt(figRow);
-    figRow.classList.remove('off', 'stepped', 'working');
-    figRow.classList.add('single');
-    const f = figEl('q');
-    f.classList.add('rc-fig');
-    rhomPractice.classList.add('on');
-    await wait(REDUCED ? 120 : 420);
-    await revealShape(f, REDUCED ? 120 : 1500, REDUCED ? 80 : 820);
-    await wait(REDUCED ? 120 : 560);
-
-    /* ---- 2. the diagonals, one at a time, and the right angle ---- */
-    await rcDrawDiag(f, 'd1', REDUCED ? 120 : 900);
-    await wait(REDUCED ? 100 : 420);
-    await rcDrawDiag(f, 'd2', REDUCED ? 120 : 760);
-    await wait(REDUCED ? 100 : 320);
-    f.querySelector('.rmark').classList.add('on');
-    sfx('click', .35);
-    await wait(REDUCED ? 120 : 620);
-
-    /* ---- 3. 24 cm, then 10 cm, each pulsing the diagonal it measures ---- */
-    for (const cls of ['d1', 'd2']) {
-      const g = f.querySelector('.d-' + cls);
-      /* the pop belongs to the label's arrival, so it is armed here and
-         fires when the group comes on (CSS) rather than now; 10 cm is
-         written up the side, so its pop has to carry the turn */
-      g.querySelector('.d-label').classList.add('pop');
-      if (cls === 'd2') g.querySelector('.d-label').classList.add('spun');
-      await showDimGroup(g);
-      rcFlash(f, cls);
-      await wait(REDUCED ? 140 : 820);
+  /* 3. one rhombus, measured on the board: what is its area? A wrong
+        area is told what it is instead -- the product without the half,
+        the half taken twice, or the sum -- and the right one lights both
+        diagonals before the shape takes its glow. */
+  const P3 = {
+    key:  'q',
+    fig:  pFigRhombus('q', 300, 190, '24 cm', '15 cm'),
+    ask:  RC.ask,
+    /* three answers (user, 2026-09-30): the right one, the product without
+       the half, and the sum */
+    opts: [{ v: '180', t: '180 sq. cm' }, { v: '360', t: '360 sq. cm' }, { v: '39', t: '39 sq. cm' }],
+    right: '180', wrongDefault: '360',
+    notes: {
+      '360': 'Not quite! That is 24 × 15 without the half.',
+      '39':  'Not quite! That is 24 + 15. The diagonals are multiplied, not added.',
+      '180': 'That’s Correct! Half of 24 × 15 is 180 sq. cm.'
+    },
+    onRight: async f => {
+      rcLight(f, 'd1');
+      await wait(REDUCED ? 140 : 560);
+      rcLight(f, 'd2');
+      await wait(REDUCED ? 140 : 560);
+      f.classList.add('win');
+      sfx('correct', .5);
     }
-    await wait(REDUCED ? 100 : 420);
-
-    /* ---- 4. the board halves. The panel is painted first, empty: its rows
-         -- the bird's spot included -- are laid out before anything arrives
-         in them, so the question and the answers land without moving each
-         other. The ghost is seeded here rather than at load, since a replay
-         clears everything a scene put on the stage. ---- */
-    rcHint('');
-    lineSpans(rcText.querySelector('.type-ghost'), [{ t: RC.ask }]);
-    rcPanel.classList.add('show');
-    await layoutWide(rhom, f.querySelector('svg'), true, 'cfu');
-    await wait(REDUCED ? 120 : 420);
-
-    /* Swiftee comes up into the right half and asks. The line is not taken
-       back afterwards: it IS the question, and the learner is still reading
-       it while they choose. */
-    await mascotJumpIn(rcMascot);
-    await wait(REDUCED ? 80 : 300);
-    swiftee.hold('talking');
-    await typeSegments(rcTxt, rcCaret, [{ t: RC.ask }], TYPE_MS, 320, null);
-    /* ...and neither is the bird: both stay in the panel until Next, and
-       the next question hops the bird back up to the heading from here */
-    cancelDismiss(rcTxt);
-    swiftee.release();
-    await wait(REDUCED ? 100 : 380);
-
-    /* ---- 5. and the four answers. The formula is NOT put up with them
-         (user, 2026-09-17): the question is asked of the figure alone, and
-         a learner who has it does not need telling ---- */
-    const chips = practiceChips(RC.opts, rcTray);
-    await dealChips(chips);
-    await wait(REDUCED ? 80 : 200);
-
-    let missed = 0;
-    const onWrong = () => {
-      /* the first miss brings the formula out, said in words rather than in
-         d₁ and d₂ -- it is a reminder of what to do, not the answer laid
-         out with the lengths already in it */
-      if (!missed) {
-        rcFormula.classList.add('show');
-        sfx('click', .3);
-      } else {
-        /* and the second points at the two lengths in turn, in the order the
-           formula uses them -- pointed at, not left lit: nothing stands on
-           the figure that the learner has not answered for */
-        rcHint(RC.hint);
-        (async () => {
-          await rcPoint(f, 'd1');
-          await wait(REDUCED ? 60 : 260);
-          await rcPoint(f, 'd2');
-        })().catch(e => { if (e !== CANCELLED) throw e; });
-      }
-      missed++;
-    };
-    await tcAskChips(chips, RC.right, onWrong);
-    if (mine !== runToken) throw CANCELLED;
-    rcHint('');
-    feedback(FEEDBACK.right);
-
-    /* the answer is read back off the figure before it is worked out */
-    rcLight(f, 'd1');
-    await wait(REDUCED ? 140 : 560);
-    rcLight(f, 'd2');
-    await wait(REDUCED ? 140 : 720);
-
-    /* and only now the working, which solves itself: half of 24 is 12, and
-       12 fifteens are 180 sq. cm. The glow that settles round the rhombus and
-       the one that swells out of the line both point at the result. */
-    await showSolveLine(rcWork, RC.work);
-    rcWork.classList.add('win');
-    f.classList.add('win');
-    sfx('correct', .5);
-    swiftee.play('proud', 1);
-    skyConfetti(90, 2800);
-    sfx('confetti', .7);
-    feedback(FEEDBACK.done);
-    await wait(REDUCED ? 300 : 2600);
-    await showNext();
+  };
+  async function rhombusPractice3() {
+    await practiceAsk(rhombusPractice3, P3);
     await rhombusPractice4();
   }
 
-  /* 4. a shape with a base and a height, and no diagonal in sight */
-  async function rhombusPractice4() {
-    const mine = practiceOpen(rhombusPractice4);
-    rhomShape.classList.add('away');
-
-    /* Swiftee comes back up to the heading, and only then does the halved
-       board close: dropping the layout first would snap the panel out from
-       under the bird's feet. A replay lands here with the bird already
-       behind the board, and the board closes at once. */
-    if (rcMascot.classList.contains('in')) {
-      await hopBetween(rcMascot, boardMascot);
-      await wait(REDUCED ? 60 : 240);
+  /* 4. a shape with a base and a height, and no diagonal in sight: which
+        formula? */
+  const P4 = {
+    key:  's',
+    fig:  pFigSlant('s'),
+    ask:  PRACTICE.which,
+    opts: [{ v: 'diag', t: '½ × product of diagonals', formula: true }, { v: 'bh', t: 'base × height', formula: true }],
+    right: 'bh', wrongDefault: 'diag',
+    notes: {
+      'diag': 'Not quite! No diagonals are given here. Look at what is marked.',
+      'bh':   PRACTICE.whichOk
     }
-    rhom.classList.remove('cfu');
-    await clearFigures();
-    await wait(300);
-    await showFigures(figSlant('s'));
-    await wait(300);
-
-    const chips = practiceChips([{ v: 'diag', t: '½ × product of diagonals', formula: true }, { v: 'bh', t: 'base × height', formula: true }]);
-    await dealChips(chips);
-    await wait(200);
-    await heading(PRACTICE.which);
-    await askChips(chips, 'bh');
-    if (mine !== runToken) throw CANCELLED;
-    await heading(PRACTICE.whichOk);
-    swiftee.play('proud', 1);
-    skyConfetti(120, 3200);
-    sfx('confetti', .8);
-    await wait(2400);
-    await showNext();
+  };
+  async function rhombusPractice4() {
+    await practiceAsk(rhombusPractice4, P4);
     await rhombusAside();
   }
 
@@ -9899,6 +10254,12 @@
     'Let’s find the area of another special quadrilateral!'
   ];
   async function rhombusAside() {
+    /* the bird is down in page 19's panel: it goes behind the board from
+       there, since the aside only knows to send it from the heading */
+    if (rpMascot.classList.contains('in')) {
+      await mascotJumpOut(rpMascot);
+      await wait(REDUCED ? 60 : 200);
+    }
     await boardAside(RHOM_ASIDE, rhombusAside);
     await trapSection();
   }
