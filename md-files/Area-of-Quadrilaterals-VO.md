@@ -86,6 +86,12 @@ as its verdict and read as its reason, until it is recorded in full.
 | P30-03 | The parallel sides are 30 cm and 40 cm, and the height is 15 cm. | no longer said (page 30’s hints were cut, 30 Sep 2026) |
 | X-01 … X-06 | the appendix lines below | those scenes are not in the running order |
 
+### Batch 3 — `chg (1).mp3` (30 Sep 2026)
+
+The twelve lines the first two takes missed, recorded in the same voice and
+cut into P10-13 … P10-16, P11-03, P11-04 and P12-02 … P12-07. Every line on
+screen pages 9, 10 and 11 now has a clip.
+
 ### Global feedback bank (used on almost every page)
 
 | ID | Type | Line |
@@ -251,20 +257,18 @@ Board goes; Swiftee speaks from its speech bubble on the landscape.
 | P10-15 | NARRATION | That is base × height! | Heading |
 | P10-16 | NARRATION | So this is the area of the parallelogram! | Heading |
 
-The two triangles' lines now play page 4's and page 15's clips for the same
+The two triangles' lines play page 4's and page 15's clips for the same
 sentences (P04-13, P04-15, P04-16, P15-03, P15-06) and the tail of P25-02 for
-"And its height is h." (P10-05). The four closing lines — P10-13, P10-14,
-P10-15 and P10-16, from "The parallelogram is made of both triangles." to
-"So this is the area of the parallelogram!" — were not on either recording
-and still type in silence. **Needs recording.**
+"And its height is h." (P10-05). The four closing lines P10-13 … P10-16 are
+cut from the batch-3 take (30 Sep 2026).
 
 ## Page 11 — Parallelogram · the formula
 
 | ID | Type | Line | Where |
 |---|---|---|---|
 | P11-01 | INSTRUCTION | Which of these is the area of the parallelogram? | Swiftee's box in the right half, the shape on the left (the question first, then the three formulas one at a time under it) |
-| P11-03 | FEEDBACK | Not quite! That is the area of just one triangle. | Same box, red — on ½ × base × height — **needs recording** (says "Not quite!" until then) |
-| P11-04 | FEEDBACK | Not quite! That is twice the area of the parallelogram. | Same box, red — on 2 × base × height — **needs recording** (says "Not quite!" until then) |
+| P11-03 | FEEDBACK | Not quite! That is the area of just one triangle. | Same box, red — on ½ × base × height (batch 3) |
+| P11-04 | FEEDBACK | Not quite! That is twice the area of the parallelogram. | Same box, red — on 2 × base × height (batch 3) |
 | P11-02 | FEEDBACK | That’s Correct! Area of a parallelogram = base × height. | Same box, green; Swiftee stays with it until Next, then the formulas go and it hops up to the heading |
 
 ## Page 12 — Parallelogram · your own go
@@ -272,17 +276,16 @@ and still type in silence. **Needs recording.**
 | ID | Type | Line | Where |
 |---|---|---|---|
 | P12-01 | INSTRUCTION | Now it’s your turn! Find the area of this parallelogram. | Heading |
-| P12-02 | FEEDBACK | Not quite! Look at the measure of the base. | Heading, on a wrong base; the base glows gold — **needs recording** |
-| P12-03 | FEEDBACK | That’s Correct! The base is 8 cm. | Heading, on the right base — **needs recording** |
-| P12-04 | FEEDBACK | Not quite! Look at the measure of the height. | Heading, on a wrong height; the height glows gold — **needs recording** |
-| P12-05 | FEEDBACK | That’s Correct! The height is 5 cm. | Heading, on the right height — **needs recording** |
-| P12-06 | FEEDBACK | Not quite! Area of a parallelogram = base × height. | Heading, on a wrong area; the base and the height glow gold — **needs recording** |
-| P12-07 | FEEDBACK | That’s Correct! The area is 8 × 5 = 40 sq. cm. | Heading, on the right area; then Well Done! and confetti — **needs recording** |
+| P12-02 | FEEDBACK | Not quite! Look at the measure of the base. | Heading, on a wrong base; the base glows gold (batch 3) |
+| P12-03 | FEEDBACK | That’s Correct! The base is 8 cm. | Heading, on the right base (batch 3) |
+| P12-04 | FEEDBACK | Not quite! Look at the measure of the height. | Heading, on a wrong height; the height glows gold (batch 3) |
+| P12-05 | FEEDBACK | That’s Correct! The height is 5 cm. | Heading, on the right height (batch 3) |
+| P12-06 | FEEDBACK | Not quite! Area of a parallelogram = base × height. | Heading, on a wrong area; the base and the height glow gold (batch 3) |
+| P12-07 | FEEDBACK | That’s Correct! The area is 8 × 5 = 40 sq. cm. | Heading, on the right area; then Well Done! and confetti (batch 3) |
 
-Until these are recorded, each says its first sentence only — "That’s
-Correct" (FB-01) on a right answer, "Not quite!" (FB-04) on a wrong one — and
-the rest of the line types after it. The part-2 take (30 Sep 2026) starts at
-page 13, so none of them is on it.
+All six are cut from the batch-3 take (30 Sep 2026); the generic "That’s
+Correct" clip is not started under a right answer, since each right line
+opens with the verdict itself.
 
 On-screen only — drop-down labels: "The base of the parallelogram is", "The
 height is", "The area of the parallelogram is".

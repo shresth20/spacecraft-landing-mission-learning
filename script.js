@@ -1609,12 +1609,38 @@
       'P10-03-here-comes-the-height',
     'let us divide this into two triangles.':
       'P10-04-let-us-divide-this-into-two-triangles',
+    /* the working's closing lines and pages 11-12's verdicts: the batch-3
+       take, "chg (1).mp3" (2026-09-30) */
+    'the parallelogram is made of both triangles.':
+      'P10-13-the-parallelogram-is-made-of-both-triangles',
+    'two halves of b × h make one whole b × h.':
+      'P10-14-two-halves-of-b-x-h-make-one',
+    'that is base × height!':
+      'P10-15-that-is-base-x-height',
+    'so this is the area of the parallelogram!':
+      'P10-16-so-this-is-the-area-of-the-parallelogram',
     'which of these is the area of the parallelogram?':
       'P11-01-which-of-these-is-the-area-of-the',
+    'not quite! that is the area of just one triangle.':
+      'P11-03-not-quite-that-is-the-area-of-just',
+    'not quite! that is twice the area of the parallelogram.':
+      'P11-04-not-quite-that-is-twice-the-area-of',
     'that\'s correct! area of a parallelogram = base × height.':
       'P11-02-thats-correct-area-of-a-parallelogram-base-x',
     'now it\'s your turn! find the area of this parallelogram.':
       'P12-01-now-its-your-turn-find-the-area-of',
+    'not quite! look at the measure of the base.':
+      'P12-02-not-quite-look-at-the-measure-of-the',
+    'that\'s correct! the base is 8 cm.':
+      'P12-03-thats-correct-the-base-is-8-cm',
+    'not quite! look at the measure of the height.':
+      'P12-04-not-quite-look-at-the-measure-of-the',
+    'that\'s correct! the height is 5 cm.':
+      'P12-05-thats-correct-the-height-is-5-cm',
+    'not quite! area of a parallelogram = base × height.':
+      'P12-06-not-quite-area-of-a-parallelogram-base-x',
+    'that\'s correct! the area is 8 × 5 = 40 sq. cm.':
+      'P12-07-thats-correct-the-area-is-8-x-5',
     'we now know how to find the area of a parallelogram.':
       'P13-01-we-now-know-how-to-find-the-area',
     'let us now try finding the area of a special parallelogram.':
@@ -1852,6 +1878,15 @@
      clip whose count does not match the line's pieces is paced by the
      letters, as before (voCuesFor). */
   const VO_CUES = {
+    /* the batch-3 take (2026-09-30): pages 11-12's verdicts */
+    'P12-02-not-quite-look-at-the-measure-of-the': [0.0, 1.66],
+    'P12-03-thats-correct-the-base-is-8-cm': [0.0, 1.51],
+    'P12-04-not-quite-look-at-the-measure-of-the': [0.0, 1.73],
+    'P12-05-thats-correct-the-height-is-5-cm': [0.0, 1.5],
+    'P12-06-not-quite-area-of-a-parallelogram-base-x': [0.0, 1.53],
+    'P12-07-thats-correct-the-area-is-8-x-5': [0.0, 1.56],
+    'P11-03-not-quite-that-is-the-area-of-just': [0.0, 1.52],
+    'P11-04-not-quite-that-is-twice-the-area-of': [0.0, 1.64],
     'P29-03-not-quite-that-is-33-10-multiply-the': [0.0, 1.22, 4.14],
     'P23-02-a-kite-has-two-pairs-of-equal-sides': [0.0, 3.44],
     'P28-05-thats-correct-13-20-33-the-sum-of': [0.0, 1.47, 4.97],
