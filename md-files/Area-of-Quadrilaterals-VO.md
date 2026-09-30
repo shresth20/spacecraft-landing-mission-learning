@@ -71,13 +71,18 @@ wherever it appears, a line built at run time ("Try again! Join the *left* and
 own pace in silence. Each line is typed across ~82% of its clip, so the last
 word lands a little before the voice finishes the sentence.
 
+A line with no clip whose **first sentence** has one is not left silent
+(30 Sep 2026): the first sentence is said — "That’s Correct" (FB-01) or "Not
+quite!" (FB-04) — and the rest of the line types once that clip has ended.
+So an unrecorded verdict such as "That’s Correct! The base is 8 cm." is heard
+as its verdict and read as its reason, until it is recorded in full.
+
 ### Not on the master recording
 
 | ID | Line | Why |
 |---|---|---|
-| P09-13 | Parallelogram has two pairs of parallel sides. | page 9 verdict, third sentence — needs recording |
-| P09-14 | This is not a trapezium. | page 9, wrong name, second sentence — needs recording |
-| P09-15 | Trapezium has only one pair of parallel sides. | page 9, wrong name, third sentence — needs recording |
+| P09-03 | A parallelogram has two pairs of parallel sides. | page 9 verdict, third sentence — cut from the part-2 take (P23-03), 30 Sep 2026 |
+| P09-13 | Check the shape carefully. | page 9, wrong name, third sentence — cut from the part-2 take (P23-03), 30 Sep 2026; "This is not a trapezium. Trapezium has only one pair of parallel sides." was never recorded and is no longer said |
 | P30-03 | The parallel sides are 30 cm and 40 cm, and the height is 15 cm. | no longer said (page 30’s hints were cut, 30 Sep 2026) |
 | X-01 … X-06 | the appendix lines below | those scenes are not in the running order |
 
@@ -211,10 +216,10 @@ Board goes; Swiftee speaks from its speech bubble on the landscape.
 | P09-01 | INSTRUCTION | What shape is this? *(reuse of P04-01)* | Swiftee's banner beside the shape |
 | P09-02 | FEEDBACK | Correct! | Banner, green — the verdict is said a sentence at a time; this plays the "That’s Correct!" half of the old take |
 | P09-12 | FEEDBACK | This is a parallelogram. | Banner, green — the other half of the old take |
-| P09-13 | FEEDBACK | Parallelogram has two pairs of parallel sides. | Banner, green — **needs recording** |
+| P09-03 | FEEDBACK | A parallelogram has two pairs of parallel sides. | Banner, green — cut from the part-2 take |
 | P09-03 | HINT | Not quite! *(FB-04)* | Banner, red |
-| P09-14 | HINT | This is not a trapezium. | Banner, red — **needs recording** |
-| P09-15 | HINT | Trapezium has only one pair of parallel sides. | Banner, red — **needs recording** |
+| P09-03 | HINT | A parallelogram has two pairs of parallel sides. | Banner, red — the same clip as the green verdict |
+| P09-13 | HINT | Check the shape carefully. | Banner, red — cut from the part-2 take |
 | P09-04 | NARRATION | Look at the top and bottom sides. | Banner |
 | P09-05 | NARRATION | They run side by side and never meet. | Banner |
 | P09-06 | NARRATION | The left and right sides do the same! | Banner |
@@ -246,16 +251,20 @@ Board goes; Swiftee speaks from its speech bubble on the landscape.
 | P10-15 | NARRATION | That is base × height! | Heading |
 | P10-16 | NARRATION | So this is the area of the parallelogram! | Heading |
 
-P10-05 … P10-16 (the two triangles' working) have no clip yet — they were
-not on either recording and type in silence. **Needs recording.**
+The two triangles' lines now play page 4's and page 15's clips for the same
+sentences (P04-13, P04-15, P04-16, P15-03, P15-06) and the tail of P25-02 for
+"And its height is h." (P10-05). The four closing lines — P10-13, P10-14,
+P10-15 and P10-16, from "The parallelogram is made of both triangles." to
+"So this is the area of the parallelogram!" — were not on either recording
+and still type in silence. **Needs recording.**
 
 ## Page 11 — Parallelogram · the formula
 
 | ID | Type | Line | Where |
 |---|---|---|---|
 | P11-01 | INSTRUCTION | Which of these is the area of the parallelogram? | Swiftee's box in the right half, the shape on the left (the question first, then the three formulas one at a time under it) |
-| P11-03 | FEEDBACK | Not quite! That is the area of just one triangle. | Same box, red — on ½ × base × height — **needs recording** |
-| P11-04 | FEEDBACK | Not quite! That is twice the area of the parallelogram. | Same box, red — on 2 × base × height — **needs recording** |
+| P11-03 | FEEDBACK | Not quite! That is the area of just one triangle. | Same box, red — on ½ × base × height — **needs recording** (says "Not quite!" until then) |
+| P11-04 | FEEDBACK | Not quite! That is twice the area of the parallelogram. | Same box, red — on 2 × base × height — **needs recording** (says "Not quite!" until then) |
 | P11-02 | FEEDBACK | That’s Correct! Area of a parallelogram = base × height. | Same box, green; Swiftee stays with it until Next, then the formulas go and it hops up to the heading |
 
 ## Page 12 — Parallelogram · your own go
@@ -270,8 +279,10 @@ not on either recording and type in silence. **Needs recording.**
 | P12-06 | FEEDBACK | Not quite! Area of a parallelogram = base × height. | Heading, on a wrong area; the base and the height glow gold — **needs recording** |
 | P12-07 | FEEDBACK | That’s Correct! The area is 8 × 5 = 40 sq. cm. | Heading, on the right area; then Well Done! and confetti — **needs recording** |
 
-Until these are recorded they type in silence; a right answer still says
-"That’s Correct" (FB-01) as its line types.
+Until these are recorded, each says its first sentence only — "That’s
+Correct" (FB-01) on a right answer, "Not quite!" (FB-04) on a wrong one — and
+the rest of the line types after it. The part-2 take (30 Sep 2026) starts at
+page 13, so none of them is on it.
 
 On-screen only — drop-down labels: "The base of the parallelogram is", "The
 height is", "The area of the parallelogram is".
@@ -671,10 +682,10 @@ Now, let’s find the area of some special quadrilaterals!
 — Page 9 · Parallelogram, its sides —
 Correct!
 This is a parallelogram.
-Parallelogram has two pairs of parallel sides.
+A parallelogram has two pairs of parallel sides.
 Not quite!
-This is not a trapezium.
-Trapezium has only one pair of parallel sides.
+A parallelogram has two pairs of parallel sides.
+Check the shape carefully.
 Look at the top and bottom sides.
 They run side by side and never meet.
 The left and right sides do the same!
@@ -691,12 +702,12 @@ Here comes the height!
 Let us divide this into two triangles.
 Let’s look at Triangle 1.
 So, its area will be …
-Its base is b.
+Let’s say the base of this triangle is b.
 And its height is h.
 Now let’s look at Triangle 2.
 So, its area will be …
-It has the same base b.
-And the same height h.
+This triangle has the same base b.
+And its height is h.
 The parallelogram is made of both triangles.
 Let’s put in each triangle’s area.
 Two halves of b × h make one whole b × h.

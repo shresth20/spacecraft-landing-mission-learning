@@ -1522,6 +1522,10 @@
       'P04-15-so-its-area-will-be',
     'this triangle has the same base b.':
       'P04-16-this-triangle-has-the-same-base-b',
+    /* page 10's triangle lines: cut from the tail of page 25's "Its parallel
+       sides are a and b, and its height is h." on the part-2 take (2026-09-30) */
+    'and its height is h.':
+      'P10-05-and-its-height-is-h',
     'and its height is h₂.':
       'P04-17-and-its-height-is-h2',
     'let\'s put in each triangle\'s area.':
@@ -1574,6 +1578,13 @@
       'P09-02-thats-correct',
     'this is a parallelogram.':
       'P09-12-this-is-a-parallelogram',
+    /* the same sentence as page 23's second verdict, cut on its own from
+       the part-2 take (2026-09-30); the two trapezium pieces of the wrong
+       verdict are still unrecorded */
+    'a parallelogram has two pairs of parallel sides.':
+      'P09-03-a-parallelogram-has-two-pairs-of-parallel-sides',
+    'check the shape carefully.':
+      'P09-13-check-the-shape-carefully',
     'look at the top and bottom sides.':
       'P09-04-look-at-the-top-and-bottom-sides',
     'they run side by side and never meet.':
@@ -1898,14 +1909,36 @@
      also named once in the console, so a line whose words drift away from
      its key is found by playing the page rather than by ear. */
   const voMissed = Object.create(null);
+  /* the clip a line has, if it has one -- exact words first, then loose */
+  function voHas(text) {
+    const key = voKey(text);
+    return VO_FILE[key] || VO_LOOSE[voLoose(key)] || null;
+  }
   function voStem(text) {
     const key = voKey(text);
-    const stem = VO_FILE[key] || VO_LOOSE[voLoose(key)] || null;
+    const stem = voHas(text);
     if (!stem && !voMissed[key]) {
       voMissed[key] = true;
-      if (typeof console !== 'undefined' && console.warn) console.warn('[VO] no clip for: ' + text);
+      const part = voFallback(text);
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('[VO] no clip for: ' + text + (part ? ' (saying "' + part.text + '")' : ''));
+      }
     }
     return stem;
+  }
+
+  /* A line with no clip of its own whose first sentence has one -- a
+     verdict that was never recorded in full, "That's Correct! The base is
+     8 cm." -- is not left silent: its first sentence is said, and the rest
+     of the line follows on screen once that clip has ended, at the game's
+     own pace. The verdict is heard; the reason is read. The pieces the line
+     will be shown in are counted here so the clip can be cued to the first
+     of them alone (see voSay). */
+  function voFallback(text) {
+    const cuts = chunkCuts(text);
+    if (!cuts.length) return null;
+    const first = text.slice(0, cuts[0]).trim();
+    return first && voHas(first) ? { text: first, pieces: cuts.length + 1 } : null;
   }
 
   /* Built on first use and kept: a line said again -- on this page or six
@@ -1936,8 +1969,13 @@
      simply falls back to its own pace. */
   async function voSay(text) {
     if (fastForward || Motion.isMuted() || typeof text !== 'string') return VO_SILENT;
-    const a = voFor(text);
-    if (!a) return VO_SILENT;
+    let a = voFor(text), part = null;
+    if (!a) {
+      part = voFallback(text);
+      if (!part) return VO_SILENT;
+      a = voFor(part.text);
+      if (!a) return VO_SILENT;
+    }
     const mine = runToken;
     const length = await durationOf(a);
     /* a replay or a jump took the scene down while the header was read: this
@@ -1959,6 +1997,14 @@
       catch (e2) { return VO_SILENT; }
     }
     voNow = a;
+    if (part) {
+      /* the clip is the first piece alone: that piece is typed across it,
+         and every later piece is cued past the clip's end, so it waits for
+         the clip to finish (voiceAt) and then keeps the game's pace */
+      const cues = [0];
+      while (cues.length < part.pieces) cues.push(length + 1);
+      return { audio: a, playing: true, length: length, cues: cues };
+    }
     return { audio: a, playing: true, length: length, cues: voCues(text) };
   }
 
@@ -2864,13 +2910,17 @@
   let feedbackGen = 0;
 
   const quip = document.getElementById('quip');
-  async function feedback(text) {
+  async function feedback(text, silent) {
     feedbackGen++;
     caret.hidden = true;
     quip.textContent = text;          /* announced, never shown */
     /* ...and spoken. Not waited for: the next chip may be on its way
-       already, and a verdict that held the board up would be in the way. */
-    voAlone(text).catch(() => {});
+       already, and a verdict that held the board up would be in the way.
+       `silent`: the caller is about to say a sentence of its own that
+       carries the verdict ("That's Correct! The base is 8 cm."), and a
+       typed line barges in on whatever is sounding (voSay) -- so the
+       generic clip is not started, or the two would cut each other off. */
+    if (!silent) voAlone(text).catch(() => {});
   }
 
   /* ---------- a hint waits for the learner to stall ----------
@@ -6981,7 +7031,7 @@
     ask:     'What shape is this?',
     /* the verdict is said a sentence at a time (user, 2026-09-28): the cheer,
        then what the shape is, then the property that names it */
-    right:   ['Correct!', 'This is a parallelogram.', 'Parallelogram has two pairs of parallel sides.'],
+    right:   ['Correct!', 'This is a parallelogram.', 'A parallelogram has two pairs of parallel sides.'],
     look1:   'Look at the top and bottom sides.',
     never:   'They run side by side and never meet.',
     look2:   'The left and right sides do the same!',
@@ -6990,7 +7040,10 @@
     fit2:    'And the left side fits the right side too!',
     /* a wrong name is turned down a sentence at a time too, for the same
        reason the right one is (user, 2026-09-28) */
-    hint:    ['Not quite!', 'This is not a trapezium.', 'Trapezium has only one pair of parallel sides.'],
+    /* said in the sentences the recording has (user, 2026-09-30: the wrong
+       verdict must be voiced): "This is not a trapezium. Trapezium has only
+       one pair of parallel sides." was never recorded */
+    hint:    ['Not quite!', 'A parallelogram has two pairs of parallel sides.', 'Check the shape carefully.'],
     facts: {
       par: [{ t: 'Opposite sides are ' }, { t: 'parallel', w: 'par' }, { t: ' to each other.' }],
       eq:  [{ t: 'Opposite sides are ' }, { t: 'equal in length', w: 'eq' }, { t: '.' }]
@@ -7009,14 +7062,16 @@
     tri1: {
       look: 'Let’s look at Triangle 1.',
       area: 'So, its area will be …',
-      b:    'Its base is b.',
+      /* page 4's sentences, which have clips; "Its base is b." and "And the
+         same height h." were never recorded (user, 2026-09-30) */
+      b:    'Let’s say the base of this triangle is b.',
       h:    'And its height is h.'
     },
     tri2: {
       look: 'Now let’s look at Triangle 2.',
       area: 'So, its area will be …',
-      b:    'It has the same base b.',
-      h:    'And the same height h.'
+      b:    'This triangle has the same base b.',
+      h:    'And its height is h.'
     },
     whole:  'The parallelogram is made of both triangles.',
     /* page 4's own line, and its clip (P04-10) */
@@ -8085,7 +8140,11 @@
     };
     const sayLine = text => { heading(text).catch(() => {}); holdHeading(); };
     const right = (text, lit) => () => {
-      feedback(FEEDBACK.right);
+      /* every right answer here has a sentence of its own that opens with
+         the verdict (rightBase, rightHeight, rightArea), so the generic
+         clip is only announced, never sounded: started as well, it raced
+         the sentence and one of the two was cut short */
+      feedback(FEEDBACK.right, true);
       goldGlow();
       if (lit) paraShape.classList.add(lit);
       if (text) sayLine(text);
