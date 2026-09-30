@@ -545,12 +545,10 @@
         <div class="rhom-quiz" id="rhomQuiz">
           <div class="area-line len-formula" id="rhomFormula">
             <span class="seg">Area = <span class="frac"><span class="num">1</span><span class="den">2</span></span> ×</span>
-            <!-- the first slot wants d₁ and the second d₂; the second is
-                 locked until the first holds the right length, so the two go
-                 in the order the formula reads -->
-            <span class="fslot" data-slot="1" role="button" tabindex="-1" aria-label="First diagonal, d one"></span>
+            <!-- either slot takes either diagonal: d₁ × d₂ is d₂ × d₁ -->
+            <span class="fslot" data-slot="1" role="button" tabindex="-1" aria-label="First diagonal"></span>
             <span class="seg">×</span>
-            <span class="fslot locked" data-slot="2" role="button" tabindex="-1" aria-label="Second diagonal, d two" aria-disabled="true"></span>
+            <span class="fslot" data-slot="2" role="button" tabindex="-1" aria-label="Second diagonal"></span>
           </div>
           <div class="para-tray len-tray" id="rhomTray3">
             <button class="chip" type="button" data-len="16"><span>16 cm</span></button>
@@ -729,21 +727,21 @@
         </div>
       </div>
 
-      <!-- Swiftee hops down here for the working: its line about what is
-           being worked out, and the lines of working under it. The row
-           keeps its box from the first frame, so its arrival moves nothing. -->
+      <!-- Swiftee hops down here for the working: its box, up beside its
+           head (page 4's way, user, 2026-09-30) and fitted to each line it
+           says, and the lines of working under both. The row keeps its box
+           from the first frame, so its arrival moves nothing. -->
       <div class="rtrap-foot">
         <div class="rtrap-say" id="rtrapSay">
           <div class="mascot" id="rtrapMascot" aria-hidden="true"></div>
-          <div class="rtrap-col">
-            <p class="say-text rtrap-text" id="rtrapText" aria-live="polite">
-              <span class="type-wrap">
-                <span class="type-ghost"></span>
-                <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
-              </span>
-            </p>
-            <div class="area-lines rtrap-lines" id="rtrapLines" aria-live="polite"></div>
-          </div>
+          <p class="quiz-note rtrap-text msg" id="rtrapText" aria-live="polite">
+            <span class="type-wrap">
+              <span class="type-ghost"></span>
+              <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
+            </span>
+            <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true"><use href="#ico-tail" /></svg>
+          </p>
+          <div class="area-lines rtrap-lines fit-lines" id="rtrapLines" aria-live="polite"></div>
         </div>
 
         <!-- the practice's other occupants of the same cell, one at a time:
@@ -766,42 +764,43 @@
           </div>
         </div>
         <div class="area-lines rtrap-qs" id="rtrapQs" aria-live="polite"></div>
-        <!-- the values scene (page 27): the trapezium keeps the left half of
-             the board and this panel the right. The formula is revealed a
-             piece at a time and its a, b and h ARE the drop-downs, so every
-             question is asked where its answer will be read; the area is
-             asked the same way on an "Area = [ v ]" line under it, which
-             then solves itself. A nudge under both only shows after a wrong
-             pick. Everything inside is built by script.js, so a replay
-             clears it. -->
+        <!-- the values scene (page 25): the trapezium keeps the left half of
+             the board and this panel the right, page 15's way (user,
+             2026-09-30). The formula is revealed a piece at a time and its
+             a, b and h ARE the drop slots; the three measurements sit in
+             the tray under it to be dragged in, in order, and every drop is
+             answered in a sentence in the heading. Once the formula holds
+             all three, the same tray deals the three areas to choose from,
+             and the working the right one solves itself into goes under.
+             Everything inside is built by script.js, so a replay clears it. -->
         <div class="tn-panel" id="tnPanel">
           <div class="tn-formula" id="tnFormula" aria-live="polite"></div>
-          <!-- the three measurements, to be dragged into the formula's boxes -->
+          <!-- the three measurements, to be dragged into the formula's boxes;
+               then the three areas, one to tap -->
           <div class="para-tray tn-tray" id="tnTray"></div>
-          <div class="tn-ask" id="tnAsk"></div>
           <div class="area-lines tn-work" id="tnWork" aria-live="polite"></div>
-          <p class="tn-hint" id="tnHint" aria-live="polite"></p>
         </div>
-        <!-- page 31, the check for understanding: the board is halved the
-             way the values scene halves it -- the trapezium keeps the left
-             half -- but the bird comes with the panel rather than staying up
-             at the heading, so the question sits at the top of the right
-             half and stays there for as long as the learner is choosing.
-             Under it the four answers, a nudge that only shows after a wrong
-             pick, and the working the right answer solves itself into.
+        <!-- pages 26 to 28, the practice: the board is halved the way the
+             values scene halves it -- the trapezium keeps the left half --
+             and this panel is page 16's over again (user, 2026-09-30): the
+             bird hops down into it, its box up over its head and refitted
+             to every line it says, and asks from there; the answers come up
+             one by one under it, every verdict is said in the same box, red
+             for a wrong pick and green for the right one, and the working
+             the right answer solves itself into goes under the answers.
              Everything inside is built by script.js, so a replay clears it. -->
-        <div class="tc-panel" id="tcPanel">
-          <div class="tc-say" id="tcSay">
+        <div class="quiz-block tc-panel" id="tcPanel">
+          <div class="quiz-say tc-say">
             <div class="mascot" id="tcMascot" aria-hidden="true"></div>
-            <p class="say-text tc-text" id="tcText" aria-live="polite">
+            <p class="quiz-bubble msg tc-note" id="tcNote" aria-live="polite">
               <span class="type-wrap">
                 <span class="type-ghost"></span>
                 <span class="type"><span class="txt"></span><i class="caret" aria-hidden="true"></i></span>
               </span>
+              <svg class="bubble-tail" viewBox="0 0 44 42" aria-hidden="true"><use href="#ico-tail" /></svg>
             </p>
           </div>
-          <div class="para-tray tc-tray" id="tcTray"></div>
-          <p class="tn-hint tc-hint" id="tcHint" aria-live="polite"></p>
+          <div class="para-tray quiz-tray tc-tray" id="tcTray"></div>
           <div class="area-lines tc-work" id="tcWork" aria-live="polite"></div>
         </div>
         <div class="para-tray practice-tray" id="rtrapPTray"></div>

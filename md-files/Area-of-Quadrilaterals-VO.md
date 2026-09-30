@@ -78,7 +78,7 @@ word lands a little before the voice finishes the sentence.
 | P09-13 | Parallelogram has two pairs of parallel sides. | page 9 verdict, third sentence — needs recording |
 | P09-14 | This is not a trapezium. | page 9, wrong name, second sentence — needs recording |
 | P09-15 | Trapezium has only one pair of parallel sides. | page 9, wrong name, third sentence — needs recording |
-| P30-03 | The parallel sides are 30 cm and 40 cm, and the height is 15 cm. | **reachable in the game** (page 30, second wrong try) — needs recording |
+| P30-03 | The parallel sides are 30 cm and 40 cm, and the height is 15 cm. | no longer said (page 30’s hints were cut, 30 Sep 2026) |
 | X-01 … X-06 | the appendix lines below | those scenes are not in the running order |
 
 ### Global feedback bank (used on almost every page)
@@ -86,11 +86,16 @@ word lands a little before the voice finishes the sentence.
 | ID | Type | Line |
 |---|---|---|
 | FB-01 | FEEDBACK | That’s Correct |
-| FB-02 | FEEDBACK | Try again |
 | FB-03 | REWARD | Well Done! |
 | FB-04 | FEEDBACK | Not quite! |
 
-These three are written into the heading box after a drop, a tap or a
+FB-02, "Try again", is removed on purpose (2026-09-30) and must not be
+recorded or wired back in: a wrong answer gets the buzzer and the shake, plus
+Swiftee's own sentence about what is wrong wherever the page has one. The
+full-sentence nudges P04-08 and P05-02 ("Try again! Join the … corners.") are
+their own lines and stay.
+
+These are written into the heading box after a drop, a tap or a
 drop-down answer, on pages 2, 4–7, 9–12, 14–21, 23–24, 27–30. Record once; they
 are reused verbatim everywhere.
 
@@ -113,7 +118,8 @@ Swiftee hops into the middle of the landscape and speaks from a speech bubble.
 | P02-02 | INSTRUCTION | Drag each name to the matching shape. | Heading (round 1 briefing — clip exists) |
 | P02-03 | INSTRUCTION | Great! Now let’s recall their area formulas. | Heading (round 2 briefing — clip exists) |
 
-Feedback on this page: FB-01, FB-02, FB-03.
+Feedback on this page: FB-01, FB-03. A wrong drop is answered by the buzzer
+and the shake only.
 
 ## Page 3 — Triangles · base and height
 
@@ -390,8 +396,8 @@ answers are voiced.
 
 | ID | Type | Line | Where |
 |---|---|---|---|
-| P23-01 | FEEDBACK | Almost! A kite has two pairs of equal sides next to each other. Check the shape carefully. | Banner, red |
-| P23-02 | FEEDBACK | Almost! A parallelogram has two pairs of parallel sides. Check the shape carefully. | Banner, red |
+| P23-01 | FEEDBACK | A kite has two pairs of equal sides next to each other. Check the shape carefully. | Swiftee's box, red. The "Almost!" is cut (30 Sep 2026); the clip still opens with it — **re-record** |
+| P23-02 | FEEDBACK | A parallelogram has two pairs of parallel sides. Check the shape carefully. | Swiftee's box, red. Same — **re-record** |
 | P23-03 | FEEDBACK | Correct! Look at the shape — it has only one pair of parallel sides. | Banner, green |
 
 ## Page 24 — Trapezium · pick them out
@@ -399,6 +405,9 @@ answers are voiced.
 | ID | Type | Line | Where |
 |---|---|---|---|
 | P24-01 | INSTRUCTION | Select all the trapeziums. | Heading |
+| — | FEEDBACK | Not quite! *(FB-04)* | Voice only, on a card that is not a trapezium — nothing is typed (30 Sep 2026) |
+| P24-02 | FEEDBACK | This shape has no parallel sides. A trapezium has one pair. | Voice only, straight after FB-04 while the card is shown in the middle — nothing is typed. The clip in `assets/VO` is a stand-in made with edge-tts (en-US-JennyNeural, 30 Sep 2026) — **re-record in Swiftee’s voice** |
+| P24-03 | FEEDBACK | Well done! You found all the trapeziums. | Heading, once the third trapezium is picked; the line and the bird go before Next (30 Sep 2026) — **needs recording** |
 
 ## Page 25 — Trapezium · its area
 
@@ -431,62 +440,100 @@ Swiftee hops down beside the working on the right half of the board.
 
 ## Page 27 — Trapezium · find the values
 
+Page 15’s flow (30 Sep 2026): Swiftee stays at the heading for the whole
+page. The trapezium draws itself and takes its three measurements, the
+board halves and the formula builds itself on the right with a, b and h as
+empty boxes; the three lengths are dragged in, in that order, and every drop
+is answered in a sentence in the heading. With all three in, the working
+simplifies itself straight away in the row the lengths stood in. The
+drop-down, the hint line and the area question are gone.
+
 | ID | Type | Line | Where |
 |---|---|---|---|
-| P27-01 | INSTRUCTION | Let’s find the area of this trapezium. | Heading |
-| P27-02 | INSTRUCTION | Which measurement is a, the shorter parallel side? | Question line in the panel |
-| P27-03 | HINT | Look at the shorter parallel side. | Hint under the question |
-| P27-04 | INSTRUCTION | Which measurement is b, the longer parallel side? | Question line in the panel |
-| P27-05 | HINT | Look at the longer parallel side. | Hint under the question |
-| P27-06 | INSTRUCTION | What is the height? | Question line in the panel |
-| P27-07 | HINT | Look at the perpendicular height. | Hint under the question |
-| P27-08 | INSTRUCTION | What is the area of the trapezium? | Heading |
-| P27-09 | HINT | Add the two parallel sides: 8 cm + 14 cm. | Hint under the answers |
-| P27-10 | INSTRUCTION | Let’s simplify it, step by step. | Heading |
-| P27-11 | FEEDBACK | That’s Correct! *(reuse of P15-03)* | Heading |
+| P27-01 | INSTRUCTION | Let’s find the area of this trapezium. | Heading, once the shape is measured |
+| P27-12 | INSTRUCTION | Drag the three lengths into the formula. | Heading, once the lengths are dealt — **needs recording** |
+| P27-13 | FEEDBACK | Not quite! a is the shorter parallel side. | Heading, on a wrong length in a — **needs recording** |
+| P27-14 | FEEDBACK | That’s Correct! a is 8 cm. Now drag b into the formula. | Heading, on 8 in a — **needs recording** |
+| P27-15 | FEEDBACK | Not quite! b is the longer parallel side. | Heading, on a wrong length in b — **needs recording** |
+| P27-16 | FEEDBACK | That’s Correct! b is 14 cm. Now drag h into the formula. | Heading, on 14 in b — **needs recording** |
+| P27-17 | FEEDBACK | Not quite! h is the perpendicular height. | Heading, on a wrong length in h — **needs recording** |
+| P27-18 | FEEDBACK | Fill a first. Then b and then h. | Heading, on a drop into a box that is still locked — **needs recording** |
+| P27-11 | FEEDBACK | That’s Correct! *(reuse of P15-03)* | Heading, all three in |
+| P27-10 | INSTRUCTION | Let’s simplify it, step by step. | Heading; the working in the lengths’ row |
 
 On-screen only — the working that simplifies itself: "Area = ½ × ( 8 + 14 ) × 6",
 "Area = ½ × 22 × 6", "Area = 11 × 6", "Area = 66 sq. cm".
 
+No longer said anywhere (30 Sep 2026): P27-02 to P27-07, the three questions
+and their hints — the drag is asked once, page 15’s way, and the verdicts
+above take the hints’ place — and P27-08 and P27-09, the area question and
+its hint, which this page no longer asks. Their clips are still in
+`assets/VO/`; P27-06 "What is the height?" now plays on page 28, and P27-08
+on pages 29 and 30.
+
 ## Page 28 — Trapezium · practice 1
+
+Page 16’s flow (30 Sep 2026): the trapezium draws itself and takes its three
+measurements, the board halves, and Swiftee hops down into the right half
+and asks from its box; the three answers to each question come up one by
+one under it, every verdict is a sentence in the same box — red for a wrong
+pick, green for the right one — and the answers not chosen go as the right
+one is. The two drop-downs and the hints under them are gone.
 
 | ID | Type | Line | Where |
 |---|---|---|---|
-| P28-01 | INSTRUCTION | Look at the trapezium and choose the correct values. | Heading |
-| P28-02 | HINT | Add the two parallel sides: 13 + 20. | Hint, first wrong try |
-| P28-03 | HINT | The parallel sides are 13 cm and 20 cm — add them. | Hint, second wrong try |
-| P28-04 | HINT | 13 + 20 = 33, so the sum of the parallel sides is 33 cm. | Hint, third wrong try |
-| P28-05 | HINT | Look at the dotted perpendicular line. | Hint, first wrong try (height) |
-| P28-06 | HINT | The dotted line runs straight from the top parallel side down to the bottom one. | Hint, second wrong try (height) |
-| P28-07 | HINT | The dotted perpendicular height is the one marked 10 cm. | Hint, third wrong try (height) |
+| P28-01 | INSTRUCTION | Look at the trapezium and choose the correct values. | Swiftee’s box, beside the answers |
+| P28-08 | INSTRUCTION | What is the sum of the parallel sides? | The box — **needs recording** |
+| P28-09 | FEEDBACK | Not quite! That is 20 + 10. Add the two parallel sides: 13 + 20. | The box, on 30 cm — **needs recording** |
+| P28-10 | FEEDBACK | Not quite! That is 13 + 10. Add the two parallel sides: 13 + 20. | The box, on 23 cm — **needs recording** |
+| P28-11 | FEEDBACK | That’s Correct! 13 + 20 = 33. The sum of the parallel sides is 33 cm. | The box, on 33 cm — **needs recording** |
+| P27-06 | INSTRUCTION | What is the height? *(page 27’s clip, reused)* | The box; the dotted height is lit as it is asked |
+| P28-12 | FEEDBACK | Not quite! 13 cm is the top parallel side. Look at the dotted perpendicular line. | The box, on 13 cm — **needs recording** |
+| P28-13 | FEEDBACK | Not quite! 20 cm is the bottom parallel side. Look at the dotted perpendicular line. | The box, on 20 cm — **needs recording** |
+| P28-14 | FEEDBACK | That’s Correct! The dotted perpendicular height is 10 cm. | The box, on 10 cm — **needs recording** |
 
-On-screen only — the two question labels: "Sum of parallel sides is", "Height is".
+No longer said anywhere (30 Sep 2026): P28-02 to P28-07, the stepped hints,
+and the two on-screen labels "Sum of parallel sides is" and "Height is".
 
 ## Page 29 — Trapezium · practice 2
 
+On the board page 28 left standing — the same trapezium, both values lit on
+it, and the bird still in its box (30 Sep 2026). The area is asked from the
+box with three answers; the answers go once the right one is chosen, and
+the working solves itself in their place.
+
 | ID | Type | Line | Where |
 |---|---|---|---|
-| P29-01 | INSTRUCTION | What is the area of the trapezium? *(reuse of P27-08)* | Heading |
-| P29-02 | HINT | Use ½ × sum of parallel sides × height. | Hint, first wrong try |
-| P29-03 | HINT | Work out ½ × 33 × 10. | Hint, second wrong try |
-| P29-04 | HINT | Half of 10 is 5, and 33 × 5 = 165 sq. cm. | Hint, third wrong try |
-| P29-05 | FEEDBACK | That’s Correct! *(reuse of P15-03)* | Heading |
+| P29-01 | INSTRUCTION | What is the area of the trapezium? *(reuse of P27-08)* | Swiftee’s box |
+| P29-06 | FEEDBACK | Not quite! That is 33 × 10 without the half. | The box, on 330 — **needs recording** |
+| P29-07 | FEEDBACK | Not quite! That is 33 + 10. Multiply the sum of the parallel sides by the height. | The box, on 43 — **needs recording** |
+| P29-08 | FEEDBACK | That’s Correct! Half of 33 × 10 is 165 sq. cm. | The box, on 165 — **needs recording** |
 
-On-screen only — the working: "Area = ½ × 33 × 10", "Area = 33 × 5",
-"Area = 165 sq. cm".
+On-screen only — the working: "Area = ½ × (13 + 20) × 10", "Area = ½ × 33 × 10",
+"Area = 33 × 5", "Area = 165 sq. cm".
+
+No longer said anywhere (30 Sep 2026): P29-02 to P29-05, the stepped hints
+and the closing "That’s Correct!" — the verdict on 165 says it.
 
 ## Page 30 — Trapezium · practice 3 (check for understanding)
 
-The final question. Swiftee asks from the right-hand panel.
+The final question, page 16’s way (30 Sep 2026): the trapezium draws itself
+and takes its measurements, the board halves, and Swiftee asks from its box
+in the right half with three answers under it. Every verdict is a sentence
+in the box; once the right one is chosen the answers go, and the working
+solves itself in their place.
 
 | ID | Type | Line | Where |
 |---|---|---|---|
-| P30-01 | INSTRUCTION | What is the area of the trapezium? *(reuse of P27-08)* | Panel, beside Swiftee |
-| P30-02 | HINT | Use ½ × (sum of the parallel sides) × height. | Hint, first wrong try |
-| P30-03 | HINT | The parallel sides are 30 cm and 40 cm, and the height is 15 cm. | Hint, second wrong try |
+| P30-01 | INSTRUCTION | What is the area of the trapezium? *(reuse of P27-08)* | Swiftee’s box |
+| P30-04 | FEEDBACK | Not quite! That is 70 × 15 without the half. | The box, on 1050 — **needs recording** |
+| P30-05 | FEEDBACK | Not quite! That is 30 × 15. Add both parallel sides first. | The box, on 450 — **needs recording** |
+| P30-06 | FEEDBACK | That’s Correct! Half of (30 + 40) × 15 is 525 sq. cm. | The box, on 525 — **needs recording** |
 
 On-screen only — the working: "Area = ½ × (30 + 40) × 15", "Area = ½ × 70 × 15",
 "Area = 525 sq. cm".
+
+No longer said anywhere (30 Sep 2026): P30-02 and P30-03, the two hints.
 
 ---
 
@@ -564,7 +611,6 @@ Great! Now let’s recall their area formulas.
 
 — Feedback, reused on almost every page —
 That’s Correct
-Try again
 Well Done!
 Not quite!
 
@@ -732,12 +778,14 @@ Let’s find the area of another special quadrilateral!
 
 — Page 23 · Trapezium, its name —
 What shape is this?
-Almost! A kite has two pairs of equal sides next to each other. Check the shape carefully.
-Almost! A parallelogram has two pairs of parallel sides. Check the shape carefully.
+A kite has two pairs of equal sides next to each other. Check the shape carefully.
+A parallelogram has two pairs of parallel sides. Check the shape carefully.
 Correct! Look at the shape — it has only one pair of parallel sides.
 
 — Page 24 · Trapezium, pick them out —
 Select all the trapeziums.
+This shape has no parallel sides. A trapezium has one pair.
+Well done! You found all the trapeziums.
 
 — Page 25 · Trapezium, its area —
 Let us try to find the area of this trapezium.
@@ -759,33 +807,35 @@ This works for every trapezium!
 
 — Page 27 · Trapezium, find the values —
 Let’s find the area of this trapezium.
-Which measurement is a, the shorter parallel side?
-Look at the shorter parallel side.
-Which measurement is b, the longer parallel side?
-Look at the longer parallel side.
-What is the height?
-Look at the perpendicular height.
-What is the area of the trapezium?
-Add the two parallel sides: 8 cm + 14 cm.
+Drag the three lengths into the formula.
+Not quite! a is the shorter parallel side.
+That’s Correct! a is 8 cm. Now drag b into the formula.
+Not quite! b is the longer parallel side.
+That’s Correct! b is 14 cm. Now drag h into the formula.
+Not quite! h is the perpendicular height.
+Fill a first. Then b and then h.
 Let’s simplify it, step by step.
 
 — Page 28 · Trapezium, practice 1 —
 Look at the trapezium and choose the correct values.
-Sum of parallel sides is
-Height is
-Add the two parallel sides: 13 + 20.
-The parallel sides are 13 cm and 20 cm — add them.
-13 + 20 = 33, so the sum of the parallel sides is 33 cm.
-Look at the dotted perpendicular line.
-The dotted line runs straight from the top parallel side down to the bottom one.
-The dotted perpendicular height is the one marked 10 cm.
+What is the sum of the parallel sides?
+Not quite! That is 20 + 10. Add the two parallel sides: 13 + 20.
+Not quite! That is 13 + 10. Add the two parallel sides: 13 + 20.
+That’s Correct! 13 + 20 = 33. The sum of the parallel sides is 33 cm.
+What is the height?
+Not quite! 13 cm is the top parallel side. Look at the dotted perpendicular line.
+Not quite! 20 cm is the bottom parallel side. Look at the dotted perpendicular line.
+That’s Correct! The dotted perpendicular height is 10 cm.
 
 — Page 29 · Trapezium, practice 2 —
-Use ½ × sum of parallel sides × height.
-Work out ½ × 33 × 10.
-Half of 10 is 5, and 33 × 5 = 165 sq. cm.
+What is the area of the trapezium?
+Not quite! That is 33 × 10 without the half.
+Not quite! That is 33 + 10. Multiply the sum of the parallel sides by the height.
+That’s Correct! Half of 33 × 10 is 165 sq. cm.
 
 — Page 30 · Trapezium, practice 3 —
-Use ½ × (sum of the parallel sides) × height.
-The parallel sides are 30 cm and 40 cm, and the height is 15 cm.
+What is the area of the trapezium?
+Not quite! That is 70 × 15 without the half.
+Not quite! That is 30 × 15. Add both parallel sides first.
+That’s Correct! Half of (30 + 40) × 15 is 525 sq. cm.
 ```

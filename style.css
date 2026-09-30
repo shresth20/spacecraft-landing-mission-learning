@@ -2550,6 +2550,20 @@ body {
 .rhom-shape.focus-green  .lbl-h1.on,
 .rhom-shape.focus-green  .mark-up.on { opacity: .24; }
 
+/* ---- the halves' names (page 14, user 2026-09-30) ----
+ * "Triangle 1" and "Triangle 2" with their dashed arrows, page 4's own
+ * marks (.tname) drawn a size up, since this drawing's units are smaller on
+ * screen; each steps back with its half, and both go for good as the
+ * numbers page takes the shape over. */
+.rhom-shape .tname { transition: opacity .5s ease; }
+.rhom-shape .tname-curve { stroke-width: 2.6; stroke-dasharray: 6.5 6.5; }
+.rhom-shape .tname-head  { stroke-width: 2.8; }
+.rhom-shape .tname-text  { stroke-width: 4.5; }
+.rhom-shape.focus-green  .tname-purple,
+.rhom-shape.focus-purple .tname-green { opacity: .24; }
+.rhom-area .tnames { transition: opacity .5s ease; }
+.rhom-area .tnames.gone { opacity: 0; }
+
 /* the tilt: the marks of the last scene leave, the plain diagonals with them */
 .rhom-shape.tilt .ang,
 .rhom-shape.tilt .rhom-ex { opacity: 0; transition: opacity .5s ease; }
@@ -4517,6 +4531,36 @@ body {
   overflow: visible;
 }
 .trap-shape .art { filter: drop-shadow(0 3px 5px var(--shadow-soft)); }
+/* drawn at the size it keeps (user, 2026-09-30): the width of the left half
+   it glides to -- a little inside it, as the practice figures stand in
+   theirs -- so the glide is a slide and never a resize. The lift is worked
+   from the drawing's height at that width (viewBox 420 x 260). */
+.trap:not(.wide) .trap-shape svg {
+  width: calc((50% - clamp(6px, 1.5vw, 20px)) * .8);
+  margin: 0 auto;
+  --art-lift: min(var(--art-gap), max(0px, (100cqh - 24.8cqw) / 2));
+}
+.trap.wide .trap-shape svg {
+  width: 80%;
+  margin: 0 auto;
+  --art-lift: min(var(--art-gap), max(0px, (100cqh - 49.5cqw) / 2));
+}
+/* the right name (user, 2026-09-30): the parallel pair is shown on the
+   shape itself -- each side traced over the outline in the marks' own blue
+   (trapLight) -- and the outline glows green round both */
+.trap-shape .par-side {
+  opacity: 0;
+  fill: none;
+  stroke: var(--height-hl);
+  stroke-width: 7;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 5px var(--glow-height));
+}
+.trap-shape.lit .art {
+  filter: drop-shadow(0 0 9px var(--glow-correct)) drop-shadow(0 3px 5px var(--shadow-soft));
+  animation: rc-win 1.9s cubic-bezier(.3, .8, .4, 1);
+}
+.trap-shape.lit .par-mark .ink { stroke-width: 3.2; filter: drop-shadow(0 0 4px var(--glow-height)); }
 
 /* the "parallel" marks: a pair of chevrons on each of the two parallel sides,
    inked in the hue the parallelogram's parallel pair was shown in; they pop
@@ -5314,6 +5358,18 @@ body {
   filter: drop-shadow(0 0 3px var(--glow-height));
 }
 .rt-dims .d-group.lit.rt-hgt .d-label { fill: var(--height-hl); }
+/* a length named in the working flares once where it stands (rtFlash), lit
+   or not: the practice figures' dim-flare */
+.rt-dims .d-group.flash        { --flare: var(--glow-base); }
+.rt-dims .d-group.rt-hgt.flash { --flare: var(--glow-height); }
+.rt-dims .d-group.flash .d-arrow,
+.rt-dims .d-group.flash .d-head,
+.rt-dims .d-group.flash .d-height { animation: dim-flare 1.05s ease-in-out; }
+.rt-dims .d-group.flash .d-label {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: dim-flare 1.05s ease-in-out, label-flare 1.05s ease-in-out;
+}
 
 /* ---------- under the shape ----------
  * Swiftee hops down to the left of the working: what is being worked out,
@@ -5343,12 +5399,6 @@ body {
   transition: opacity .4s ease, visibility 0s linear .4s;
 }
 .rtrap-say.show { opacity: 1; visibility: visible; transition: opacity .4s ease; }
-.rtrap-col {
-  display: grid;
-  justify-items: start;
-  gap: clamp(3px, .9vh, 9px);
-  min-width: 0;
-}
 .rtrap-text { font-size: clamp(16.5px, 2.9vh, 26.4px); transition: font-size .5s ease; }
 .rtrap-lines {
   justify-items: start;
@@ -5382,26 +5432,52 @@ body {
   justify-items: start;
   min-width: 0;
 }
+/* Swiftee stands at the left with its box up beside its head, page 4's way
+   (user, 2026-09-30), and the lines of working run under both */
 .rtrap.wide .rtrap-say {
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "bird note" "lines lines";
+  align-items: end;
+  justify-items: start;
   width: 100%;
-  gap: clamp(6px, 1.6vh, 16px);
+  gap: clamp(8px, 2vh, 20px) 0;
 }
-.rtrap.wide .rtrap-col {
-  width: 100%;
-  gap: clamp(8px, 2vh, 20px);
-}
+.rtrap.wide .rtrap-say > .mascot { grid-area: bird; }
+/* the box is page 4's (.msg): up beside the bird's head, reaching back over
+   it, no wider than the half leaves it, and shut until it holds words --
+   .quiz-block .trap-note's rules, for the same box */
 .rtrap.wide .rtrap-text {
-  font-size: min(clamp(17.6px, 3.3vh, 30.8px), 1.7vw, 3.8cqw);
-  max-width: 100%;
+  grid-area: note;
+  align-self: end;
+  margin: 0 0 calc(var(--mascot) * .95) calc(var(--mascot) * -.4);
+  max-width: min(640px, calc(100% + var(--mascot) * .4));
+  padding: .42em .95em .46em;
+  /* its size is set with the rest of the type scale, at the end */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: transform .3s ease-in, opacity .22s ease, visibility 0s linear .3s,
+              color .35s ease, border-color .35s ease, background-color .35s ease,
+              box-shadow .35s ease;
+}
+.rtrap.wide .rtrap-text.show {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: transform .44s cubic-bezier(.2, .9, .3, 1.45), opacity .2s ease,
+              color .35s ease, border-color .35s ease, background-color .35s ease,
+              box-shadow .35s ease;
 }
 .rtrap.wide .rtrap-text .type-wrap { display: block; }
-.rtrap.wide .rtrap-text .type { white-space: normal; }
+.rtrap.wide .rtrap-text .type-ghost { display: block; text-wrap: balance; }
+.rtrap.wide .rtrap-text .type { text-align: center; text-wrap: balance; }
+.rtrap.wide .rtrap-text .type,
+.rtrap.wide .rtrap-text .type-ghost { white-space: pre-wrap; }
+.rtrap.wide .rtrap-text .caret { background: var(--heading); }
 .rtrap.wide .rtrap-lines {
+  grid-area: lines;
   width: 100%;
-  font-size: min(clamp(16.5px, 3vh, 28.6px), 1.6vw, 3.5cqw);
   gap: clamp(8px, 2vh, 20px);
   min-height: calc(2.7em + .24em + 4px + clamp(8px, 2vh, 20px));
 }
@@ -5413,9 +5489,12 @@ body {
      here -- a nowrap line would drag the grid track out past the board */
   white-space: normal;
 }
-.rtrap.wide .rtrap-lines .area-line .type-wrap { max-width: 100%; }
+/* ...but not mid-word (user, 2026-09-30): a line is held whole -- the
+   pair closes up to fit instead (copyLine) -- so a morph widening a copy
+   never folds its last word under while it runs */
+.rtrap.wide .rtrap-lines .area-line .type-wrap { max-width: none; }
 .rtrap.wide .rtrap-lines .area-line .type,
-.rtrap.wide .rtrap-lines .area-line .type-ghost { white-space: pre-wrap; }
+.rtrap.wide .rtrap-lines .area-line .type-ghost { white-space: pre; }
 
 /* a line that has done its job steps back, and the next takes its place */
 .rtrap-lines .area-line.off {
@@ -5601,7 +5680,10 @@ body {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);   /* 50 / 50, the one layout that is */
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
-  gap: clamp(12px, 2.4vw, 34px);
+  /* no gutter between the halves, as page 16 has none (user, 2026-09-30):
+     the figure is drawn at half the board's width and the glide into the
+     left half is then a slide, never a resize */
+  gap: 0;
 }
 .rtrap.solve .rtrap-foot {
   align-self: center;
@@ -5619,6 +5701,21 @@ body {
 .rtrap:not(.solve) .tn-panel { display: none; }
 /* the drawing takes its whole column, as it does in the working layout */
 .rtrap.solve .fig-row.single .fig { flex-basis: 100%; }
+/* ---------- the practice figures, pages 25 to 28 (user, 2026-09-30) ----------
+ * Drawn in page 16's scale (script.js, figTrap: the 440-wide box, lengths
+ * at 19, arrowheads at 6) and given page 16's room: half the board's width
+ * in the middle while drawing, the left half once the question is asked,
+ * so the glide is a slide and never a resize. The art box is the drawing's
+ * own height wherever it stands -- under an open heading too -- so the
+ * figure is centred in its column on every one of the four pages, and a
+ * heading opening or closing above it never snaps it to the top. */
+.rtrap.on .fig-row.single .fig.p-fig .fig-art {
+  align-items: center;
+  flex: 0 1 auto;
+  height: auto;
+  min-height: 0;
+}
+.rtrap.on .fig-row.single .fig.p-fig .fig-art svg { height: auto; max-height: 100%; }
 .rtrap.solve .fig-work { display: none; }
 .rtrap.solve .fig-art { align-items: center; height: 100%; }
 .rtrap.solve .fig-art svg { max-height: 100%; }
@@ -5634,7 +5731,7 @@ body {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);   /* 50 / 50, as the values scene is */
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
-  gap: clamp(12px, 2.4vw, 34px);
+  gap: 0;                                                  /* as the values scene, for the same reason */
 }
 .rtrap.cfu .rtrap-foot {
   align-self: center;
@@ -5657,77 +5754,52 @@ body {
 .rtrap.cfu .fig-art { align-items: center; height: 100%; }
 .rtrap.cfu .fig-art svg { max-height: 100%; }
 
-.tc-panel {
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: clamp(9px, 2vh, 20px);
+/* ---------- pages 26 to 28: page 16's panel (user, 2026-09-30) ----------
+ * The bird at the left end of the answers, its box up over its head and
+ * refitted to every line it says, the answers under it one by one, and the
+ * working the right answer solves itself into under those. The rules are
+ * page 16's (.rhom.wide.ask .rp-panel), restated for this section. */
+.rtrap.cfu .tc-panel { display: grid; width: 100%; }
+.rtrap.cfu .rtrap-foot { justify-items: center; container-type: inline-size; }
+/* the verdicts are sentences: nowrap would run them off the half-width
+   column, so here they may break at a word, and they read at page 16's
+   size, since the box shares its half with the bird */
+.rtrap.cfu .tc-note .type,
+.rtrap.cfu .tc-note .type-ghost { white-space: pre-wrap; }
+.rtrap.cfu .tc-note { font-size: clamp(22px, 3.8vh, 34px); }
+.rtrap.cfu .tc-panel .tc-note {
+  align-self: flex-start;
+  margin: 0 0 calc(var(--mascot) * 1.0) calc(var(--mascot) * -.4);
+  max-width: min(560px, calc(100% - var(--mascot) * .9));
+  padding: .42em .95em .46em;
+}
+/* room between the bird and the answers under it, as page 16 has */
+.rtrap.cfu .tc-panel .tc-say { margin: 0 0 clamp(24px, 5.5vh, 60px) clamp(30px, 5vw, 100px); }
+/* the box refits every piece it says, so the pair is not centred as one
+   group: the bird keeps its place and the box grows and shrinks to its
+   right (page 4's rule, restated here to outrank the shared centring) */
+.rtrap.cfu .tc-panel .tc-say.tc-say {
+  justify-content: flex-start;
+  justify-self: stretch;
   width: 100%;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity .45s ease, visibility 0s linear .45s;
-}
-.tc-panel.show { opacity: 1; visibility: visible; transition: opacity .45s ease; }
-
-/* Swiftee and the question at the top of the column. The bird's spot is
-   laid out from the first frame, empty, so its arrival moves nothing under
-   it -- and the line is never taken down: it IS the instruction, and the
-   learner is still reading it while they choose. */
-.tc-say {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: clamp(2px, .4vw, 6px);
-  width: 100%;
-}
-.tc-say > .mascot { margin-right: calc(var(--mascot) * -.16); }
-.tc-text {
-  flex: 0 1 auto;
-  width: max-content;
-  max-width: 100%;
-  min-width: 0;
-  font-size: min(clamp(15.4px, 2.6vh, 24.2px), 2vw, 4.6cqw);
-  text-align: center;
-  text-wrap: balance;
-}
-.tc-text .type-wrap { display: block; }
-.tc-text .type { white-space: normal; }
-
-/* the four answers, two to a row: a column of four would run the panel off
-   the bottom of the board, and one row of four would squeeze them */
-.tc-tray {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(8px, 1.8vh, 18px) clamp(10px, 1.8vw, 26px);
-  width: 100%;
-  max-width: 560px;
-  justify-items: stretch;
-}
-.tc-tray .chip {
-  text-align: center;
-  padding-inline: clamp(8px, 1.4vw, 20px);
 }
 .tc-tray .chip.reveal:hover,
 .tc-tray .chip.reveal:focus-visible { border-color: var(--trap-border); }
-
-/* the nudge under the tray. It says what to do, never what the answer is,
-   so it may run to a sentence: it wraps, where the drop-down's does not. */
-/* scoped to the panel, so it outranks the drop-down hint's own nowrap
-   whichever of the two blocks is read last */
-.tc-panel .tc-hint {
-  white-space: normal;
-  max-width: 100%;
-  /* two lines of room, held from the first frame: the nudge may run to a
-     sentence, and a tray that jumped when one arrived would move the answers
-     out from under the pointer */
-  min-height: 2.7em;
-  line-height: 1.35;
-  font-size: clamp(13.2px, 2.2vh, 20.9px);
-}
+/* the answers that were not chosen go the moment the right one is: they
+   keep their room, so the right one stays where it was tapped */
+.tc-tray .chip.gone { opacity: 0; transform: scale(.8); pointer-events: none; }
 /* the working the right answer solves itself into, and the one piece of
-   celebration this question spends: a glow that swells out of the line and
-   goes, which points at the result rather than away from it */
-.tc-work { justify-items: center; width: 100%; }
+   celebration this line spends: a glow that swells out of it and goes,
+   which points at the result rather than away from it */
+/* The answers go once the right one is chosen, and the working takes
+   their row (user, 2026-09-30): the two share one cell, as tall as a row
+   of answers from the first frame, so the bird and its box never move as
+   the one gives way to the other, and the screen is left clean. */
+.tc-panel { grid-template-columns: minmax(0, 1fr); }
+.tc-panel .tc-say { grid-row: 1; grid-column: 1; }
+.tc-tray,
+.tc-work { grid-row: 2; grid-column: 1; }
+.tc-work { justify-items: center; align-content: center; width: 100%; min-height: var(--chip-h); }
 .tc-work.win {
   border-radius: 16px;
   animation: tc-win 1.9s cubic-bezier(.3, .8, .4, 1) both;
@@ -5736,6 +5808,7 @@ body {
   0%   { box-shadow: 0 0 0 0 transparent; background: transparent; }
   30%  { box-shadow: 0 0 0 12px var(--tint-correct); background: var(--tint-correct); }
   100% { box-shadow: 0 0 0 0 transparent; background: transparent; }
+}
 }
 
 .tn-panel {
@@ -5766,60 +5839,12 @@ body {
    otherwise drop the `both` fill with it and vanish */
 .tn-formula > .in { opacity: 1; animation: wd-in .46s cubic-bezier(.2, .7, .3, 1) both; }
 
-/* ---------- the question is the box in the formula ----------
- * a, b and h are not letters with a drop-down parked under them: each letter
- * IS the drop-down, so the answer is chosen exactly where it will be read.
- * The area is asked the same way, on an "Area = [ v ]" line under the
- * formula that then solves itself. Both are sized to the line they sit in,
- * not to the wide boxes a sentence ends with. */
-.tn-formula .dd-small .dd-btn,
-.tn-area .dd-small .dd-btn {
-  min-width: 3.4em;
-  gap: .4em;
-  padding: .08em .5em;
-  border-radius: .5em;
-  font-size: 1em;
-  font-weight: 700;
-}
-/* the letter it is standing in for, until an answer covers it */
-.tn-formula .dd-value:empty::before,
-.tn-area .dd-value:empty::before { font-weight: 800; opacity: .5; }
-/* the box being asked about lights while that answer is being chosen */
-.tn-formula .dd.live .dd-btn,
-.tn-area .dd.live .dd-btn {
-  border-style: solid;
-  border-color: var(--trap-border);
-  background: var(--tint-trap);
-  box-shadow: 0 0 0 5px var(--glow-board);
-}
-.tn-area .dd { display: inline-block; margin: 0 .15em; vertical-align: middle; }
-
 /* ---------- a, b and h are dragged in, not chosen from a list ----------
  * The three boxes in the formula are drop slots and the three measurements
  * sit in a tray under it: the learner reads a length off the drawing and
- * carries it to the letter it belongs to, which is a truer action than
- * picking it out of a menu. Only the box the question is about takes a
- * drop, so the answer can never land in the wrong letter by accident. */
-.tn-formula .fslot {
-  min-width: 3.2em;
-  height: 1.55em;
-  font-size: .92em;
-}
-.tn-formula .fslot .hint { font-size: 1.08em; }
-.tn-formula .fslot.live {
-  border-style: solid;
-  border-color: var(--trap-border);
-  background: var(--tint-trap);
-  box-shadow: 0 0 0 5px var(--glow-board);
-}
-/* the box waiting for a drop breathes, so it is plain where the value goes */
-@keyframes slot-wait {
-  0%, 100% { box-shadow: 0 0 0 5px var(--glow-board); }
-  50%      { box-shadow: 0 0 0 9px var(--glow-board-soft); }
-}
-.tn-formula .fslot.live:not(.filled) { animation: slot-wait 1.5s ease-in-out infinite; }
-/* and a box already filled says nothing more */
-.tn-formula .fslot.filled { background: var(--drop-bg); }
+ * carries it to the letter it belongs to. The boxes are styled with page
+ * 15's, further down (user, 2026-09-30); the letter in each is the base
+ * .fslot .hint. */
 
 .tn-tray {
   display: flex;
@@ -5835,88 +5860,28 @@ body {
 .tn-tray .chip.reveal:focus-visible { border-color: var(--trap-border); }
 /* an emptied tray gives its room back */
 .tn-tray:empty { display: none; }
-/* An open menu has to clear whatever is under it in the panel. The nudge's
-   words each ease in, and an animated opacity makes every one of them a
-   stacking context LATER in the tree than the box -- so without a z-index
-   of its own the menu paints under them and they eat the taps meant for the
-   options. Only while open, so nothing else is lifted. */
-.tn-panel .dd.open { z-index: 7; }
 
-/* ---------- a box that is only read, not tapped ----------
- * Some scenes put a plain box in the formula -- a letter, or a phrase --
- * and fill it from a question asked in the row under it (tnAsk). Those
- * boxes are these; the drop-down boxes above are the ones that ARE the
- * question. */
-.tn-part,
-.tn-slot { opacity: 0; }
-.tn-part.in,
-.tn-slot.in { animation: wd-in .46s cubic-bezier(.2, .7, .3, 1) both; }
-.tn-slot {
-  display: inline-grid;
-  place-items: center;
-  min-width: 2.4em;
-  padding: .06em .3em;
-  border: 2.5px dashed var(--drop-border);
-  border-radius: .5em;
-  background: var(--drop-bg);
-  font-style: italic;
-  transition: border-color .25s ease, background .25s ease, box-shadow .25s ease;
-}
-/* a box standing for a phrase rather than a letter reads as words, not as
-   an unknown */
-.tn-slot.wordy { font-style: normal; font-weight: 700; }
-.tn-slot.live {
-  border-style: solid;
-  border-color: var(--trap-border);
-  background: var(--tint-trap);
-  box-shadow: 0 0 0 5px var(--glow-board);
-}
-.tn-slot.set {
-  border-style: solid;
-  border-color: var(--correct);
-  background: var(--tint-correct);
-  box-shadow: none;
-  font-style: normal;
-}
+/* the pieces of the formula ease in one at a time (script.js, tnReveal) */
+.tn-part { opacity: 0; }
+.tn-part.in { animation: wd-in .46s cubic-bezier(.2, .7, .3, 1) both; }
 
-/* the questions that fill those boxes: all in one cell, one shown at a
-   time, so the panel never moves as they come and go */
-.tn-ask {
-  display: grid;
+/* The working the formula solves itself into (user, 2026-09-30): it stands
+   in the row the lengths stood in -- the two share one cell, so the row is
+   as tall as the taller of them from the first frame and the formula
+   never moves as the lengths go and the line arrives -- and reads at the
+   formula's own size. */
+.tn-panel { grid-template-columns: minmax(0, 1fr); }
+.tn-tray,
+.tn-work { grid-row: 2; grid-column: 1; }
+.tn-work {
   justify-items: center;
+  align-content: center;
   width: 100%;
+  /* a chip's height: one line of its lettering, its pads and its border */
+  min-height: var(--chip-h);
 }
-.tn-ask > * { grid-area: 1 / 1; }
-.tn-ask .q-line {
-  justify-self: center;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(8px);
-  transition: opacity .35s ease, transform .35s ease, visibility 0s linear .35s;
-}
-.tn-ask .q-line.show {
-  opacity: 1;
-  visibility: visible;
-  transform: none;
-  transition: opacity .35s ease, transform .35s ease;
-}
-
-/* the nudge after a wrong pick: the one place the mission writes a reason
-   on the board, and it goes the moment the answer is right. Its room is
-   held from the first frame, so it costs nothing when it is empty. */
-.tn-hint {
-  min-height: 1.5em;
-  white-space: nowrap;
-  margin: 0;
-  text-align: center;
-  font-weight: 700;
-  color: var(--heading);
-  opacity: 0;
-  transition: opacity .3s ease;
-}
-.tn-hint.show { opacity: .9; }
-/* the working the final answer solves itself into, under the formula */
-.tn-work { justify-items: center; width: 100%; }
+:root { --chip-h: calc(var(--fs-chip) * 1.25 * 1.15 + 2 * clamp(4.15px, 1.23vh, 11.4px) + 4px); }
+.rtrap.solve .tn-work .area-line { font-size: max(var(--fs-heading), min(var(--fs-body) * 1.25, 4.2cqw)); }
 
 /* the banner names the winner in the trapezium's own hue */
 .practice-say .w.lit.w-trap {
@@ -5946,7 +5911,6 @@ body {
 .rtrap-text { white-space: nowrap; }
 .type-wrap .type-ghost,
 .type-wrap .type,
-.rtrap.wide .rtrap-text .type,
 .practice-say .say-text .type,
 .trap-note .type,
 .quiz-bubble .type { white-space: pre; }
@@ -6170,12 +6134,14 @@ body {
 /* ...except the parallelogram's, which stands at the start of its half,
    close beside the shape (user, 2026-09-28) */
 .para.wide .area-lines { justify-self: start; }
+/* ...and the trapezium's takes the whole half: its box wraps inside the
+   half, and its lines start at the left edge under the bird (user,
+   2026-09-30) */
 .rtrap.wide .rtrap-say {
-  width: max-content;
+  width: 100%;
   max-width: 100%;
-  justify-self: center;
+  justify-self: stretch;
 }
-.rtrap.wide .rtrap-col { width: max-content; max-width: 100%; }
 
 /* ---------- Next, in the board's corner ----------
  * The disc sits the same distance in from the board's right edge and its
@@ -6207,18 +6173,22 @@ body {
 /* ---------- the working beside the trapezium ----------
  * Bird, line and working all start at one left edge; the formulas run on
  * one line each, and the rule needs no box round it. */
-.rtrap.wide .rtrap-say,
-.rtrap.wide .rtrap-col { align-items: flex-start; justify-items: start; }
-.rtrap.wide .rtrap-text,
-.rtrap.wide .rtrap-text .type { text-align: left; }
-.rtrap.wide .rtrap-lines { justify-items: start; }
+.rtrap.wide .rtrap-say { justify-items: start; }
+/* the lines stand as one block in the middle of their area (user,
+   2026-09-30): one column as wide as the widest of them, centred, and the
+   lines left-aligned inside it, so a copy's "=" keeps its place under the
+   "=" above */
+.rtrap.wide .rtrap-lines {
+  grid-template-columns: max-content;
+  justify-content: center;
+  justify-items: start;
+}
 .rtrap-lines.rule .area-line:nth-child(2) {
   padding: 0;
   border: 0;
   background: none;
 }
 .rt-dims { pointer-events: none; }
-.rtrap.wide .rtrap-text { padding: 0; margin: 0; }
 .rtrap.wide .rtrap-text .type-wrap { margin: 0; }
 
 /* ---------- highlights stay thin ----------
@@ -6318,7 +6288,6 @@ body {
 .rtrap-lines,
 .rtrap.wide .rtrap-lines.steps,
 .tn-formula,
-.tn-hint,
 .rtrap-qs .q-line { font-size: var(--fs-body); }
 /* the area formula is what the whole section is building to: one step above
    the body text, so it lands as the conclusion rather than another line */
@@ -6347,21 +6316,16 @@ body {
 .quad.wide .area-line.solving,
 .para.wide .area-line.solving,
 .rhom.wide .area-line.solving { font-size: calc(min(var(--fs-body), 3.6cqw) * 1.1); }
-.rtrap.wide .rtrap-text  { font-size: max(var(--fs-min), min(var(--fs-body), 3.8cqw)); }
-.rtrap.wide .rtrap-lines { font-size: max(var(--fs-min), min(var(--fs-body), 3.5cqw)); }
-.rtrap.solve .tn-formula { font-size: max(var(--fs-min), min(var(--fs-body), 5.4cqw)); }
-.rtrap.solve .tn-hint    { font-size: max(var(--fs-min), min(var(--fs-body), 4.2cqw)); }
-/* The check for understanding reads at the body size, not under it: half
-   the board is the panel's, the question, the four answers and the nudge
-   are all it holds, and this is the one page whose text a learner reads
-   while they decide rather than after. The column's own width still caps
-   each of them, so nothing grows into its neighbour. */
-.rtrap.cfu .tc-text       { font-size: max(var(--fs-min), min(var(--fs-body) * 1.2, 2.8vw, 6cqw)); }
-.rtrap.cfu .tc-tray .chip { font-size: max(var(--fs-min), min(var(--fs-chip) * 1.35, 5.6cqw)); }
-.rtrap.cfu .tc-hint       { font-size: max(var(--fs-min), min(var(--fs-body), 4.8cqw)); }
-/* the answer the question is finally worked out to reads at the size of the
-   question itself: it is the line the page ends on, and a line smaller than
-   the chips above it would arrive as a footnote */
+/* a size up on both (user, 2026-09-30): the box reads as Swiftee's boxes do
+   on the other pages, the working a step above the body, each still capped
+   in the half's width */
+.rtrap.wide .rtrap-text  { font-size: max(var(--fs-min), min(var(--fs-body) * 1.25, 4.8cqw)); }
+.rtrap.wide .rtrap-lines { font-size: max(var(--fs-min), min(var(--fs-body) * 1.2, 4.4cqw)); }
+/* The practice panel's answers read at the shared chip size, as page 16's
+   do; the box above them has its own size with page 16's rules. The
+   working the right answer solves itself into reads a step above the body:
+   it is the line the page ends on, and a line smaller than the chips above
+   it would arrive as a footnote. */
 .rtrap.cfu .tc-work .area-line { font-size: max(var(--fs-min), min(var(--fs-body) * 1.2, 5.6cqw)); }
 /* The chips' own lettering runs a quarter over the shared chip size, and
    their padding (see .chip) gives the difference back, so the pill keeps its
@@ -6511,17 +6475,26 @@ body {
  * "Area = ½ × [ ] × [ ]" reads at the same size as the lines that stood in
  * this half a page ago, and its two slots are made to be dropped into: each
  * is an empty pill the shape and size of the chips under it, a step roomier
- * than one. The slot whose turn it is stands out from the board -- white,
- * with the chips' own border and a soft ring that breathes -- and the second
- * waits locked, dimmed and dotted, until the first holds the right length.
- * No placeholder in either (user, 2026-09-29). */
+ * than one. An empty slot stands out from the board -- white, with the
+ * chips' own border and a soft ring that breathes -- and either takes either
+ * diagonal (user, 2026-09-30). No placeholder in either (user, 2026-09-29). */
 .rhom.wide.numbers .len-formula {
   font-size: max(var(--fs-heading), min(var(--fs-body) * 1.25, 4.6cqw));
   gap: .35em;
 }
 /* more room between the formula and the lengths under it (user, 2026-09-29) */
 .rhom.wide.numbers .rhom-quiz { gap: clamp(30px, 10vh, 60px); }
-.rhom-quiz .fslot {
+/* page 25's formula is page 15's over again (user, 2026-09-30): the same
+   size, the same pills for its three boxes -- a little narrower each, since
+   "Area = ½ × ( a + b ) × h" is a longer line and has to stand on one row
+   in its half -- and the same room down to the lengths. Only the box being
+   asked for breathes; the others wait, plain. */
+.rtrap.solve .tn-formula {
+  font-size: max(var(--fs-heading), min(var(--fs-body) * 1.25, 4.2cqw));
+  gap: .35em;
+}
+.rhom-quiz .fslot,
+.tn-formula .fslot {
   --slot-border: 3px;
   --slot-radius: 999px;
   /* the chips' own padding and a little over, in the chips' own size, so a
@@ -6549,7 +6522,8 @@ body {
    plays without a repaint, so it stays smooth beside the drag. It sits on a
    pseudo-element rather than the slot's box-shadow, whose own transition
    would fight a shadow animation. */
-.rhom-quiz .fslot::after {
+.rhom-quiz .fslot::after,
+.tn-formula .fslot::after {
   content: '';
   position: absolute;
   inset: calc(-1 * var(--slot-border));
@@ -6566,36 +6540,54 @@ body {
   75%  { transform: scale(1.1, 1.28);  opacity: 0; }
   100% { transform: scale(1.1, 1.28);  opacity: 0; }
 }
-.rhom-quiz .fslot.over {
+.rhom-quiz .fslot.over,
+.tn-formula .fslot.over {
   background: #fff;
   border-color: var(--shape-border);
 }
-/* the ring belongs to the slot whose turn it is, and to no other state */
+/* the ring belongs to an empty slot waiting for a length, and to no other
+   state */
 .rhom-quiz .fslot.over::after,
 .rhom-quiz .fslot.filled::after,
 .rhom-quiz .fslot.reject::after,
-.rhom-quiz .fslot.locked::after { animation: none; opacity: 0; }
+.tn-formula .fslot.over::after,
+.tn-formula .fslot.filled::after,
+.tn-formula .fslot.reject::after { animation: none; opacity: 0; }
 /* a docked length keeps the size it had in the tray */
-.rhom-quiz .fslot .chip { padding: 0; font-size: 1em; }
-.rhom-quiz .fslot.filled {
+.rhom-quiz .fslot .chip,
+.tn-formula .fslot .chip { padding: 0; font-size: 1em; }
+.rhom-quiz .fslot.filled,
+.tn-formula .fslot.filled {
   background: var(--button-bg);
   border-color: var(--button-border);
   box-shadow: none;
 }
-.rhom-quiz .fslot.correct { box-shadow: 0 0 0 4px var(--tint-correct); }
-.rhom-quiz .fslot.reject  { box-shadow: 0 0 0 4px var(--glow-wrong); }
-/* the second slot waits its turn */
-.rhom-quiz .fslot.locked {
-  background: var(--drop-bg);
-  border-color: var(--drop-border);
-  border-style: dotted;
-  opacity: .5;
-  cursor: not-allowed;
+.rhom-quiz .fslot.correct,
+.tn-formula .fslot.correct { box-shadow: 0 0 0 4px var(--tint-correct); }
+.rhom-quiz .fslot.reject,
+.tn-formula .fslot.reject { box-shadow: 0 0 0 4px var(--glow-wrong); }
+@media (prefers-reduced-motion: reduce) {
+  .rhom-quiz .fslot::after,
+  .tn-formula .fslot::after { animation: none; opacity: .35; transform: scale(1.06, 1.16); }
+}
+/* ...and page 25's three, after the shared rules so these win: narrower,
+   the ring only on the box being asked for, and page 15's room under */
+.tn-formula .fslot { min-width: 3.9em; padding-inline: clamp(6px, 1vw, 14px); }
+.tn-formula .fslot:not(.live)::after { animation: none; opacity: 0; }
+/* a box whose turn has not come is dimmed (user, 2026-09-30), so only the
+   live one reads as the place to drop; it comes up to full strength as it
+   is unlocked, and a filled one stays plain */
+/* (its edge, its fill and its letter are lightened rather than the box's
+   opacity: the reveal animation's fill holds each piece's opacity and
+   filter at their final values and would outrank either) */
+.tn-formula .fslot.locked {
+  border-color: color-mix(in srgb, var(--button-border) 38%, transparent);
+  background: color-mix(in srgb, var(--board-highlight) 45%, transparent);
   box-shadow: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  .rhom-quiz .fslot::after { animation: none; opacity: .35; transform: scale(1.06, 1.16); }
-}
+.tn-formula .fslot.locked .hint { opacity: .22; }
+.tn-tray,
+.tn-work { margin-top: calc(clamp(30px, 10vh, 60px) - clamp(10px, 2.2vh, 22px)); }
 
 /* ---------- the heights in the base's colour (user, 2026-09-28) ----------
  * h1 and h2 -- the dashed lines, their arrowheads, the right-angle marks

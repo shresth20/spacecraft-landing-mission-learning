@@ -104,14 +104,6 @@
  * 4.6cqw is the same line inside the room the bird leaves it. */
 .para.sides .fact { font-size: max(var(--fs-min), min(clamp(var(--fs-min), 3vh, 28.6px), 4.6cqw)); }
 
-/* The trapezium check's question is sized from --fs-body, which is a height
- * measure, so it overflowed its half by 36px at 1024x768 and still by 4px at
- * 1920x1080. The board-width term is the one that holds it at both. */
-.rtrap.cfu .tc-text {
-  font-size: max(var(--fs-min),
-                 min(var(--fs-body) * 1.2, 2.8vw, 6cqw, calc(var(--board-w) * 0.0205)));
-}
-
 /* ---------- the shared floor comes down with the board ----------
  * --fs-min is the one size none of the lesson's text may read smaller than.
  * It was put there so the sizes close up together on a SHORT screen instead
