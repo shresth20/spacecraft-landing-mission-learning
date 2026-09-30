@@ -654,10 +654,12 @@
 
   /* Wait for the narrator to reach `frac` of the way through the line. With
      nothing playing, the piece on screen is simply given time to be read. */
-  function voiceAt(said, frac, readMs) {
+  function voiceAt(said, frac, readMs, cueAt) {
     const a = said && said.audio;
     if (!said || !said.playing || !a) return wait(readMs == null ? CHUNK_READ_MS : readMs);
-    const at = said.length * frac - 0.08;
+    /* a clip with cues says exactly where its pieces begin (VO_CUES); one
+       without is paced by the letters, `frac` of the way through */
+    const at = (cueAt != null ? cueAt : said.length * frac) - 0.08;
     if (a.ended || a.paused || a.currentTime >= at) return Promise.resolve();
     return waitOrSkip(function (done) {
       let over = false;
@@ -689,11 +691,12 @@
     const chunks = segChunks(segs);
     const total = Math.max(1, chunks.reduce((n, ch) => n + ch.len, 0));
     const a = said.playing && said.length > 0.5 ? said.audio : null;
+    const cues = voCuesFor(said, chunks.length);
     let done = 0;
     for (let k = 0; k < chunks.length; k++) {
       const ch = chunks[k];
       if (k > 0) {
-        await voiceAt(said, done / total);
+        await voiceAt(said, done / total, null, cues ? cues[k] : null);
         if (alive && !alive()) return false;
       }
       const chars = Math.max(1, ch.segs.reduce((n, sg) => n + sg.t.length, 0));
@@ -703,7 +706,10 @@
          started late still finishes with the voice */
       let pace = perChar * PACE, hold = pause * PACE;
       if (a && !a.paused && !a.ended) {
-        const target = said.length * (done + ch.len * 0.82) / total;
+        /* with cues, the piece is typed to land at 82% of its own span */
+        const target = cues
+          ? cues[k] + ((k + 1 < chunks.length ? cues[k + 1] : said.length) - cues[k]) * 0.82
+          : said.length * (done + ch.len * 0.82) / total;
         hold = pause;
         pace = Math.max(6, ((target - a.currentTime) * 1000 - pause * keys) / chars);
       }
@@ -740,12 +746,13 @@
     const live = () => piecesGen.get(el) === g;
     const chunks = segChunks([{ t: text }]);
     const total = Math.max(1, chunks.reduce((n, ch) => n + ch.len, 0));
-    let said = null, done = 0;
+    let said = null, cues = null, done = 0;
     for (let k = 0; k < chunks.length; k++) {
       if (k > 0) {
-        if (!said) said = await started;
+        if (!said) { said = await started; cues = voCuesFor(said, chunks.length); }
         if (!live()) return;
-        await voiceAt(said, done / total, Math.max(CHUNK_READ_MS, chunks[k - 1].len * 55));
+        await voiceAt(said, done / total, Math.max(CHUNK_READ_MS, chunks[k - 1].len * 55),
+                      cues ? cues[k] : null);
         if (!live()) return;
       }
       /* a box that fits each piece is told which one is coming */
@@ -1614,15 +1621,15 @@
     'here, is a rhombus.':
       'P15-01-here-is-a-rhombus',
     'that\'s correct!':
-      'P15-03-thats-correct',
+      'P17-07-thats-correct',
     'let\'s find the area of the whole rhombus.':
-      'P16-01-lets-find-the-area-of-the-whole-rhombus',
+      'P15-02-lets-find-the-area-of-the-whole-rhombus',
     'both parts have ½ × d₁ in them, so take it out.':
-      'P16-03-both-parts-have-half-x-d1-in-them',
+      'P15-10-both-parts-have-half-x-d1-in-them',
     'and h₁ and h₂ together make the whole of d₂.':
-      'P16-04-and-h1-and-h2-together-make-the-whole',
+      'P15-11-and-h1-and-h2-together-make-the-whole',
     'so the area of a rhombus is ½ × d₁ × d₂.':
-      'P16-05-so-the-area-of-a-rhombus-is-half',
+      'P15-13-so-the-area-of-a-rhombus-is-half',
     'drag the two lengths into the formula.':
       'P17-01-drag-the-two-lengths-into-the-formula',
     'choose the correct area.':
@@ -1630,7 +1637,7 @@
     'this rhombus has an area of 240 sq. cm. find the other diagonal.':
       'P19-01-this-rhombus-has-an-area-of-240-sq',
     'that\'s correct! ½ × 30 × d₂ = 240, so d₂ is 16 cm.':
-      'P19-02-thats-correct-half-x-30-x-d2-240',
+      'P19-05-thats-correct-half-x-30-x-d2-240',
     'what is the area of the rhombus?':
       'P20-01-what-is-the-area-of-the-rhombus',
     'the diagonals are 24 cm and 15 cm.':
@@ -1638,7 +1645,7 @@
     'which formula can you use here?':
       'P21-01-which-formula-can-you-use-here',
     'that\'s correct! no diagonals are given, so use base × height.':
-      'P21-02-thats-correct-no-diagonals-are-given-so-use',
+      'P21-03-thats-correct-no-diagonals-are-given-so-use',
     'we found the area of a rhombus!':
       'P22-01-we-found-the-area-of-a-rhombus',
     'ready for the next challenge?':
@@ -1648,11 +1655,11 @@
     /* the "Almost!" is off the front of both lines (user, 2026-09-30); the
        takes still open with it, and want re-recording */
     'a kite has two pairs of equal sides next to each other. check the shape carefully.':
-      'P23-01-almost-a-kite-has-two-pairs-of-equal',
+      'P23-02-a-kite-has-two-pairs-of-equal-sides',
     'a parallelogram has two pairs of parallel sides. check the shape carefully.':
-      'P23-02-almost-a-parallelogram-has-two-pairs-of-parallel',
+      'P23-03-a-parallelogram-has-two-pairs-of-parallel-sides',
     'correct! look at the shape — it has only one pair of parallel sides.':
-      'P23-03-correct-look-at-the-shape-it-has-only',
+      'P23-04-correct-look-at-the-shape-it-has-only',
     'select all the trapeziums.':
       'P24-01-select-all-the-trapeziums',
     'let us try to find the area of this trapezium.':
@@ -1694,15 +1701,15 @@
     'look at the longer parallel side.':
       'P27-05-look-at-the-longer-parallel-side',
     'what is the height?':
-      'P27-06-what-is-the-height',
+      'P28-06-what-is-the-height',
     'look at the perpendicular height.':
       'P27-07-look-at-the-perpendicular-height',
     'what is the area of the trapezium?':
-      'P27-08-what-is-the-area-of-the-trapezium',
+      'P29-01-what-is-the-area-of-the-trapezium',
     'add the two parallel sides: 8 cm + 14 cm.':
       'P27-09-add-the-two-parallel-sides-8-cm-14',
     'let\'s simplify it, step by step.':
-      'P27-10-lets-simplify-it-step-by-step',
+      'P27-09-lets-simplify-it-step-by-step',
     'look at the trapezium and choose the correct values.':
       'P28-01-look-at-the-trapezium-and-choose-the-correct',
     'add the two parallel sides: 13 + 20.':
@@ -1725,6 +1732,90 @@
       'P29-04-half-of-10-is-5-and-33-x',
     'use ½ × (sum of the parallel sides) × height.':
       'P30-02-use-half-x-sum-of-the-parallel-sides',
+    /* the part-2 re-recording (2026-09-30): the lines these pages gained
+       since the first recording, cut from the new take */
+    'not quite! that is 33 + 10. multiply the sum of the parallel sides by the height.':
+      'P29-03-not-quite-that-is-33-10-multiply-the',
+    'that\'s correct! 13 + 20 = 33. the sum of the parallel sides is 33 cm.':
+      'P28-05-thats-correct-13-20-33-the-sum-of',
+    'not quite! that is 16 × 12 without the half. look at the formula again.':
+      'P18-02-not-quite-that-is-16-x-12-without',
+    'not quite! half of 30 × 32 is 480 sq. cm. that is too much.':
+      'P19-04-not-quite-half-of-30-x-32-is',
+    'not quite! that is 20 + 10. add the two parallel sides: 13 + 20.':
+      'P28-03-not-quite-that-is-20-10-add-the',
+    'not quite! that is 13 + 10. add the two parallel sides: 13 + 20.':
+      'P28-04-not-quite-that-is-13-10-add-the',
+    'not quite! 13 cm is the top parallel side. look at the dotted perpendicular line.':
+      'P28-07-not-quite-13-cm-is-the-top-parallel',
+    'not quite! 20 cm is the bottom parallel side. look at the dotted perpendicular line.':
+      'P28-08-not-quite-20-cm-is-the-bottom-parallel',
+    'that\'s correct! the first diagonal is 16 cm. now drag d₂ into the formula.':
+      'P17-03-thats-correct-the-first-diagonal-is-16-cm',
+    'that\'s correct! the second diagonal is 12 cm. now drag d₁ into the formula.':
+      'P17-04-thats-correct-the-second-diagonal-is-12-cm',
+    'not quite! that is 16 + 12. the diagonals are multiplied, not added.':
+      'P18-03-not-quite-that-is-16-12-the-diagonals',
+    'not quite! that is 24 + 15. the diagonals are multiplied, not added.':
+      'P20-03-not-quite-that-is-24-15-the-diagonals',
+    'that\'s correct! half of (30 + 40) × 15 is 525 sq. cm.':
+      'P30-03-thats-correct-half-of-30-40-x-15',
+    'not quite! half of 30 × 8 is only 120 sq. cm.':
+      'P19-03-not-quite-half-of-30-x-8-is',
+    'not quite! no diagonals are given here. look at what is marked.':
+      'P21-02-not-quite-no-diagonals-are-given-here-look',
+    'that\'s correct! a is 8 cm. now drag b into the formula.':
+      'P27-04-thats-correct-a-is-8-cm-now-drag',
+    'that\'s correct! b is 14 cm. now drag h into the formula.':
+      'P27-06-thats-correct-b-is-14-cm-now-drag',
+    'not quite! that is 30 × 15. add both parallel sides first.':
+      'P30-02-not-quite-that-is-30-x-15-add',
+    'not quite! the two diagonals are written under and beside the shape.':
+      'P17-02-not-quite-the-two-diagonals-are-written-under',
+    'that\'s correct! half of 16 × 12 is 96 sq. cm.':
+      'P18-04-thats-correct-half-of-16-x-12-is',
+    'that\'s correct! half of 24 × 15 is 180 sq. cm.':
+      'P20-04-thats-correct-half-of-24-x-15-is',
+    'that\'s correct! half of 33 × 10 is 165 sq. cm.':
+      'P29-04-thats-correct-half-of-33-x-10-is',
+    'and d₁ × d₂ is the product of the diagonals.':
+      'P15-12-and-d1-x-d2-is-the-product-of',
+    'not quite! the length written under the shape is d₁.':
+      'P17-05-not-quite-the-length-written-under-the-shape',
+    'not quite! the length written beside the shape is d₂.':
+      'P17-06-not-quite-the-length-written-beside-the-shape',
+    'not quite! that is 24 × 15 without the half.':
+      'P20-02-not-quite-that-is-24-x-15-without',
+    'not quite! that is 33 × 10 without the half.':
+      'P29-02-not-quite-that-is-33-x-10-without',
+    'not quite! that is 70 × 15 without the half.':
+      'P30-01-not-quite-that-is-70-x-15-without',
+    'that\'s correct! the dotted perpendicular height is 10 cm.':
+      'P28-09-thats-correct-the-dotted-perpendicular-height-is-10',
+    'not quite! a is the shorter parallel side.':
+      'P27-03-not-quite-a-is-the-shorter-parallel-side',
+    'not quite! b is the longer parallel side.':
+      'P27-05-not-quite-b-is-the-longer-parallel-side',
+    'fill a first. then b and then h.':
+      'P27-08-fill-a-first-then-b-and-then-h',
+    'what is the sum of the parallel sides?':
+      'P28-02-what-is-the-sum-of-the-parallel-sides',
+    'well done! you found all the trapeziums.':
+      'P24-02-well-done-you-found-all-the-trapeziums',
+    'drag the three lengths into the formula.':
+      'P27-02-drag-the-three-lengths-into-the-formula',
+    'not quite! h is the perpendicular height.':
+      'P27-07-not-quite-h-is-the-perpendicular-height',
+    'now let\'s look at triangle 2.':
+      'P15-06-now-lets-look-at-triangle-2',
+    'its base is the diagonal d₁.':
+      'P15-04-its-base-is-the-diagonal-d1',
+    'it has the same base d₁.':
+      'P15-07-it-has-the-same-base-d1',
+    'let\'s look at triangle 1.':
+      'P15-03-lets-look-at-triangle-1',
+    'find the other diagonal.':
+      'P19-02-find-the-other-diagonal'
   };
 
   /* The same line with its punctuation set aside. A comma that became a
@@ -1741,6 +1832,67 @@
     const l = voLoose(k);
     if (!(l in VO_LOOSE)) VO_LOOSE[l] = VO_FILE[k];
   });
+
+  /* Where each piece of a line begins in its clip, in seconds from the
+     clip's start, measured off the recording's word timings (the part-2
+     re-recording, 2026-09-30). A piece then gives way to the next exactly as
+     the narrator reaches it, rather than at a guess made from the letters it
+     has. Piece 0 is at 0; only clips with more than one piece are listed. A
+     clip whose count does not match the line's pieces is paced by the
+     letters, as before (voCuesFor). */
+  const VO_CUES = {
+    'P29-03-not-quite-that-is-33-10-multiply-the': [0.0, 1.22, 4.14],
+    'P23-02-a-kite-has-two-pairs-of-equal-sides': [0.0, 3.44],
+    'P28-05-thats-correct-13-20-33-the-sum-of': [0.0, 1.47, 4.97],
+    'P18-02-not-quite-that-is-16-x-12-without': [0.0, 1.52, 4.94],
+    'P19-04-not-quite-half-of-30-x-32-is': [0.0, 1.47, 7.25],
+    'P28-03-not-quite-that-is-20-10-add-the': [0.0, 1.06, 3.6],
+    'P28-04-not-quite-that-is-13-10-add-the': [0.0, 1.47, 3.75],
+    'P28-07-not-quite-13-cm-is-the-top-parallel': [0.0, 1.09, 4.69],
+    'P28-08-not-quite-20-cm-is-the-bottom-parallel': [0.0, 1.35, 4.79],
+    'P17-03-thats-correct-the-first-diagonal-is-16-cm': [0.0, 1.61, 5.19],
+    'P19-05-thats-correct-half-x-30-x-d2-240': [0.0, 1.79, 6.59],
+    'P17-04-thats-correct-the-second-diagonal-is-12-cm': [0.0, 1.51, 4.77],
+    'P18-03-not-quite-that-is-16-12-the-diagonals': [0.0, 1.4, 3.88, 5.58],
+    'P20-03-not-quite-that-is-24-15-the-diagonals': [0.0, 1.37, 4.29, 6.21],
+    'P23-04-correct-look-at-the-shape-it-has-only': [0.0, 1.01],
+    'P30-03-thats-correct-half-of-30-40-x-15': [0.0, 1.23],
+    'P19-01-this-rhombus-has-an-area-of-240-sq': [0.0, 5.03],
+    'P15-10-both-parts-have-half-x-d1-in-them': [0.0, 2.54],
+    'P19-03-not-quite-half-of-30-x-8-is': [0.0, 1.3],
+    'P21-02-not-quite-no-diagonals-are-given-here-look': [0.0, 1.52, 3.56],
+    'P23-03-a-parallelogram-has-two-pairs-of-parallel-sides': [0.0, 4.73],
+    'P25-02-its-parallel-sides-are-a-and-b-and': [0.0, 3.69],
+    'P27-04-thats-correct-a-is-8-cm-now-drag': [0.0, 1.24, 3.74],
+    'P27-06-thats-correct-b-is-14-cm-now-drag': [0.0, 1.23, 3.95],
+    'P30-02-not-quite-that-is-30-x-15-add': [0.0, 1.21, 3.86],
+    'P17-02-not-quite-the-two-diagonals-are-written-under': [0.0, 1.55],
+    'P18-04-thats-correct-half-of-16-x-12-is': [0.0, 1.73],
+    'P20-04-thats-correct-half-of-24-x-15-is': [0.0, 1.59],
+    'P21-03-thats-correct-no-diagonals-are-given-so-use': [0.0, 1.45, 3.01],
+    'P29-04-thats-correct-half-of-33-x-10-is': [0.0, 1.49],
+    'P17-05-not-quite-the-length-written-under-the-shape': [0.0, 1.27],
+    'P17-06-not-quite-the-length-written-beside-the-shape': [0.0, 1.33],
+    'P20-02-not-quite-that-is-24-x-15-without': [0.0, 1.34],
+    'P25-03-let-us-slide-it-across-to-make-room': [0.0, 1.49],
+    'P29-02-not-quite-that-is-33-x-10-without': [0.0, 1.19],
+    'P30-01-not-quite-that-is-70-x-15-without': [0.0, 1.89],
+    'P28-09-thats-correct-the-dotted-perpendicular-height-is-10': [0.0, 1.31],
+    'P27-03-not-quite-a-is-the-shorter-parallel-side': [0.0, 1.51],
+    'P27-05-not-quite-b-is-the-longer-parallel-side': [0.0, 1.16],
+    'P27-08-fill-a-first-then-b-and-then-h': [0.0, 1.51],
+    'P24-02-well-done-you-found-all-the-trapeziums': [0.0, 1.2],
+    'P27-07-not-quite-h-is-the-perpendicular-height': [0.0, 1.03],
+    'P27-09-lets-simplify-it-step-by-step': [0.0, 1.31]
+  };
+  function voCues(text) {
+    const stem = voStem(text);
+    return (stem && VO_CUES[stem]) || null;
+  }
+  function voCuesFor(said, pieces) {
+    const c = said && said.cues;
+    return c && c.length === pieces && c.every(t => t != null) ? c : null;
+  }
 
   /* A line with no clip is typed in silence, as it always was -- but it is
      also named once in the console, so a line whose words drift away from
@@ -1807,7 +1959,7 @@
       catch (e2) { return VO_SILENT; }
     }
     voNow = a;
-    return { audio: a, playing: true, length: length };
+    return { audio: a, playing: true, length: length, cues: voCues(text) };
   }
 
   /* Hold the beat until the clip has finished, so the next line never talks
