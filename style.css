@@ -1742,26 +1742,14 @@ body {
   padding-inline: .6em;
   white-space: nowrap;
 }
-/* the bird keeps its place at the left of the half and the box grows and
-   shrinks to its right, as page 4's does: centred as one group, the pair
-   walked sideways each time the box refitted to a new line */
-.para.sides.formula .para-say {
-  justify-content: flex-start;
-  box-sizing: border-box;
-  padding-left: clamp(24px, 4vw, 80px);
-}
-/* The box fits each piece it says (script.js, paraFitSay): capped in the
-   line's own size, so a long piece breaks into rows the box closes round
-   rather than one the width of the half. It stands on its bottom edge over
-   the bird's head, and the row is held at the height of its tallest piece
-   (reserveParaRow), so a box that changes size grows and shrinks upward and
-   nothing under it moves. The ghost breaks balanced, as the live words do,
-   so the box can be pulled snug round the rows it actually has. */
+/* The bird keeps its place at the left of the half and the box stands on
+   its bottom edge over the bird's head, as on page 8 (.para.sides .para-say,
+   below). Here the box fits each piece it says (script.js, paraFitSay):
+   capped in the line's own size, so a long piece breaks into rows the box
+   closes round rather than one the width of the half. */
 .para.sides.formula .para-text {
-  align-self: flex-end;
   max-width: min(16em, calc(100% - var(--mascot) * .9));
 }
-.para.sides.formula .para-text .type-ghost { text-wrap: balance; }
 
 /* the working leaves before the shape comes back to the middle */
 .area-lines { transition: opacity .4s ease; }
@@ -2172,12 +2160,29 @@ body {
 /* Page 4's box, carried over (user, 2026-09-25): the box rides up over the
    bird's head, leaning back over it a little so the tail comes down to it,
    at the name quiz's larger size, and a long line breaks into two balanced
-   rows inside it. The ghost holds the longest line, so the box is one size
-   for the whole scene and the names under it never move. */
-.para.sides .para-say { align-items: flex-end; }
+   rows inside it.
+     The box fits each line it says (paraBoxTo), so the pair is not centred
+   as one group -- that walked the bird sideways every time the box refitted
+   (user, 2026-10-01). The bird keeps its place at the left of the half and
+   the box grows and shrinks to its right, as page 4's does. The box stands
+   on its bottom edge over the bird's head, and the row is held at the
+   height of the tallest line of the scene (reserveParaRow), so a line that
+   wraps grows the box upward and the bird and the names under it never
+   move. Page 10's formula quiz is the same row. */
+.para.sides .para-say {
+  align-items: flex-end;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding-left: clamp(24px, 4vw, 80px);
+}
 .para.sides .para-text {
-  align-self: flex-start;
-  font-size: clamp(20px, 3.7vh, 34px);
+  align-self: flex-end;
+  /* keyed to the height like the rest of the type, with a ceiling in the
+     half's own width (.para-foot is the container): on a 4:3 or 16:10 board
+     the half is far narrower for the same height, and the height alone kept
+     the words at full size there, the box shoved out to the board's edge
+     (user, 2026-10-01). Inert at 16:9, where the height is the smaller. */
+  font-size: min(clamp(20px, 3.7vh, 34px), 5.2cqw);
   /* the box floats ABOVE the bird's head, so it must not be squeezed into the
      flex room the bird leaves beside it -- flex-shrink:0 keeps it off the
      bird's width, and `width: max-content` then hugs the line it holds: a
@@ -2187,7 +2192,10 @@ body {
   flex: 0 0 auto;
   width: max-content;
   margin: 0 0 calc(var(--mascot) * 1.02) calc(var(--mascot) * -.42);
-  max-width: min(560px, calc(100% - 8px));
+  /* the half less the bird's share of the row, as page 16's box is capped:
+     capped in the whole half, the bird and its box together ran wider than
+     the half and the box hung out past it onto the board's rim */
+  max-width: min(560px, calc(100% - var(--mascot) * .9));
   padding: .5em 1.1em .55em;
   white-space: normal;
 }
@@ -2199,11 +2207,13 @@ body {
   text-align: center;
 }
 /* the ghost sizes the box to the line's natural width (up to the max above),
-   so a line that fits on one row is NOT wrapped just to balance it -- that
-   was leaving short lines in a tall, half-empty box. `balance` is kept on the
-   visible text alone, so a line that genuinely must wrap still breaks into two
-   even rows within the box the ghost has set (user, 2026-09-28). */
-.para.sides .para-text .type { text-wrap: balance; }
+   so a line that fits on one row stays on one row. A line that must wrap
+   breaks into two even rows -- the ghost balanced the same way as the visible
+   text, so the script can pull the box snug round the rows it actually has
+   (snug, in paraBoxTo) instead of leaving it at the max-width with a blank
+   margin down either side (user, 2026-10-01). */
+.para.sides .para-text .type,
+.para.sides .para-text .type-ghost { text-wrap: balance; }
 .para-say.quiet .say-text { opacity: 0; }
 .para.sides .para-say.off {
   opacity: 0;

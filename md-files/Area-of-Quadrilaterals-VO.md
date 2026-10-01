@@ -82,7 +82,9 @@ as its verdict and read as its reason, until it is recorded in full.
 | ID | Line | Why |
 |---|---|---|
 | P09-03 | A parallelogram has two pairs of parallel sides. | page 9 verdict, third sentence — cut from the part-2 take (P23-03), 30 Sep 2026 |
-| P09-13 | Check the shape carefully. | page 9, wrong name, third sentence — cut from the part-2 take (P23-03), 30 Sep 2026; "This is not a trapezium. Trapezium has only one pair of parallel sides." was never recorded and is no longer said |
+| P09-14 | This is not a trapezium. | page 9, wrong name, second sentence — recorded on its own (`newww voice filmie.mp3`), 1 Oct 2026 |
+| P09-15 | Trapezium has only one pair of parallel sides. | page 9, wrong name, third sentence — same take, 1 Oct 2026 |
+| P09-13 | Check the shape carefully. | cut from the part-2 take on 30 Sep 2026 as a stand-in for the two above; no longer said |
 | P30-03 | The parallel sides are 30 cm and 40 cm, and the height is 15 cm. | no longer said (page 30’s hints were cut, 30 Sep 2026) |
 | X-01 … X-06 | the appendix lines below | those scenes are not in the running order |
 
@@ -224,8 +226,8 @@ Board goes; Swiftee speaks from its speech bubble on the landscape.
 | P09-12 | FEEDBACK | This is a parallelogram. | Banner, green — the other half of the old take |
 | P09-03 | FEEDBACK | A parallelogram has two pairs of parallel sides. | Banner, green — cut from the part-2 take |
 | P09-03 | HINT | Not quite! *(FB-04)* | Banner, red |
-| P09-03 | HINT | A parallelogram has two pairs of parallel sides. | Banner, red — the same clip as the green verdict |
-| P09-13 | HINT | Check the shape carefully. | Banner, red — cut from the part-2 take |
+| P09-14 | HINT | This is not a trapezium. | Banner, red — recorded 1 Oct 2026 |
+| P09-15 | HINT | Trapezium has only one pair of parallel sides. | Banner, red — recorded 1 Oct 2026 |
 | P09-04 | NARRATION | Look at the top and bottom sides. | Banner |
 | P09-05 | NARRATION | They run side by side and never meet. | Banner |
 | P09-06 | NARRATION | The left and right sides do the same! | Banner |
@@ -419,8 +421,8 @@ answers are voiced.
 | ID | Type | Line | Where |
 |---|---|---|---|
 | P24-01 | INSTRUCTION | Select all the trapeziums. | Heading |
-| — | FEEDBACK | Not quite! *(FB-04)* | Voice only, on a card that is not a trapezium — nothing is typed (30 Sep 2026) |
-| P24-02 | FEEDBACK | This shape has no parallel sides. A trapezium has one pair. | Voice only, straight after FB-04 while the card is shown in the middle — nothing is typed. The clip in `assets/VO` is a stand-in made with edge-tts (en-US-JennyNeural, 30 Sep 2026) — **re-record in Swiftee’s voice** |
+| — | FEEDBACK | Not quite! *(FB-04)* | Voice only, said with the red shake on a card that is not a trapezium — nothing is typed (wired 1 Oct 2026) |
+| P24-02 | FEEDBACK | This shape has no parallel sides. A trapezium has one pair. | Voice only, straight after FB-04 while the card is shown in the middle — nothing is typed. Recorded in Swiftee’s voice (`d fsg (1).mp3`, 1 Oct 2026); the edge-tts stand-in is replaced |
 | P24-03 | FEEDBACK | Well done! You found all the trapeziums. | Heading, once the third trapezium is picked; the line and the bird go before Next (30 Sep 2026) — **needs recording** |
 
 ## Page 25 — Trapezium · its area
@@ -687,8 +689,8 @@ Correct!
 This is a parallelogram.
 A parallelogram has two pairs of parallel sides.
 Not quite!
-A parallelogram has two pairs of parallel sides.
-Check the shape carefully.
+This is not a trapezium.
+Trapezium has only one pair of parallel sides.
 Look at the top and bottom sides.
 They run side by side and never meet.
 The left and right sides do the same!

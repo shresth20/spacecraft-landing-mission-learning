@@ -1461,6 +1461,13 @@
    * pace, silently, as it did before there was a recording.
    */
   const VO_DIR = 'assets/VO/';
+  /* Clips are fetched by script after the page has loaded, so a reload does
+     not revalidate them: a clip re-cut under its old name -- P24-02's
+     stand-in, replaced by the recording on 2026-10-01 -- keeps playing from
+     the browser's cache for hours. The revision rides on every clip's URL,
+     and a new value fetches every clip afresh. Bump it whenever a clip is
+     replaced under a name it already had. */
+  const VO_REV = '?v=20261001';
 
   /* The line as it is written on screen, lower-cased with its typographic
      quotes flattened -- so the map can be read against the source, and a
@@ -1585,6 +1592,11 @@
       'P09-03-a-parallelogram-has-two-pairs-of-parallel-sides',
     'check the shape carefully.':
       'P09-13-check-the-shape-carefully',
+    /* the wrong name's own two sentences (2026-10-01) */
+    'this is not a trapezium.':
+      'P09-14-this-is-not-a-trapezium',
+    'trapezium has only one pair of parallel sides.':
+      'P09-15-trapezium-has-only-one-pair-of-parallel-sides',
     'look at the top and bottom sides.':
       'P09-04-look-at-the-top-and-bottom-sides',
     'they run side by side and never meet.':
@@ -1699,6 +1711,10 @@
       'P23-04-correct-look-at-the-shape-it-has-only',
     'select all the trapeziums.':
       'P24-01-select-all-the-trapeziums',
+    /* the wrong card's reason, said as it is shown in the middle: recorded
+       on its own ("d fsg (1).mp3", 2026-10-01) */
+    'this shape has no parallel sides. a trapezium has one pair.':
+      'P24-02-this-shape-has-no-parallel-sides-a-trapezium',
     'let us try to find the area of this trapezium.':
       'P25-01-let-us-try-to-find-the-area-of',
     'its parallel sides are a and b, and its height is h.':
@@ -1928,6 +1944,7 @@
     'P27-05-not-quite-b-is-the-longer-parallel-side': [0.0, 1.16],
     'P27-08-fill-a-first-then-b-and-then-h': [0.0, 1.51],
     'P24-02-well-done-you-found-all-the-trapeziums': [0.0, 1.2],
+    'P24-02-this-shape-has-no-parallel-sides-a-trapezium': [0.0, 2.92],
     'P27-07-not-quite-h-is-the-perpendicular-height': [0.0, 1.03],
     'P27-09-lets-simplify-it-step-by-step': [0.0, 1.31]
   };
@@ -1987,7 +2004,7 @@
     if (!stem) return null;
     let a = voBank[key];
     if (!a) {
-      a = new Audio(VO_DIR + stem + '.mp3');
+      a = new Audio(VO_DIR + stem + '.mp3' + VO_REV);
       a.preload = 'auto';
       voBank[key] = a;
     }
@@ -2939,7 +2956,10 @@
      saying what is wrong, never by a stock line spoken over it. */
   const FEEDBACK = {
     right: 'That’s Correct',
-    done:  'Well Done!'
+    done:  'Well Done!',
+    /* the bank's "Not quite!" (FB-04) -- not "Try again" -- for a page whose
+       wrong answer has no sentence of its own, said and never typed */
+    wrong: 'Not quite!'
   };
   const FEEDBACK_MS = 45;            /* per character: snappier than a briefing */
   let feedbackGen = 0;
@@ -7075,10 +7095,11 @@
     fit2:    'And the left side fits the right side too!',
     /* a wrong name is turned down a sentence at a time too, for the same
        reason the right one is (user, 2026-09-28) */
-    /* said in the sentences the recording has (user, 2026-09-30: the wrong
-       verdict must be voiced): "This is not a trapezium. Trapezium has only
-       one pair of parallel sides." was never recorded */
-    hint:    ['Not quite!', 'A parallelogram has two pairs of parallel sides.', 'Check the shape carefully.'],
+    /* the original wording, back now that its two sentences are recorded
+       ("newww voice filmie.mp3", 2026-10-01); for a day they were replaced
+       by "A parallelogram has two pairs of parallel sides. Check the shape
+       carefully.", which had clips (P09-03, P09-13) */
+    hint:    ['Not quite!', 'This is not a trapezium.', 'Trapezium has only one pair of parallel sides.'],
     facts: {
       par: [{ t: 'Opposite sides are ' }, { t: 'parallel', w: 'par' }, { t: ' to each other.' }],
       eq:  [{ t: 'Opposite sides are ' }, { t: 'equal in length', w: 'eq' }, { t: '.' }]
@@ -7396,9 +7417,14 @@
      to it (capped by the max-width) -- so a short line sits in a small bubble
      and a long one opens the box out, rather than every line standing in a box
      stretched to the longest of the scene. Sizing the ghost before the words
-     are laid in keeps the box from resizing under them as they arrive. */
+     are laid in keeps the box from resizing under them as they arrive.
+     A line too long for one row is pulled snug round the rows it breaks
+     into (snug), so a two-row verdict has no blank margin down either side
+     (user, 2026-10-01). */
   function paraBoxTo(text) {
-    lineSpans(paraText.querySelector('.type-ghost'), [{ t: longestChunk(text) }]);
+    const ghost = paraText.querySelector('.type-ghost');
+    lineSpans(ghost, [{ t: longestChunk(text) }]);
+    snug(ghost);
   }
   async function sayPara(text, tone) {
     feedbackGen++;
@@ -7464,7 +7490,8 @@
   /* ...but the row the box stands in is held at the height of the tallest
      piece it will hold, so the bird and the formulas under it never move as
      the box changes size: the box grows upward from over the bird's head
-     (see .para.sides.formula .para-text). Measured with the half laid out. */
+     (see .para.sides .para-text). Page 8's names and lines are held the same
+     way (user, 2026-10-01). Measured with the half laid out. */
   let paraRowLines = null;
   function reserveParaRow(lines) {
     paraRowLines = lines;
@@ -7477,10 +7504,11 @@
     paraSay.style.minHeight = h + 'px';
   }
   window.addEventListener('resize', () => {
-    if (!para.classList.contains('formula') || !paraRowLines) return;
+    if (!para.classList.contains('sides') || !paraRowLines) return;
     const now = paraTxt.textContent;
     reserveParaRow(paraRowLines);
-    fitTo(paraGhost, now);
+    if (para.classList.contains('formula')) fitTo(paraGhost, now);
+    else paraBoxTo(now);
   });
   /* the verdict on a name is a few short sentences, shown one at a time in the
      one box: each replaces the last, with a beat between them to read
@@ -7498,12 +7526,16 @@
       if (i < seq.length - 1) await wait(REDUCED ? 500 : 1200);
     }
   }
-  /* a replay finds the row as the last run left it: empty, and up */
+  /* a replay finds the row as the last run left it: empty, and up. The held
+     height goes with the words -- every caller clears the row only once the
+     bird has left it, so letting the row close moves nobody. */
   function clearParaSay() {
     paraSay.classList.remove('off', 'quiet');
     paraText.classList.remove('ok', 'bad');
     paraTxt.textContent = '';
     paraCaret.hidden = true;
+    paraSay.style.minHeight = '';
+    paraRowLines = null;
   }
 
   /* the chips fade up one after another */
@@ -7644,13 +7676,13 @@
     /* 3. Swiftee jumps up into its box at the top of the right half and
           stays there for the rest of the scene: the question, the reason a
           wrong name is wrong and the answer are all said from the one spot.
-          The ghost is cut to the longest line the box will ever hold, so the
-          box is its full size from the first frame and nothing under it
-          moves as the lines change over. */
-    lineSpans(paraText.querySelector('.type-ghost'),
-      [{ t: longest([PARA.ask, PARA.look1, PARA.never,
-                     PARA.look2, PARA.measure, PARA.fit1, PARA.fit2]
-                     .concat(PARA.hint, PARA.right)) }]);
+          The box fits each line it says, and the row it stands in is held
+          at the height of the tallest line of the whole scene, so nothing
+          under it moves as the lines change over (user, 2026-10-01). The
+          first line is fitted before the bird comes up. */
+    reserveParaRow([PARA.ask, PARA.look1, PARA.never, PARA.look2, PARA.measure, PARA.fit1, PARA.fit2]
+      .concat(PARA.hint, PARA.right));
+    paraBoxTo(PARA.ask);
     await mascotJumpIn(paraMascot);
     await wait(REDUCED ? 80 : 260);
     await paraQuizSay(PARA.ask);
@@ -10672,6 +10704,9 @@
     select: 'Select all the trapeziums.',
     /* all three found: said from the heading before Next (user, 2026-09-30) */
     found:  'Well done! You found all the trapeziums.',
+    /* why a wrong card is wrong: said, never typed, while the card is out
+       in the middle with its pairs marked (user, 2026-10-01) */
+    noPair: 'This shape has no parallel sides. A trapezium has one pair.',
     match:  'Drag each name to the correct shape.'
   };
   const TRAP_GHOST = [TRAP.select, TRAP.found, TRAP.match, FEEDBACK.done];
@@ -11255,6 +11290,11 @@
         } else {
           /* ---- not a trapezium: red shake, and it will step back for good ---- */
           sfx('wrong');
+          /* ...and "Not quite!" said over it, then why -- the reason runs
+             on under the card's trip to the middle and the marks on it
+             (2026-10-01): nothing is typed, the trip is the picture */
+          voAlone(FEEDBACK.wrong).catch(() => {});
+          voAlone(TRAP.noPair).catch(() => {});
           swiftee.play('confused', 1);
           markWrong(c, c.querySelector('.card-box'));
           c.setAttribute('aria-disabled', 'true');
