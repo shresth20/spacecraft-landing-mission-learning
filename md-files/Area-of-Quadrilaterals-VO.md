@@ -37,8 +37,11 @@ typographic `’` used in the source.
 ### Audio already in the project
 
 Every line below has been cut from a master recording into a clip of its own
-under **`assets/VO/`**, named `<ID>-<first words>.mp3` — for example
-`P04-06-lets-try-and-find-its-area.mp3`. All clips are mono, 128 kbps.
+under **`assets/VO/`**, named `<ID>-<first words>.webm` — for example
+`P04-06-lets-try-and-find-its-area.webm`. All clips are mono Opus in WebM,
+48 kbps, encoded from the 128 kbps MP3 cuts (2026-10-05); a new clip is cut
+the same way and then encoded with
+`ffmpeg -i clip.mp3 -c:a libopus -b:a 48k -vbr on clip.webm`.
 
 There are two recordings, in two voices:
 
@@ -55,8 +58,8 @@ There are two recordings, in two voices:
 
 The four hand-made clips that used to sit in `assets/audio/` have been
 replaced by these and removed; that folder now holds only the four sound
-effects (`correct-answer.ogg`, `incorrect-answer.ogg`, `confetti-sound.ogg`,
-`button-click.ogg`). The two naming mismatches noted here before — "Drag each
+effects (`correct-answer.webm`, `incorrect-answer.webm`, `confetti-sound.webm`,
+`button-click.webm`). The two naming mismatches noted here before — "Drag each
 **block**…" against an on-screen "Drag each **name**…", and "Drag each
 area…" against "Great! Now let’s recall their area formulas." — are settled:
 each line now has a clip of the words actually on the screen.
@@ -340,8 +343,9 @@ P10-05 and P10-09 (also unrecorded), so one take serves both pages.
 No longer said anywhere: P15-02 "Choose the correct area of the orange
 triangle.", P15-04 "Choose the correct area of the purple triangle." and
 P16-02 "Put in what each triangle’s area is." — the quiz they belonged to is
-cut, and page 4’s P04-10 takes P16-02’s place. Their clips are still in
-`assets/VO/` but nothing plays them. P15-03’s clip ("That’s Correct!") is
+cut, and page 4’s P04-10 takes P16-02’s place. Their clips have been
+removed from `assets/VO/` (2026-10-05), as has FB-02 "Try again", which
+nothing played either. P15-03’s clip ("That’s Correct!") is
 kept: it is the take pages 17, 18, 27 and 29 play.
 
 ## Page 16 — Rhombus · the sum

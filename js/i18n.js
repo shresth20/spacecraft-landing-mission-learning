@@ -34,7 +34,7 @@
  * JSON by the KEY of the line they say:
  *
  *     "voiceOver": { "hi": { "dir": "assets/VO-HI/", "rev": "...",
- *                            "files": { "p01Hey": "112.wav", "p20Work.0": "263.wav" } } }
+ *                            "files": { "p01Hey": "112.webm", "p20Work.0": "263.webm" } } }
  *
  * An array item is "key.index". A line built from a template is said only by
  * a recording of that filled line, named "key|placeholder=value" with the

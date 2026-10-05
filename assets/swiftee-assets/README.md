@@ -31,6 +31,11 @@ sheet. The JSON is a convenience, never a requirement.
 
 ## Layout
 
+The lesson keeps only what it plays (2026-10-05): the 22 sheets listed in
+`js/swiftee-sheets.js`, at 1x and 2x, plus the manifest. Everything else below
+— the other sheets, the atlas JSON, the poses and the preview — is rebuilt by
+`build/pack_spritesheets.py` from the Rive sources, and is in git history.
+
 ```
 spritesheets/{2x,1x}/swiftee_<anim>@<scale>.webp  one sheet per animation
 atlas/{2x,1x}/swiftee_<anim>@<scale>.json         TexturePacker JSON-Hash

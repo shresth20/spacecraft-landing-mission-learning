@@ -4,8 +4,8 @@
  * which is every weight this sheet asks for (600, 700, 800). */
 @font-face {
   font-family: "Baloo 2";
-  src: url("../assets/fonts/baloo_2/baloo2-variablefont_wght.ttf") format("truetype-variations"),
-       url("../assets/fonts/baloo_2/baloo2-variablefont_wght.ttf") format("truetype");
+  src: url("../assets/fonts/baloo_2/baloo2-variablefont_wght.woff2") format("woff2-variations"),
+       url("../assets/fonts/baloo_2/baloo2-variablefont_wght.woff2") format("woff2");
   font-weight: 400 800;
   font-style: normal;
   font-display: swap;
@@ -299,17 +299,34 @@ body {
   /* The painting is the backdrop; the gradient underneath is what shows while
      it decodes, so the first frame is already the right temperature rather
      than white. Both are built from the same sky/ground tokens. */
-  background:
-    url("../assets/image/bg.png") center / cover no-repeat,
-    linear-gradient(180deg,
+  --sky-wash: linear-gradient(180deg,
       var(--sky-dark) 0%,
       var(--sky-mid) 34%,
       var(--sky-purple) 52%,
       var(--horizon) 64%,
       var(--ground) 74%,
       var(--ground) 100%);
+  background:
+    url("../assets/image/bg.webp") center / cover no-repeat,
+    var(--sky-wash);
   background-color: var(--sky-dark);
   overflow: hidden;
+}
+
+/* The artwork is AVIF wherever image-set() can say so, and the WebP above
+   everywhere else. It sits behind @supports rather than in a second
+   declaration: these use var(), which is only checked once it is computed,
+   so a browser that cannot read image-set() would drop the picture outright
+   instead of keeping the WebP. js/script.js asks the same question before it
+   preloads the art, so it warms the file this picks. The board and the
+   welcome cover take theirs the same way, after their own rules. */
+@supports (background-image: image-set(url("x.avif") type("image/avif"))) {
+  body {
+    background-image:
+      image-set(url("../assets/image/bg.avif") type("image/avif"),
+                url("../assets/image/bg.webp") type("image/webp")),
+      var(--sky-wash);
+  }
 }
 
 /* ---------- board ---------- */
@@ -337,9 +354,10 @@ body {
   border: 3px solid var(--board-border);
   /* same pairing as the body: artwork over a token gradient that carries the
      first frame and any decode failure */
+  --board-wash: radial-gradient(72% 58% at 50% 42%, var(--board-highlight) 0%, var(--board-bg) 70%);
   background:
-    url("../assets/image/board.png") center / 100% 100% no-repeat,
-    radial-gradient(72% 58% at 50% 42%, var(--board-highlight) 0%, var(--board-bg) 70%);
+    url("../assets/image/board.webp") center / 100% 100% no-repeat,
+    var(--board-wash);
   background-color: var(--board-bg);
   /* The pink halo the board sits in. Every layer is blurred: a spread with no
      blur paints a solid ring, and a solid ring has a visible edge. Opacity
@@ -357,6 +375,15 @@ body {
   opacity: 0;
   transition: opacity .5s ease;
 }
+@supports (background-image: image-set(url("x.avif") type("image/avif"))) {
+  .board {
+    background-image:
+      image-set(url("../assets/image/board.avif") type("image/avif"),
+                url("../assets/image/board.webp") type("image/webp")),
+      var(--board-wash);
+  }
+}
+
 .board.show { opacity: 1; }
 
 /* ---------- prompt ----------
@@ -1292,18 +1319,6 @@ body {
 /* the quiz answered, the names go but the bird stays to hop away */
 .quiz-block.done .quiz-tray { opacity: 0; transform: translateY(8px); }
 
-.quiz-row {
-  display: flex;
-  align-items: center;
-  gap: clamp(10px, 2.2vw, 30px);
-}
-.quiz-sentence {
-  display: inline-flex;
-  align-items: stretch;
-  font-weight: 700;
-  font-size: clamp(16.5px, 3vh, 28.6px);
-  line-height: 1.15;
-}
 /* "This is a": the same card as a chip, with its right edge open to the box */
 .quiz-label {
   display: inline-flex;
@@ -1365,32 +1380,6 @@ body {
 @keyframes chev-bob {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(.18em); }
-}
-
-/* the hand that taps the box: hidden until the box is asking for a first
-   answer, gone as soon as one goes in */
-.dd-tap {
-  position: absolute;
-  right: 6%;
-  bottom: -.62em;
-  width: clamp(30px, 5.4vh, 52px);
-  height: clamp(30px, 5.4vh, 52px);
-  opacity: 0;
-  pointer-events: none;
-  transform-origin: 70% 20%;
-  transition: opacity .25s ease;
-}
-.dd-tap path {
-  fill: var(--heading);
-  stroke: var(--board-highlight);
-  stroke-width: 1.2;
-  paint-order: stroke;
-}
-.dd.hint .dd-tap { opacity: 1; animation: tap-bounce 1.1s ease-in-out infinite; }
-@keyframes tap-bounce {
-  0%, 100% { transform: translateY(0) rotate(-8deg); }
-  45%      { transform: translateY(10px) rotate(-8deg); }
-  60%      { transform: translateY(0) rotate(-8deg); }
 }
 
 .dd-menu {
@@ -1455,7 +1444,7 @@ body {
 }
 /* its partner waits its turn: dimmed and out of reach until it is asked */
 .dd.off { opacity: .38; filter: grayscale(.4); pointer-events: none; }
-.dd.off .dd-chev, .dd.off .dd-tap { animation: none; }
+.dd.off .dd-chev { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .dd.asking .dd-btn { animation: none; box-shadow: 0 0 0 4px var(--tint-accent); }
 }
@@ -1782,22 +1771,6 @@ body {
    "Diagonal" is in its base's */
 .area-line .w.lit.w-diags    { background: var(--base-hl);          color: var(--rock-dark); }
 
-/* ---------- lines with drop-downs in them ----------
- * A formula line runs as one sentence -- words, coloured chips and two small
- * slots -- with the working typed onto its end once both slots are right. A
- * question line is the name quiz's card again: a label with a slot on its
- * end, wrapping its words when the column runs out before they do. */
-.f-line > * { vertical-align: middle; }
-/* each step of the working is a piece that will not break inside itself, so
-   a line that runs out of room folds at an equals sign, never mid-formula */
-.f-line .expr,
-.f-line .tail { display: inline-block; white-space: nowrap; }
-/* the formula line is a table from the start: the name left, the formula
-   and then each typed step of the working on rows under the "=" */
-.f-line.eqgrid { display: grid; }
-.f-line .tail .txt.eqgrid { display: grid; }
-.f-line .dd { display: inline-block; margin: 0 .12em; }
-.f-line .tail .caret { background: var(--heading); }
 /* the rule copied and opened up (script.js, ruleToBoxes): plain spans,
    folding where the column runs out, a box dropping whole onto the next
    row. A box dissolves out of its words slower than a derivation step
@@ -2832,23 +2805,6 @@ body {
   animation: tc-win 1.9s cubic-bezier(.3, .8, .4, 1) both;
 }
 
-/* ---------- the figure this question is asked of ----------
- * The diagonals are drawn as dashed lines (script.js grows them from the
- * centre out, so the dashes land one by one), and each is pulsed once as its
- * length arrives beside it. The diagonals, the two measured lengths and the
- * right angle are all drawn at the drawing's own line weight -- the same
- * 2.4 the outline carries -- and a pulse or a lit length is said with a
- * glow rather than by swelling (user, 2026-09-17). */
-/* the shape takes whatever room it is in -- the whole board while it is
-   drawing itself, half of one once the question is asked -- and eases from
-   the one to the other as the board splits (script.js plays the move) */
-.fig-row.single .fig.rc-fig { flex-basis: 100%; }
-.rc-fig .fig-art { align-items: center; height: 100%; }
-.rc-fig .fig-art svg { max-height: 100%; }
-
-.rc-fig .rd { stroke-dasharray: 9 14; stroke-width: 2.4; }
-.rc-fig .rd-d1.flash { animation: rc-flash-d1 .9s ease-in-out both; }
-.rc-fig .rd-d2.flash { animation: rc-flash-d2 .9s ease-in-out both; }
 @keyframes rc-flash-d1 {
   0%, 100% { filter: none; }
   45%      { filter: drop-shadow(0 0 6px var(--glow-base)); }
@@ -2856,27 +2812,6 @@ body {
 @keyframes rc-flash-d2 {
   0%, 100% { filter: none; }
   45%      { filter: drop-shadow(0 0 6px var(--glow-height)); }
-}
-/* a diagonal named by the working, or pointed at by a nudge, stays lit for
-   as long as it is being talked about */
-.rc-fig .rd-d1.lit { filter: drop-shadow(0 0 4px var(--glow-base)); }
-.rc-fig .rd-d2.lit { filter: drop-shadow(0 0 4px var(--glow-height)); }
-.rhom-stage .rc-fig .d-group.lit.d-d1 .d-arrow,
-.rhom-stage .rc-fig .d-group.lit.d-d1 .d-head {
-  filter: drop-shadow(0 0 3px var(--glow-base));
-}
-.rhom-stage .rc-fig .d-group.lit.d-d1 .d-label { filter: drop-shadow(0 0 4px var(--glow-base)); }
-.rhom-stage .rc-fig .d-group.lit.d-d2 .d-arrow,
-.rhom-stage .rc-fig .d-group.lit.d-d2 .d-head {
-  filter: drop-shadow(0 0 3px var(--glow-height));
-}
-.rhom-stage .rc-fig .d-group.lit.d-d2 .d-label { filter: drop-shadow(0 0 4px var(--glow-height)); }
-/* the right answer: a glow settles round the shape and stays. The fill is
-   left alone -- the rhombus keeps its own colour, and the success is said
-   with light rather than by repainting the figure. */
-.rc-fig.win .art {
-  filter: drop-shadow(0 0 9px var(--glow-correct)) drop-shadow(0 3px 5px var(--shadow-soft));
-  animation: rc-win 1.9s cubic-bezier(.3, .8, .4, 1);
 }
 @keyframes rc-win {
   0%   { filter: drop-shadow(0 0 0 transparent) drop-shadow(0 3px 5px var(--shadow-soft)); }
@@ -4196,7 +4131,14 @@ body {
 .welcome-art {
   position: absolute;
   inset: 0;
-  background: url("../assets/image/welcome-page.png") center / cover no-repeat;
+  background: url("../assets/image/welcome-page.webp") center / cover no-repeat;
+}
+@supports (background-image: image-set(url("x.avif") type("image/avif"))) {
+  .welcome-art {
+    background-image:
+      image-set(url("../assets/image/welcome-page.avif") type("image/avif"),
+                url("../assets/image/welcome-page.webp") type("image/webp"));
+  }
 }
 
 /* darkens the foot of the landscape so the title, the bar and the button stay
@@ -4238,16 +4180,6 @@ body {
   gap: clamp(14px, 3.4vh, 34px);
   width: min(620px, 86vw);
   margin-bottom: clamp(26px, 8vh, 84px);
-}
-
-.welcome-title {
-  margin: 0;
-  text-align: center;
-  color: var(--board-highlight);
-  font-weight: 800;
-  font-size: clamp(30px, 6vh, 65px);
-  letter-spacing: .6px;
-  text-shadow: 0 3px 0 var(--mountain), 0 10px 26px var(--scrim-strong);
 }
 
 /* loader and button share one grid cell, so the swap moves nothing */
@@ -5582,19 +5514,6 @@ body {
   62%  { opacity: 1; transform: scale(1.16); }
   to   { opacity: 1; transform: scale(1); }
 }
-/* A length written up the side of a shape is turned by a transform ATTRIBUTE
-   on the text, and a CSS transform outranks that attribute outright: the pop
-   above would stand the label back up and leave it there (its fill holds the
-   last frame). So a turned label pops through a keyframe that carries the
-   turn in every frame of it. */
-.fig .d-group.on .d-label.pop.spun {
-  animation-name: dim-pop-spun;
-}
-@keyframes dim-pop-spun {
-  from { opacity: 0; transform: rotate(-90deg) scale(.45); }
-  62%  { opacity: 1; transform: rotate(-90deg) scale(1.16); }
-  to   { opacity: 1; transform: rotate(-90deg) scale(1); }
-}
 .fig .par-mark.on { opacity: 1; transform: none; }
 
 /* ---------- a measurement flares while the step that uses it is worked ----------
@@ -5968,9 +5887,6 @@ body {
 .trap-say > .mascot,
 .quiz-say > .mascot,
 .facts > .mascot { margin-right: calc(var(--mascot) * -.16); }
-/* the quiz sentence has the bird at its right end instead */
-.quiz-row { gap: clamp(2px, .4vw, 6px); }
-.quiz-row > .mascot { margin-left: calc(var(--mascot) * -.16); }
 /* stacked in the two-column layout, the bird sits above its lines: no pull */
 .rtrap.wide .rtrap-say > .mascot { margin-right: calc(var(--mascot) * -.06); }
 
@@ -6096,9 +6012,6 @@ body {
 }
 .quad-shape.split .corner,
 .para-shape.split .corner { pointer-events: none; }
-/* the formula row's name and its "=": a trailing space at the end of a
-   grid cell collapses, so the gap between the columns stands in for it */
-.f-line.eqgrid { column-gap: .3em; }
 /* the boxes dissolving into their numbers: a plain, slightly longer
    cross-fade, the numbers arriving as the boxes go */
 .morph.whole .m-old { transition: opacity .55s ease; }
@@ -6283,7 +6196,6 @@ body {
   --fs-label:   18px;
 }
 .prompt { font-size: var(--fs-heading); }
-.quiz-sentence,
 .quiz-note,
 .quiz-bubble,
 .trap-note,

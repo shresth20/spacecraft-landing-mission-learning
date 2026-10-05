@@ -1053,8 +1053,7 @@
        2x sheets, or it comes out soft. */
     const HI_MIN = S.cell * 1.1;
     const HI_DROP = S.cell * 0.94;      /* hysteresis, see below */
-    /* the excited loop has no single 2x sheet, so it stays at 1x */
-    const hiImg = img => (/swiftee_excited@1x/.test(img) ? img : img.replace('/1x/', '/2x/').replace('@1x', '@2x'));
+    const hiImg = img => img.replace('/1x/', '/2x/').replace('@1x', '@2x');
 
     /* ---------- sheets: fetched, decoded, and only then painted ----------
        Handing the compositor a url it has not finished reading paints nothing
@@ -1433,10 +1432,10 @@
 
   /* ---------- audio ---------- */
   const SRC = {
-    correct:  'assets/audio/correct-answer.ogg',
-    wrong:    'assets/audio/incorrect-answer.ogg',
-    confetti: 'assets/audio/confetti-sound.ogg',
-    click:    'assets/audio/button-click.ogg'
+    correct:  'assets/audio/correct-answer.webm',
+    wrong:    'assets/audio/incorrect-answer.webm',
+    confetti: 'assets/audio/confetti-sound.webm',
+    click:    'assets/audio/button-click.webm'
   };
 
   const bank = {};
@@ -1493,7 +1492,7 @@
   /* ---------- voice-over ----------
    * Every spoken line in the mission has a clip of its own under assets/VO,
    * cut from the master recordings and named for the page it belongs to
-   * (P04-06-lets-try-and-find-its-area.mp3). Pages 1-8 are cut from the
+   * (P04-06-lets-try-and-find-its-area.webm, Opus). Pages 1-8 are cut from the
    * newer recording (voice 1-2.mp3); the rest still play the older voice
    * until they are recorded again.
    *
@@ -2064,7 +2063,7 @@
     const bankKey = VO_PACK ? stem : key;
     let a = voBank[bankKey];
     if (!a) {
-      a = new Audio(VO_PACK ? stem : VO_DIR + stem + '.mp3' + VO_REV);
+      a = new Audio(VO_PACK ? stem : VO_DIR + stem + '.webm' + VO_REV);
       a.preload = 'auto';
       voBank[bankKey] = a;
     }
@@ -3022,7 +3021,6 @@
        wrong answer has no sentence of its own, said and never typed */
     wrong: T('fbNotQuite')
   };
-  const FEEDBACK_MS = 45;            /* per character: snappier than a briefing */
   let feedbackGen = 0;
 
   const quip = document.getElementById('quip');
@@ -3634,7 +3632,14 @@
   const loadPct   = document.getElementById('loadPct');
   const startBtn  = document.getElementById('startBtn');
 
-  const ART = ['assets/image/bg.png', 'assets/image/board.png'];
+  /* The backdrops, warmed in the format the stylesheet paints them in: AVIF
+     where its @supports test for image-set() passes, WebP otherwise. A
+     browser that passes the test but cannot decode AVIF is handed the WebP by
+     image-set() itself, and the preload follows it there on the error. */
+  const ART = ['assets/image/bg', 'assets/image/board'];
+  const ART_EXT = (window.CSS && CSS.supports &&
+                   CSS.supports('background-image', 'image-set(url("x.avif") type("image/avif"))'))
+    ? ['.avif', '.webp'] : ['.webp'];
   const MIN_LOAD_MS = 1600;      /* the bar is never allowed to blink past */
 
   /* Every clip and sheet is fetched up front so the first briefing does not
@@ -3665,11 +3670,13 @@
     });
   }
 
-  function preloadImage(src) {
+  function preloadImage(stem) {
     return new Promise(resolve => {
       const img = new Image();
-      img.onload = img.onerror = () => resolve();
-      img.src = src;
+      let i = 0;
+      img.onload = () => resolve();
+      img.onerror = () => (++i < ART_EXT.length ? (img.src = stem + ART_EXT[i]) : resolve());
+      img.src = stem + ART_EXT[0];
       setTimeout(resolve, 8000);
     });
   }
@@ -4048,30 +4055,6 @@
     } finally { off(); }
   }
 
-  /* The other way off: a crouch, a short spring, and a fall clean past the
-     bottom of the screen -- the exit Swiftee makes from the opening scene,
-     borrowed for a bird that came down onto the middle of the board rather
-     than up to the heading, and so has nothing above it to hide behind. The
-     in-board sprite does the whole thing: only the page clips, and it clips
-     at the bottom edge, which is exactly where the bird is going. */
-  async function mascotDropOut(spot) {
-    await birdFree();
-    if (!spot.classList.contains('in')) return;      /* already gone */
-    const r = spot.getBoundingClientRect();
-    if (!r.width || REDUCED) { spot.classList.remove('in'); return; }
-
-    const drop = window.innerHeight - r.top + 40;    /* clear of the bottom edge */
-    spot.classList.add('dropping');                  /* over the footer band it falls past */
-    const a = spot.animate([
-      { transform: 'none', easing: 'ease-in' },
-      { transform: 'translateY(7%) scale(1.06, .92)', offset: .2, easing: 'cubic-bezier(.2, .6, .35, 1)' },
-      { transform: 'translateY(-26%) scale(1)', offset: .46, easing: 'cubic-bezier(.45, 0, .85, .5)' },
-      { transform: 'translateY(' + drop + 'px)' }
-    ], { duration: 860, fill: 'forwards' });
-    /* the class goes before the animation is let go, so the frame that stops
-       filling the fall is the same frame the sprite stops being painted */
-    try { await finished(a); } finally { spot.classList.remove('in', 'dropping'); a.cancel(); }
-  }
 
   /* ---------- next button ----------
    * Pops up in the middle of the footer band and resolves on the click. The
@@ -4140,15 +4123,6 @@
   const FORMULA_MS    = 110;      /* per character: slower than a briefing, on purpose */
   const FORMULA_PAUSE = 720;      /* a beat after each key word, for the highlight to land */
 
-  function formulaSpans(root) {
-    root.textContent = '';
-    return FORMULA.map(seg => {
-      const el = document.createElement('span');
-      if (seg.w) el.className = 'w w-' + seg.w;
-      root.appendChild(el);
-      return el;
-    });
-  }
   /* the ghost carries the whole formula from the start, so the box is sized
      before the first character lands */
   lineSpans(formulaGhost, FORMULA);
@@ -4821,15 +4795,6 @@
     areaLinesEl.textContent = '';
   }
 
-  function segSpans(root, segs) {
-    root.textContent = '';
-    return segs.map(seg => {
-      const el = document.createElement('span');
-      if (seg.w) el.className = 'w w-' + seg.w;
-      root.appendChild(el);
-      return el;
-    });
-  }
 
   /* A typewriter bound to one box. A line that comes in while an earlier one
      is still typing takes the box over from it, as feedback() does above. */
@@ -6195,44 +6160,6 @@
     try { await finished(a); } finally { ghost.remove(); }
   }
 
-  /* A copy of a label on the drawing floats across the board and settles
-     into the line as one of its words: from the label's own place and size
-     to the word's, on a slight rise, and the word is simply there as the
-     copy lands. The label stays on the drawing, lit as the copy leaves. */
-  async function floatWord(src, wrap, words) {
-    const land = () => words.forEach(w => w.el.classList.add('in', 'landed'));
-    const from = src.getBoundingClientRect();
-    const to   = wrap.getBoundingClientRect();
-    if (!from.width || !to.width || REDUCED || fastForward) { land(); return; }
-    /* the word's own type and hue -- the hue read past the .4s a lit word
-       eases its colour over, so the copy is cut in the colour it lands as */
-    wrap.style.transition = 'none';
-    const cs = getComputedStyle(wrap);
-    const type = {
-      fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight,
-      letterSpacing: cs.letterSpacing, lineHeight: cs.lineHeight, color: cs.color
-    };
-    wrap.style.transition = '';
-    const ghost = document.createElement('span');
-    ghost.className = 'float-word';
-    ghost.textContent = words.map(w => w.el.dataset.t).join('');
-    Object.assign(ghost.style, type, { left: to.left + 'px', top: to.top + 'px' });
-    fx.appendChild(ghost);
-    /* over the label at the label's size; then in its place at its own */
-    const s = from.height / to.height;
-    const dx = (from.left + from.width / 2) - (to.left + to.width * s / 2);
-    const dy = (from.top + from.height / 2) - (to.top + to.height * s / 2);
-    lineDenote([src], 500).catch(() => {});
-    const a = ghost.animate([
-      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + s + ')', opacity: 0 },
-      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + s + ')', opacity: 1, offset: .12 },
-      { transform: 'translate(' + (dx * .45) + 'px,' + (dy * .45 - 28) + 'px) scale(' + ((1 + s) / 2) + ')', opacity: 1, offset: .6 },
-      { transform: 'none', opacity: 1 }
-    ], { duration: 1100, easing: 'cubic-bezier(.35, .05, .25, 1)', fill: 'forwards' });
-    sfx('click', .3);
-    try { await finished(a); } finally { ghost.remove(); }
-    land();
-  }
 
   /* The rule again, in words (review, 2026-09-25): a copy of the line peels
      off it onto the row below -- fades up over it and slides down -- and
@@ -9936,64 +9863,6 @@
         '<span class="type"><span class="txt"></span><i class="caret" hidden aria-hidden="true"></i></span></span></div>' +
     '</div>';
   }
-  /* a rhombus with its diagonals flat and upright. d1 and d2 are in the
-     box's units; labD1 goes on an arrow under it, labD2 on an arrow to its
-     left -- or, with `unknown`, d2 is dashed and marked "?" */
-  function figRhombus(key, name, d1, d2, labD1, labD2, unknown) {
-    const cx = 185, cy = 118;
-    const L = { x: cx - d1 / 2, y: cy }, R = { x: cx + d1 / 2, y: cy };
-    const T = { x: cx, y: cy - d2 / 2 }, B = { x: cx, y: cy + d2 / 2 };
-    const O = { x: cx, y: cy }, M = 11;
-    const art =
-      '<polygon class="shape-fill" clip-path="url(#wipeFig' + key + ')" points="' + [L, T, R, B].map(pt).join(' ') + '" />' +
-      '<path class="shape-outline" d="M' + [L, T, R, B].map(p => fmt(p.x) + ' ' + fmt(p.y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
-    let over =
-      figLine('rd rd-d1', L, R) +
-      figLine('rd rd-d2' + (unknown ? ' dashed' : ''), T, B) +
-      '<path class="rmark mark-up" d="M' + fmt(O.x) + ' ' + fmt(O.y - M) + ' H' + fmt(O.x + M) + ' V' + fmt(O.y) + '" />';
-    if (unknown) {
-      over += '<text class="rd-lbl lbl-d2 lbl-q" x="' + fmt(cx + 14) + '" y="' + fmt(cy - d2 / 4) + '" font-size="26" text-anchor="start" dominant-baseline="middle">?</text>';
-    }
-    const y = B.y + 18;
-    over += figMeasure('d-d1', { x: L.x, y: y }, { x: R.x, y: y }, labD1,
-      [{ from: L, to: { x: L.x, y: y } }, { from: R, to: { x: R.x, y: y } }], false);
-    if (labD2 && !unknown) {
-      const x = L.x - 22;
-      over += figMeasure('d-d2', { x: x, y: T.y }, { x: x, y: B.y }, labD2,
-        [{ from: T, to: { x: x, y: T.y } }, { from: B, to: { x: x, y: B.y } }], true);
-    }
-    return figShell(key, name, art, over);
-  }
-  /* a slanted shape with all four sides equal, given by its base and its
-     height only: a rhombus too, but with no diagonal to be seen */
-  function figSlant(key) {
-    /* a base of 175 and a height of 105 (10 : 6), the slant chosen so the
-       side comes out the same length as the base */
-    const BL = { x: 15, y: 145 }, BR = { x: 190, y: 145 }, TL = { x: 155, y: 40 }, TR = { x: 330, y: 40 };
-    const F = { x: TL.x, y: BL.y };
-    const art =
-      '<polygon class="shape-fill" clip-path="url(#wipeFig' + key + ')" points="' + [BL, TL, TR, BR].map(pt).join(' ') + '" />' +
-      '<path class="shape-outline" d="M' + [BL, TL, TR, BR].map(p => fmt(p.x) + ' ' + fmt(p.y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
-    /* one tick across the middle of every side: four equal sides */
-    let over = '';
-    [[BL, TL], [TL, TR], [TR, BR], [BR, BL]].forEach(([a, b]) => {
-      const u = rhUnit(b, a), n = { x: -u.y, y: u.x }, C = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, t = 9;
-      const d = 'M' + fmt(C.x + n.x * t) + ' ' + fmt(C.y + n.y * t) + ' L' + fmt(C.x - n.x * t) + ' ' + fmt(C.y - n.y * t);
-      over += '<g class="eq-mark"><path class="halo" d="' + d + '" /><path class="ink" d="' + d + '" /></g>';
-    });
-    /* the height, dropped from the top-left corner onto the base */
-    const M = 11, hv = rhUnit(F, TL);
-    over += '<g class="d-group d-hgt">' +
-      figLine('d-height', TL, F) + figHead(TL, -hv.x, -hv.y) + figHead(F, hv.x, hv.y) +
-      '<path class="d-mark" d="M' + fmt(F.x) + ' ' + fmt(F.y - M) + ' H' + fmt(F.x + M) + ' V' + fmt(F.y) + '" />' +
-      '<text class="d-label" x="' + fmt(F.x + 10) + '" y="' + fmt((TL.y + F.y) / 2) + '" font-size="17" text-anchor="start" dominant-baseline="middle">' + CM(6) + '</text>' +
-    '</g>';
-    /* the base, measured under the shape */
-    const y = BL.y + 20;
-    over += figMeasure('d-d1', { x: BL.x, y: y }, { x: BR.x, y: y }, CM(10),
-      [{ from: BL, to: { x: BL.x, y: y } }, { from: BR, to: { x: BR.x, y: y } }], false);
-    return figShell(key, '', art, over, 172);
-  }
 
   const figEl = (key, row) => (row || figRow).querySelector('.fig[data-fig="' + key + '"]');
 
@@ -10233,38 +10102,6 @@
     });
   }
 
-  async function showFigures(html, row, host) {
-    row = row || figRow;
-    host = host || rhomPractice;
-    row.innerHTML = html;
-    fitFigArt(row);
-    row.classList.remove('off');
-    row.classList.toggle('single', row.children.length === 1);
-    host.classList.add('on');
-    await wait(160);
-    const figs = Array.from(row.querySelectorAll('.fig'));
-    await Promise.all(figs.map(async (f, i) => { await wait(i * 260); await revealShape(f); }));
-    await wait(300);
-    for (const f of figs) await showFigMarks(f);
-  }
-  async function showFigMarks(f) {
-    const d1 = f.querySelector('.rd-d1'), d2 = f.querySelector('.rd-d2');
-    if (d1) await growLine(d1, 520);
-    if (d2) await growLine(d2, 440);
-    const mark = f.querySelector('.rmark');
-    if (mark) mark.classList.add('on');
-    const q = f.querySelector('.lbl-q');
-    if (q) { q.classList.add('on'); sfx('click', .35); }
-    const hgt = f.querySelector('.d-hgt');
-    if (hgt) {
-      await growLine(hgt.querySelector('.d-height'), 520);
-      hgt.classList.add('on');
-      sfx('click', .35);
-      await wait(REDUCED ? 120 : 360);
-    }
-    f.querySelectorAll('.eq-mark, .par-mark').forEach(m => m.classList.add('on'));
-    for (const g of Array.from(f.querySelectorAll('.d-group:not(.d-hgt)'))) await showDimGroup(g);
-  }
 
   /* the old figures leave */
   async function clearFigures(row) {
@@ -10276,63 +10113,7 @@
     row.classList.remove('stepped', 'working');
   }
 
-  /* Tap the right figure -- or the name under it, which is part of it. The
-     wrong one is shaken and steps back; the right one goes green. A skip
-     taps it. */
-  function askFigures(answer, row) {
-    return new Promise(resolve => {
-      const figs = Array.from((row || figRow).querySelectorAll('.fig'));
-      let over = false;
-      const finish = (fig, auto) => {
-        if (over) return;
-        over = true;
-        skipFills.delete(fill);
-        sceneWaiters.delete(teardown);
-        lockInput(true);
-        figs.forEach(f => { f.removeEventListener('click', onTap); f.classList.remove('pick'); });
-        feedbackGen++;
-        markRight(fig, fig.querySelector('.fig-chip'));
-        if (!auto) {
-          sfx('correct', .7);
-          const chip = fig.querySelector('.fig-chip');
-          if (chip) burst(chip);
-          swiftee.play('happy', 1);
-        }
-        resolve();
-      };
-      const onTap = e => {
-        const fig = e.currentTarget;
-        if (!interactive || fig.classList.contains('spent')) return;
-        if (fig.dataset.fig === answer) { finish(fig, false); return; }
-        sfx('wrong', .6);
-        swiftee.play('confused', 1);
-        markWrong(fig, fig.querySelector('.fig-art'));
-        setTimeout(() => { fig.classList.remove('reject'); fig.classList.add('spent'); }, 440);
-      };
-      const fill = () => finish(figs.find(f => f.dataset.fig === answer), true);
-      const teardown = () => {
-        sceneWaiters.delete(teardown);
-        over = true;
-        skipFills.delete(fill);
-        figs.forEach(f => f.removeEventListener('click', onTap));
-      };
-      figs.forEach(f => { f.classList.add('pick'); f.addEventListener('click', onTap); });
-      sceneWaiters.add(teardown);
-      skipFills.add(fill);
-      lockInput(false);
-    });
-  }
 
-  /* the working under a figure types itself out */
-  async function figWorking(key, text, row) {
-    const f = figEl(key, row);
-    const work = f.querySelector('.fig-work');
-    wordSpans(work.querySelector('.type-ghost'), longestChunk(text));
-    work.classList.add('show');
-    sfx('click', .3);
-    await wait(REDUCED ? 120 : 380);
-    await typer(work.querySelector('.txt'), work.querySelector('.caret'), AREA_MS)(text);
-  }
 
   /* a line of working that solves itself, put up where the typed lines go:
      the ghost holds the first step, the widest, so the box never moves */
@@ -10352,58 +10133,8 @@
     return line;
   }
 
-  /* A line of working put up already finished -- no reveal, no solve. A
-     scene that carries the line before it over the Next between them has to
-     be able to put it back when a replay or a jump lands on it cold. */
-  function putLine(root, text) {
-    const line = document.createElement('div');
-    line.className = 'area-line';
-    line.innerHTML = '<span class="type-wrap"><span class="type-ghost"></span>' +
-      '<span class="type"><span class="txt"></span><i class="caret" hidden aria-hidden="true"></i></span></span>';
-    lineSpans(line.querySelector('.type-ghost'), asSegs(text));
-    lineSpans(line.querySelector('.txt'), asSegs(text))
-      .forEach(part => {
-        part.words.forEach(w => w.el.classList.add('in'));
-        if (part.seg.w) part.els.forEach(el => el.classList.add('lit'));
-      });
-    root.appendChild(line);
-    fitEq(line);
-    line.classList.add('show');
-    return line;
-  }
 
-  /* the working under a figure: one line in a box that solves itself */
-  async function figSolve(key, steps, row, onWord) {
-    const f = figEl(key, row);
-    const work = f.querySelector('.fig-work');
-    work.textContent = '';
-    work.style.setProperty('--lines', 1);
-    (row || figRow).classList.add('working');
-    work.classList.add('steps', 'show');
-    sfx('click', .3);
-    await wait(REDUCED ? 120 : 420);
-    await showSolveLine(work, steps, onWord);
-  }
 
-  /* the working under a figure step by step: its box appears first, held at
-     the height of all its lines so nothing above moves while they type, and
-     the lines type themselves into it one at a time. The row is marked as
-     working from the first box: every box in it opens then (CSS), so the
-     figures of a comparison shrink together and stay at one scale. */
-  async function figSteps(key, lines, row, onWord) {
-    const f = figEl(key, row);
-    const work = f.querySelector('.fig-work');
-    work.textContent = '';
-    work.style.setProperty('--lines', lines.length);
-    (row || figRow).classList.add('working');
-    work.classList.add('steps', 'show');
-    sfx('click', .3);
-    await wait(REDUCED ? 120 : 420);
-    for (let i = 0; i < lines.length; i++) {
-      await showTypedLine(lines[i], work, onWord);
-      if (i < lines.length - 1) await wait(REDUCED ? 120 : 420);
-    }
-  }
 
   /* the measured rhombus, put back if a replay has taken it away: tilted,
      both diagonals, the right angle, and the two lengths on it */
@@ -10482,36 +10213,7 @@
     rcHintEl.classList.remove('show');
   }
 
-  /* The question's own rhombus, in a box of its own: wider and shallower
-     than the paired figures use, so the shape fills the half of the board it
-     is given. Each diagonal is drawn as two halves anchored at the crossing,
-     which is what lets its dashes run outwards from the middle rather than
-     sweeping in from one corner. */
-  const RC_D1 = 288, RC_D2 = 180, RC_CX = 190, RC_CY = 104, RC_H = 230;
-  function rcFig() {
-    const L = { x: RC_CX - RC_D1 / 2, y: RC_CY }, R = { x: RC_CX + RC_D1 / 2, y: RC_CY };
-    const T = { x: RC_CX, y: RC_CY - RC_D2 / 2 }, B = { x: RC_CX, y: RC_CY + RC_D2 / 2 };
-    const O = { x: RC_CX, y: RC_CY }, M = 12;
-    const art =
-      '<polygon class="shape-fill" clip-path="url(#wipeFigq)" points="' + [L, T, R, B].map(pt).join(' ') + '" />' +
-      '<path class="shape-outline" d="M' + [L, T, R, B].map(q => fmt(q.x) + ' ' + fmt(q.y)).join(' L') + ' Z" fill="none" stroke-width="5" />';
-    let over =
-      figLine('rd rd-d1', O, L) + figLine('rd rd-d1', O, R) +
-      figLine('rd rd-d2', O, T) + figLine('rd rd-d2', O, B) +
-      '<path class="rmark mark-up" d="M' + fmt(O.x) + ' ' + fmt(O.y - M) + ' H' + fmt(O.x + M) + ' V' + fmt(O.y) + '" />';
-    const y = B.y + 18;
-    over += figMeasure('d-d1', { x: L.x, y: y }, { x: R.x, y: y }, CM(24),
-      [{ from: L, to: { x: L.x, y: y } }, { from: R, to: { x: R.x, y: y } }], false);
-    const x = L.x - 22;
-    over += figMeasure('d-d2', { x: x, y: T.y }, { x: x, y: B.y }, CM(15),
-      [{ from: T, to: { x: x, y: T.y } }, { from: B, to: { x: x, y: B.y } }], true);
-    return figShell('q', '', art, over, RC_H);
-  }
 
-  /* both halves of a diagonal run out from the crossing together */
-  function rcDrawDiag(f, cls, ms) {
-    return Promise.all(Array.from(f.querySelectorAll('.rd-' + cls)).map(l => growLine(l, ms)));
-  }
   /* a diagonal pulses once as its length lands beside it */
   function rcFlash(f, cls) {
     const lines = Array.from(f.querySelectorAll('.rd-' + cls));
@@ -10523,17 +10225,6 @@
   function rcLight(f, cls, on) {
     f.querySelectorAll('.rd-' + cls).forEach(l => l.classList.toggle('lit', on !== false));
     f.querySelectorAll('.d-' + cls).forEach(g => g.classList.toggle('lit', on !== false));
-  }
-  /* pointed at rather than lit: it blinks twice and is left exactly as it
-     was found, so a nudge can draw the eye to a length without standing in
-     for the answer */
-  async function rcPoint(f, cls) {
-    for (let i = 0; i < 2; i++) {
-      rcLight(f, cls, true);
-      await wait(REDUCED ? 80 : 420);
-      rcLight(f, cls, false);
-      await wait(REDUCED ? 50 : 260);
-    }
   }
 
   /* 1. the area of the measured rhombus */
