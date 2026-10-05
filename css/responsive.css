@@ -119,3 +119,10 @@
  * either the same value or below a size that was not binding anyway, so no
  * line there moves; on a narrow board it steps back and lets the caps work. */
 :root { --fs-min: min(19.8px, calc(var(--board-w) * 0.0132)); }
+
+/* ---------- TEMPORARY: scene tools hidden ----------
+ * The section menu (bottom-left) and Back / Skip / Sound / Replay
+ * (bottom-right) are switched off for now. Delete this block to bring
+ * them back; nothing else was changed. */
+.jump,
+.hud-tools { display: none !important; }
