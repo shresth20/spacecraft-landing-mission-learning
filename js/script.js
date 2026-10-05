@@ -1158,7 +1158,10 @@
           n._clip = step.clip;
           if (n._url !== url) {
             n._url = url;
-            n.style.setProperty('--sw-img', 'url("' + url + '")');
+            /* absolute: a relative url() inside a custom property resolves
+               against the stylesheet that reads var(--sw-img) -- css/ --
+               not against this page */
+            n.style.setProperty('--sw-img', 'url("' + new URL(url, document.baseURI).href + '")');
           }
           /* A sprite that is held back until there is something in it (the
              welcome cut-out) is let through here and only here: the frame it
