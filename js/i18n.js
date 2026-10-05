@@ -33,7 +33,7 @@
  * A language may carry its own recordings, listed under "voiceOver" in the
  * JSON by the KEY of the line they say:
  *
- *     "voiceOver": { "hi": { "dir": "VO-HI/", "rev": "...",
+ *     "voiceOver": { "hi": { "dir": "assets/VO-HI/", "rev": "...",
  *                            "files": { "p01Hey": "112.wav", "p20Work.0": "263.wav" } } }
  *
  * An array item is "key.index". A line built from a template is said only by
@@ -60,8 +60,8 @@ var I18n = (function () {
 
   var PARAM     = 'lan';                          /* ?lan=hi */
   var PARAM_ALT = 'lang';                         /* ...and ?lang=hi */
-  var JSON_PATH = 'locales-quadrilaterals.json';
-  var JS_PATH   = 'locales-quadrilaterals.js';    /* generated fallback for file:// */
+  var JSON_PATH = 'locales/locales-quadrilaterals.json';
+  var JS_PATH   = 'locales/locales-quadrilaterals.js';   /* generated fallback for file:// */
   /* the file's own codes, and what the <html lang> attribute should say for
      them where the two differ (Odia is "or" to the browser) */
   var BCP47 = { od: 'or' };

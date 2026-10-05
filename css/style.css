@@ -4,8 +4,8 @@
  * which is every weight this sheet asks for (600, 700, 800). */
 @font-face {
   font-family: "Baloo 2";
-  src: url("assets/fonts/baloo_2/baloo2-variablefont_wght.ttf") format("truetype-variations"),
-       url("assets/fonts/baloo_2/baloo2-variablefont_wght.ttf") format("truetype");
+  src: url("../assets/fonts/baloo_2/baloo2-variablefont_wght.ttf") format("truetype-variations"),
+       url("../assets/fonts/baloo_2/baloo2-variablefont_wght.ttf") format("truetype");
   font-weight: 400 800;
   font-style: normal;
   font-display: swap;
@@ -300,7 +300,7 @@ body {
      it decodes, so the first frame is already the right temperature rather
      than white. Both are built from the same sky/ground tokens. */
   background:
-    url("assets/image/bg.png") center / cover no-repeat,
+    url("../assets/image/bg.png") center / cover no-repeat,
     linear-gradient(180deg,
       var(--sky-dark) 0%,
       var(--sky-mid) 34%,
@@ -338,7 +338,7 @@ body {
   /* same pairing as the body: artwork over a token gradient that carries the
      first frame and any decode failure */
   background:
-    url("assets/image/board.png") center / 100% 100% no-repeat,
+    url("../assets/image/board.png") center / 100% 100% no-repeat,
     radial-gradient(72% 58% at 50% 42%, var(--board-highlight) 0%, var(--board-bg) 70%);
   background-color: var(--board-bg);
   /* The pink halo the board sits in. Every layer is blurred: a spread with no
@@ -4196,7 +4196,7 @@ body {
 .welcome-art {
   position: absolute;
   inset: 0;
-  background: url("assets/image/welcome-page.png") center / cover no-repeat;
+  background: url("../assets/image/welcome-page.png") center / cover no-repeat;
 }
 
 /* darkens the foot of the landscape so the title, the bar and the button stay

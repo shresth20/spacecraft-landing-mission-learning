@@ -15,8 +15,8 @@ import json
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SRC = ROOT / "locales-quadrilaterals.json"
-OUT = ROOT / "locales-quadrilaterals.js"
+SRC = ROOT / "locales" / "locales-quadrilaterals.json"
+OUT = ROOT / "locales" / "locales-quadrilaterals.js"
 
 HEADER = """/* GENERATED FILE -- do not edit by hand.
  *

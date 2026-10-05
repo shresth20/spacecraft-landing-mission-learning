@@ -7,10 +7,10 @@
 <!-- The typeface is a single variable file every line of the board is set in,
      so it is fetched alongside the stylesheet rather than after it. -->
 <link rel="preload" href="assets/fonts/baloo_2/baloo2-variablefont_wght.ttf" as="font" type="font/ttf" crossorigin />
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="css/style.css" />
 <!-- Loaded after the stylesheet: it only re-states tokens and rules from it,
      and does nothing at all at 16:9. See the head of the file. -->
-<link rel="stylesheet" href="responsive.css" />
+<link rel="stylesheet" href="css/responsive.css" />
 </head>
 <body>
   <!-- ---------- arrowheads for the measuring lines ----------
@@ -1008,21 +1008,21 @@
        plugin it registers, then js/motion.js which holds every duration and
        easing in the game, then the game itself. All three are in the repo --
        nothing here reaches the network, at load or at any point after. -->
-  <script src="libs/gsap.min.js"></script>
-  <script src="libs/Flip.min.js"></script>
+  <script src="js/libs/gsap.min.js"></script>
+  <script src="js/libs/Flip.min.js"></script>
   <script src="js/motion.js"></script>
-  <script src="swiftee-sheets.js"></script>
+  <script src="js/swiftee-sheets.js"></script>
   <!-- The words come last. i18n.js reads ?lan=xx from the URL, loads the
-       locale (locales-quadrilaterals.json, or the generated
-       locales-quadrilaterals.js when a file:// page cannot fetch it), fills
+       locale (locales/locales-quadrilaterals.json, or the generated
+       locales/locales-quadrilaterals.js when a file:// page cannot fetch it), fills
        every data-i18n* attribute above, and only then loads the game -- so
        every line script.js builds is already in the chosen language. -->
-  <script src="i18n.js"></script>
+  <script src="js/i18n.js"></script>
   <script>
     I18n.load(function () {
       I18n.applyStatic(document);
       var s = document.createElement('script');
-      s.src = 'script.js';
+      s.src = 'js/script.js';
       document.body.appendChild(s);
     });
   </script>

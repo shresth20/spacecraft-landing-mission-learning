@@ -20,7 +20,7 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 ASSETS = "assets/swiftee-assets/"
 MANIFEST = ROOT / ASSETS / "atlas" / "swiftee.manifest.json"
-OUT = ROOT / "swiftee-data.js"
+OUT = ROOT / "js" / "swiftee-data.js"
 
 HEADER = """/* GENERATED FILE — do not edit by hand.
  *

@@ -69,7 +69,7 @@ window.GAME_LOCALES = {
   },
   "voiceOver": {
     "hi": {
-      "dir": "VO-HI/",
+      "dir": "assets/VO-HI/",
       "rev": "20261005",
       "files": {
         "pageTitle": "1.wav",

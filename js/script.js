@@ -1515,7 +1515,7 @@
      and a new value fetches every clip afresh. Bump it whenever a clip is
      replaced under a name it already had. */
   const VO_REV = '?v=20261001';
-  /* A language with recordings of its own (Hindi: VO-HI/, listed under
+  /* A language with recordings of its own (Hindi: assets/VO-HI/, listed under
      "voiceOver" in the locale file) is voiced from those, line for line:
      I18n.voice() names the clip for the words on screen, and a line it has
      none for types in silence rather than in English. Every other language
