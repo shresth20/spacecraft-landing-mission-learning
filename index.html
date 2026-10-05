@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Area of Quadrilaterals</title>
+<title data-i18n="pageTitle">Area of Quadrilaterals</title>
 <!-- The typeface is a single variable file every line of the board is set in,
      so it is fetched alongside the stylesheet rather than after it. -->
 <link rel="preload" href="assets/fonts/baloo_2/baloo2-variablefont_wght.ttf" as="font" type="font/ttf" crossorigin />
@@ -113,7 +113,7 @@
       <!-- Cell 1 -->
       <div class="cell">
         <div class="shape-stage">
-          <div class="shape" data-shape="rect" role="img" aria-label="A rectangle">
+          <div class="shape" data-shape="rect" role="img" aria-label="A rectangle" data-i18n-attr="aria-label:ariaRectangle">
             <!-- overflow is visible, so the dimension labels sit outside the
                  viewBox without changing the artwork's layout box -->
             <svg viewBox="-40 0 320 170" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
@@ -127,8 +127,8 @@
               </g>
               <!-- shown in round 2, after the first wrong drop -->
               <g class="labels">
-                <g class="wdim wdim-h"><line class="wdim-line" x1="4" y1="144" x2="236" y2="144" /><path class="wdim-head" d="M9.6 140.5 L4 144 L9.6 147.5 M230.4 140.5 L236 144 L230.4 147.5" /><text class="shape-label" x="120" y="160" font-size="13" text-anchor="middle">length</text></g>
-                <g class="wdim wdim-v"><line class="wdim-line" x1="252" y1="4" x2="252" y2="128" /><path class="wdim-head" d="M248.5 9.6 L252 4 L255.5 9.6 M248.5 122.4 L252 128 L255.5 122.4" /><text class="shape-label" x="268" y="66" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 268 66)">breadth</text></g>
+                <g class="wdim wdim-h"><line class="wdim-line" x1="4" y1="144" x2="236" y2="144" /><path class="wdim-head" d="M9.6 140.5 L4 144 L9.6 147.5 M230.4 140.5 L236 144 L230.4 147.5" /><text class="shape-label" x="120" y="160" font-size="13" text-anchor="middle" data-i18n="labelLength">length</text></g>
+                <g class="wdim wdim-v"><line class="wdim-line" x1="252" y1="4" x2="252" y2="128" /><path class="wdim-head" d="M248.5 9.6 L252 4 L255.5 9.6 M248.5 122.4 L252 128 L255.5 122.4" /><text class="shape-label" x="268" y="66" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 268 66)" data-i18n="labelBreadth">breadth</text></g>
               </g>
             </svg>
           </div>
@@ -136,15 +136,15 @@
         <!-- both rounds' slots exist from the first frame so the bay never
              changes height between levels -->
         <div class="dock">
-          <div class="slot" data-round="1" data-accept="rect" aria-label="Name of the first shape"></div>
-          <div class="slot" data-round="2" data-accept="rect" aria-label="Area of the first shape"></div>
+          <div class="slot" data-round="1" data-accept="rect" aria-label="Name of the first shape" data-i18n-attr="aria-label:ariaNameFirst"></div>
+          <div class="slot" data-round="2" data-accept="rect" aria-label="Area of the first shape" data-i18n-attr="aria-label:ariaAreaFirst"></div>
         </div>
       </div>
 
       <!-- Cell 2 -->
       <div class="cell">
         <div class="shape-stage">
-          <div class="shape" data-shape="square" role="img" aria-label="A square">
+          <div class="shape" data-shape="square" role="img" aria-label="A square" data-i18n-attr="aria-label:ariaSquare">
             <svg viewBox="-40 0 240 200" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
               <defs>
                 <clipPath id="wipeSquare"><rect class="wipe" x="0" y="0" width="160" height="160" /></clipPath>
@@ -155,22 +155,22 @@
                 <path class="shape-outline" d="M4 4 H156 V156 H4 Z" fill="none" stroke-width="5" />
               </g>
               <g class="labels">
-                <g class="wdim wdim-h"><line class="wdim-line" x1="4" y1="170" x2="156" y2="170" /><path class="wdim-head" d="M9.6 166.5 L4 170 L9.6 173.5 M150.4 166.5 L156 170 L150.4 173.5" /><text class="shape-label" x="80" y="186" font-size="13" text-anchor="middle">side</text></g>
-                <g class="wdim wdim-v"><line class="wdim-line" x1="172" y1="4" x2="172" y2="156" /><path class="wdim-head" d="M168.5 9.6 L172 4 L175.5 9.6 M168.5 150.4 L172 156 L175.5 150.4" /><text class="shape-label" x="188" y="80" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 188 80)">side</text></g>
+                <g class="wdim wdim-h"><line class="wdim-line" x1="4" y1="170" x2="156" y2="170" /><path class="wdim-head" d="M9.6 166.5 L4 170 L9.6 173.5 M150.4 166.5 L156 170 L150.4 173.5" /><text class="shape-label" x="80" y="186" font-size="13" text-anchor="middle" data-i18n="labelSide">side</text></g>
+                <g class="wdim wdim-v"><line class="wdim-line" x1="172" y1="4" x2="172" y2="156" /><path class="wdim-head" d="M168.5 9.6 L172 4 L175.5 9.6 M168.5 150.4 L172 156 L175.5 150.4" /><text class="shape-label" x="188" y="80" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 188 80)" data-i18n="labelSide">side</text></g>
               </g>
             </svg>
           </div>
         </div>
         <div class="dock">
-          <div class="slot" data-round="1" data-accept="square" aria-label="Name of the second shape"></div>
-          <div class="slot" data-round="2" data-accept="square" aria-label="Area of the second shape"></div>
+          <div class="slot" data-round="1" data-accept="square" aria-label="Name of the second shape" data-i18n-attr="aria-label:ariaNameSecond"></div>
+          <div class="slot" data-round="2" data-accept="square" aria-label="Area of the second shape" data-i18n-attr="aria-label:ariaAreaSecond"></div>
         </div>
       </div>
 
       <!-- Cell 3 -->
       <div class="cell">
         <div class="shape-stage">
-          <div class="shape" data-shape="triangle" role="img" aria-label="A triangle">
+          <div class="shape" data-shape="triangle" role="img" aria-label="A triangle" data-i18n-attr="aria-label:ariaTriangle">
             <svg viewBox="-45 0 290 210" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
               <defs>
                 <clipPath id="wipeTri"><rect class="wipe" x="0" y="0" width="200" height="172" /></clipPath>
@@ -182,15 +182,15 @@
               </g>
               <g class="labels">
                 <line class="height-line" x1="100" y1="10" x2="100" y2="166" />
-                <g class="wdim wdim-h"><line class="wdim-line" x1="5" y1="182" x2="195" y2="182" /><path class="wdim-head" d="M10.6 178.5 L5 182 L10.6 185.5 M189.4 178.5 L195 182 L189.4 185.5" /><text class="shape-label" x="100" y="198" font-size="13" text-anchor="middle">base</text></g>
-                <g class="wdim wdim-v"><line class="wdim-line" x1="-14" y1="6" x2="-14" y2="166" /><path class="wdim-head" d="M-17.5 11.6 L-14 6 L-10.5 11.6 M-17.5 160.4 L-14 166 L-10.5 160.4" /><text class="shape-label" x="-30" y="86" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 -30 86)">height</text></g>
+                <g class="wdim wdim-h"><line class="wdim-line" x1="5" y1="182" x2="195" y2="182" /><path class="wdim-head" d="M10.6 178.5 L5 182 L10.6 185.5 M189.4 178.5 L195 182 L189.4 185.5" /><text class="shape-label" x="100" y="198" font-size="13" text-anchor="middle" data-i18n="labelBase">base</text></g>
+                <g class="wdim wdim-v"><line class="wdim-line" x1="-14" y1="6" x2="-14" y2="166" /><path class="wdim-head" d="M-17.5 11.6 L-14 6 L-10.5 11.6 M-17.5 160.4 L-14 166 L-10.5 160.4" /><text class="shape-label" x="-30" y="86" font-size="13" text-anchor="middle" dominant-baseline="middle" transform="rotate(-90 -30 86)" data-i18n="labelHeight">height</text></g>
               </g>
             </svg>
           </div>
         </div>
         <div class="dock">
-          <div class="slot" data-round="1" data-accept="triangle" aria-label="Name of the third shape"></div>
-          <div class="slot" data-round="2" data-accept="triangle" aria-label="Area of the third shape"></div>
+          <div class="slot" data-round="1" data-accept="triangle" aria-label="Name of the third shape" data-i18n-attr="aria-label:ariaNameThird"></div>
+          <div class="slot" data-round="2" data-accept="triangle" aria-label="Area of the third shape" data-i18n-attr="aria-label:ariaAreaThird"></div>
         </div>
       </div>
     </section>
@@ -207,7 +207,7 @@
 
         <!-- acute (isosceles): the height stands inside it -->
         <div class="tri-cell">
-          <div class="tri" data-tri="acute" role="img" aria-label="An acute triangle">
+          <div class="tri" data-tri="acute" role="img" aria-label="An acute triangle" data-i18n-attr="aria-label:ariaAcuteTriangle">
             <svg viewBox="0 13 240 197" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
               <defs>
                 <clipPath id="wipeTriA"><rect class="wipe" x="0" y="0" width="240" height="210" /></clipPath>
@@ -220,9 +220,9 @@
                 <line class="dim dim-base"   x1="22"  y1="186" x2="218" y2="186" />
                 <line class="dim dim-height" x1="120" y1="16"  x2="120" y2="176" />
                 <path class="dim-mark" d="M132 176 V164 H120" />
-                <text class="dim-label lbl-base" x="120" y="203" font-size="13" text-anchor="middle">Base</text>
+                <text class="dim-label lbl-base" x="120" y="203" font-size="13" text-anchor="middle" data-i18n="labelBaseCap">Base</text>
                 <text class="dim-label lbl-height" x="133" y="98" font-size="13" text-anchor="middle"
-                      dominant-baseline="middle" transform="rotate(-90 133 98)">Height</text>
+                      dominant-baseline="middle" transform="rotate(-90 133 98)" data-i18n="labelHeightCap">Height</text>
               </g>
             </svg>
           </div>
@@ -230,7 +230,7 @@
 
         <!-- right-angled (scalene): the height is one of its own sides -->
         <div class="tri-cell">
-          <div class="tri" data-tri="right" role="img" aria-label="A right-angled scalene triangle">
+          <div class="tri" data-tri="right" role="img" aria-label="A right-angled scalene triangle" data-i18n-attr="aria-label:ariaRightTriangle">
             <svg viewBox="0 13 240 197" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
               <defs>
                 <clipPath id="wipeTriB"><rect class="wipe" x="0" y="0" width="240" height="210" /></clipPath>
@@ -243,9 +243,9 @@
                 <line class="dim dim-base"   x1="30" y1="186" x2="214" y2="186" />
                 <line class="dim dim-height" x1="20" y1="26"  x2="20"  y2="176" />
                 <path class="dim-mark" d="M42 176 V164 H30" />
-                <text class="dim-label lbl-base" x="122" y="203" font-size="13" text-anchor="middle">Base</text>
+                <text class="dim-label lbl-base" x="122" y="203" font-size="13" text-anchor="middle" data-i18n="labelBaseCap">Base</text>
                 <text class="dim-label lbl-height" x="9" y="101" font-size="13" text-anchor="middle"
-                      dominant-baseline="middle" transform="rotate(-90 9 101)">Height</text>
+                      dominant-baseline="middle" transform="rotate(-90 9 101)" data-i18n="labelHeightCap">Height</text>
               </g>
             </svg>
           </div>
@@ -253,7 +253,7 @@
 
         <!-- obtuse: the height falls outside it, onto the base extended -->
         <div class="tri-cell">
-          <div class="tri" data-tri="obtuse" role="img" aria-label="An obtuse triangle">
+          <div class="tri" data-tri="obtuse" role="img" aria-label="An obtuse triangle" data-i18n-attr="aria-label:ariaObtuseTriangle">
             <svg viewBox="0 13 240 197" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
               <defs>
                 <clipPath id="wipeTriC"><rect class="wipe" x="0" y="0" width="240" height="210" /></clipPath>
@@ -268,9 +268,9 @@
                 <line class="dim dim-ext"    x1="118" y1="176" x2="40"  y2="176" />
                 <line class="dim dim-height" x1="40"  y1="22"  x2="40"  y2="176" />
                 <path class="dim-mark" d="M52 176 V164 H40" />
-                <text class="dim-label lbl-base" x="172" y="203" font-size="13" text-anchor="middle">Base</text>
+                <text class="dim-label lbl-base" x="172" y="203" font-size="13" text-anchor="middle" data-i18n="labelBaseCap">Base</text>
                 <text class="dim-label lbl-height" x="29" y="100" font-size="13" text-anchor="middle"
-                      dominant-baseline="middle" transform="rotate(-90 29 100)">Height</text>
+                      dominant-baseline="middle" transform="rotate(-90 29 100)" data-i18n="labelHeightCap">Height</text>
               </g>
             </svg>
           </div>
@@ -299,7 +299,7 @@
          working. -->
     <section class="quad" id="quad" aria-hidden="true">
       <div class="quad-stage">
-        <div class="quad-shape" id="quadShape" role="img" aria-label="A quadrilateral">
+        <div class="quad-shape" id="quadShape" role="img" aria-label="A quadrilateral" data-i18n-attr="aria-label:ariaQuadrilateral">
           <svg class="quad-svg" id="quadSvg" viewBox="0 0 333 272" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
             <defs>
               <clipPath id="wipeQuad"><rect class="wipe" x="0" y="0" width="333" height="272" /></clipPath>
@@ -351,9 +351,9 @@
           </div>
           <!-- three names, tap the right one -->
           <div class="quiz-tray" id="quizTray">
-            <button class="chip" type="button" data-answer="triangle"><span>Triangle</span></button>
-            <button class="chip" type="button" data-answer="quadrilateral"><span>Quadrilateral</span></button>
-            <button class="chip" type="button" data-answer="pentagon"><span>Pentagon</span></button>
+            <button class="chip" type="button" data-answer="triangle"><span data-i18n="shapeTriangle">Triangle</span></button>
+            <button class="chip" type="button" data-answer="quadrilateral"><span data-i18n="shapeQuadrilateral">Quadrilateral</span></button>
+            <button class="chip" type="button" data-answer="pentagon"><span data-i18n="shapePentagon">Pentagon</span></button>
           </div>
         </div>
 
@@ -386,7 +386,7 @@
          of facts Swiftee hops down to state. -->
     <section class="para" id="para" aria-hidden="true">
       <div class="para-stage">
-        <div class="para-shape" id="paraShape" role="img" aria-label="A parallelogram">
+        <div class="para-shape" id="paraShape" role="img" aria-label="A parallelogram" data-i18n-attr="aria-label:ariaParallelogram">
           <!-- room above and below the shape for the base arrows and their
                labels, so switching them on moves nothing -->
           <svg class="para-svg" id="paraSvg" viewBox="-44 -46 452 300" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
@@ -432,16 +432,16 @@
              of this scene is said. -->
         <div class="para-ask" id="paraAsk">
           <div class="para-tray" id="paraTray">
-            <button class="chip" type="button" data-answer="parallelogram"><span>Parallelogram</span></button>
-            <button class="chip" type="button" data-answer="trapezium"><span>Trapezium</span></button>
+            <button class="chip" type="button" data-answer="parallelogram"><span data-i18n="shapeParallelogram">Parallelogram</span></button>
+            <button class="chip" type="button" data-answer="trapezium"><span data-i18n="shapeTrapezium">Trapezium</span></button>
           </div>
         </div>
 
         <!-- the area quiz: three formulas, tap the right one -->
         <div class="para-tray area-tray" id="areaTray">
-          <button class="chip formula" type="button" data-answer="half"><span><span class="frac"><span class="num">1</span><span class="den">2</span></span> &times; base &times; height</span></button>
-          <button class="chip formula" type="button" data-answer="bh"><span>base &times; height</span></button>
-          <button class="chip formula" type="button" data-answer="double"><span>2 &times; base &times; height</span></button>
+          <button class="chip formula" type="button" data-answer="half"><span data-i18n-html="formulaHalfBaseHeight"><span class="frac"><span class="num">1</span><span class="den">2</span></span> &times; base &times; height</span></button>
+          <button class="chip formula" type="button" data-answer="bh"><span data-i18n-html="formulaBaseHeight">base &times; height</span></button>
+          <button class="chip formula" type="button" data-answer="double"><span data-i18n-html="formulaDoubleBaseHeight">2 &times; base &times; height</span></button>
         </div>
 
         <!-- the working, beside the shape once it has moved left; script.js
@@ -493,7 +493,7 @@
         <div class="rhom-practice" id="rhomPractice" aria-live="polite">
           <div class="fig-row" id="figRow"></div>
         </div>
-        <div class="rhom-shape" id="rhomShape" role="img" aria-label="A parallelogram that becomes a rhombus">
+        <div class="rhom-shape" id="rhomShape" role="img" aria-label="A parallelogram that becomes a rhombus" data-i18n-attr="aria-label:ariaRhombus">
           <svg class="rhom-svg" id="rhomSvg" viewBox="0 32 440 250" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
             <defs>
               <clipPath id="wipeRhom"><rect class="wipe" x="0" y="14" width="440" height="268" /></clipPath>
@@ -544,17 +544,17 @@
              to drag into them -->
         <div class="rhom-quiz" id="rhomQuiz">
           <div class="area-line len-formula" id="rhomFormula">
-            <span class="seg">Area = <span class="frac"><span class="num">1</span><span class="den">2</span></span> ×</span>
+            <span class="seg" data-i18n-fmt="{areaWord} = ½ ×">Area = <span class="frac"><span class="num">1</span><span class="den">2</span></span> ×</span>
             <!-- either slot takes either diagonal: d₁ × d₂ is d₂ × d₁ -->
-            <span class="fslot" data-slot="1" role="button" tabindex="-1" aria-label="First diagonal"></span>
+            <span class="fslot" data-slot="1" role="button" tabindex="-1" aria-label="First diagonal" data-i18n-attr="aria-label:ariaFirstDiagonal"></span>
             <span class="seg">×</span>
-            <span class="fslot" data-slot="2" role="button" tabindex="-1" aria-label="Second diagonal"></span>
+            <span class="fslot" data-slot="2" role="button" tabindex="-1" aria-label="Second diagonal" data-i18n-attr="aria-label:ariaSecondDiagonal"></span>
           </div>
           <div class="para-tray len-tray" id="rhomTray3">
-            <button class="chip" type="button" data-len="16"><span>16 cm</span></button>
-            <button class="chip" type="button" data-len="12"><span>12 cm</span></button>
-            <button class="chip" type="button" data-len="28"><span>28 cm</span></button>
-            <button class="chip" type="button" data-len="8"><span>8 cm</span></button>
+            <button class="chip" type="button" data-len="16"><span data-i18n-fmt="16 {unitCm}">16 cm</span></button>
+            <button class="chip" type="button" data-len="12"><span data-i18n-fmt="12 {unitCm}">12 cm</span></button>
+            <button class="chip" type="button" data-len="28"><span data-i18n-fmt="28 {unitCm}">28 cm</span></button>
+            <button class="chip" type="button" data-len="8"><span data-i18n-fmt="8 {unitCm}">8 cm</span></button>
           </div>
         </div>
 
@@ -605,7 +605,7 @@
                reminder of what to do, said in words rather than in d1 and
                d2, and never up while the question is still open -->
           <div class="area-line rc-formula" id="rcFormula">
-            <span class="seg">Area of rhombus = <span class="frac"><span class="num">1</span><span class="den">2</span></span> &#215; product of diagonals</span>
+            <span class="seg" data-i18n-html="rhomFormulaWords">Area of rhombus = <span class="frac"><span class="num">1</span><span class="den">2</span></span> &#215; product of diagonals</span>
           </div>
           <div class="para-tray rc-tray" id="rcTray"></div>
           <p class="tn-hint rc-hint" id="rcHint" aria-live="polite"></p>
@@ -626,7 +626,7 @@
          into. -->
     <section class="trap" id="trap" aria-hidden="true">
       <div class="trap-stage">
-        <div class="trap-shape" id="trapShape" role="img" aria-label="A trapezium">
+        <div class="trap-shape" id="trapShape" role="img" aria-label="A trapezium" data-i18n-attr="aria-label:ariaTrapezium">
           <svg class="trap-svg" id="trapSvg" viewBox="0 0 420 260" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
             <defs>
               <clipPath id="wipeTrap"><rect class="wipe" x="0" y="0" width="420" height="260" /></clipPath>
@@ -640,7 +640,7 @@
         </div>
         <!-- the cards of level 2, built by script.js -->
         <div class="trap-cards" id="trapCards">
-          <div class="card-grid" id="cardGrid" role="group" aria-label="Shapes to choose from"></div>
+          <div class="card-grid" id="cardGrid" role="group" aria-label="Shapes to choose from" data-i18n-attr="aria-label:ariaCards"></div>
         </div>
       </div>
 
@@ -666,17 +666,17 @@
           </div>
           <!-- three names, tap the right one -->
           <div class="quiz-tray" id="trapNames">
-            <button class="chip" type="button" data-answer="kite"><span>Kite</span></button>
-            <button class="chip" type="button" data-answer="parallelogram"><span>Parallelogram</span></button>
-            <button class="chip" type="button" data-answer="trapezium"><span>Trapezium</span></button>
+            <button class="chip" type="button" data-answer="kite"><span data-i18n="shapeKite">Kite</span></button>
+            <button class="chip" type="button" data-answer="parallelogram"><span data-i18n="shapeParallelogram">Parallelogram</span></button>
+            <button class="chip" type="button" data-answer="trapezium"><span data-i18n="shapeTrapezium">Trapezium</span></button>
           </div>
         </div>
 
         <!-- the three names, dragged onto the three trapeziums -->
         <div class="trap-tray" id="trapTray">
-          <button class="chip" type="button" data-kind="iso"><span>Isosceles Trapezium</span></button>
-          <button class="chip" type="button" data-kind="right"><span>Right-angled Trapezium</span></button>
-          <button class="chip" type="button" data-kind="scalene"><span>Scalene Trapezium</span></button>
+          <button class="chip" type="button" data-kind="iso"><span data-i18n="shapeIsoTrapezium">Isosceles Trapezium</span></button>
+          <button class="chip" type="button" data-kind="right"><span data-i18n="shapeRightTrapezium">Right-angled Trapezium</span></button>
+          <button class="chip" type="button" data-kind="scalene"><span data-i18n="shapeScaleneTrapezium">Scalene Trapezium</span></button>
         </div>
       </div>
     </section>
@@ -698,7 +698,7 @@
     <section class="rtrap" id="rtrap" aria-hidden="true">
       <div class="rtrap-stage">
         <div class="rtrap-shape" id="rtrapShape" role="img"
-             aria-label="A trapezium, and a copy of it turned around to make a rectangle or a parallelogram with it">
+             aria-label="A trapezium, and a copy of it turned around to make a rectangle or a parallelogram with it" data-i18n-attr="aria-label:ariaTrapeziumCopy">
           <svg class="rtrap-svg" id="rtrapSvg" viewBox="-80 -60 680 280" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
             <defs>
               <clipPath id="wipeRtrap"><rect class="wipe" x="-80" y="-60" width="680" height="280" /></clipPath>
@@ -750,17 +750,17 @@
              and the banner Swiftee hops down to for the comparison -->
         <div class="rhom-quiz rtrap-quiz" id="rtrapQuiz">
           <div class="area-line len-formula" id="rtrapFormula">
-            <span class="seg">A = <span class="frac"><span class="num">1</span><span class="den">2</span></span> × (</span>
-            <span class="fslot" data-accept="a" role="button" tabindex="-1" aria-label="First parallel side"><i class="hint">a</i></span>
+            <span class="seg" data-i18n-fmt="{areaAbbrev} = ½ × (">A = <span class="frac"><span class="num">1</span><span class="den">2</span></span> × (</span>
+            <span class="fslot" data-accept="a" role="button" tabindex="-1" aria-label="First parallel side" data-i18n-attr="aria-label:ariaFirstParallel"><i class="hint">a</i></span>
             <span class="seg">+</span>
-            <span class="fslot" data-accept="b" role="button" tabindex="-1" aria-label="Second parallel side"><i class="hint">b</i></span>
+            <span class="fslot" data-accept="b" role="button" tabindex="-1" aria-label="Second parallel side" data-i18n-attr="aria-label:ariaSecondParallel"><i class="hint">b</i></span>
             <span class="seg">) ×</span>
-            <span class="fslot" data-accept="h" role="button" tabindex="-1" aria-label="Height"><i class="hint">h</i></span>
+            <span class="fslot" data-accept="h" role="button" tabindex="-1" aria-label="Height" data-i18n-attr="aria-label:ariaHeight"><i class="hint">h</i></span>
           </div>
           <div class="para-tray len-tray" id="rtrapTray">
-            <button class="chip" type="button" data-len="8"><span>8 cm</span></button>
-            <button class="chip" type="button" data-len="14"><span>14 cm</span></button>
-            <button class="chip" type="button" data-len="6"><span>6 cm</span></button>
+            <button class="chip" type="button" data-len="8"><span data-i18n-fmt="8 {unitCm}">8 cm</span></button>
+            <button class="chip" type="button" data-len="14"><span data-i18n-fmt="14 {unitCm}">14 cm</span></button>
+            <button class="chip" type="button" data-len="6"><span data-i18n-fmt="6 {unitCm}">6 cm</span></button>
           </div>
         </div>
         <div class="area-lines rtrap-qs" id="rtrapQs" aria-live="polite"></div>
@@ -820,21 +820,21 @@
          laid over round 1's, so the band is the same height all level long. -->
     <div class="tray-area" id="trayArea">
       <div class="tray" id="tray" data-round="1">
-        <button class="chip" type="button" data-round="1" data-word="rect"><span>Rectangle</span></button>
-        <button class="chip" type="button" data-round="1" data-word="triangle"><span>Triangle</span></button>
-        <button class="chip" type="button" data-round="1" data-word="square"><span>Square</span></button>
+        <button class="chip" type="button" data-round="1" data-word="rect"><span data-i18n="shapeRectangle">Rectangle</span></button>
+        <button class="chip" type="button" data-round="1" data-word="triangle"><span data-i18n="shapeTriangle">Triangle</span></button>
+        <button class="chip" type="button" data-round="1" data-word="square"><span data-i18n="shapeSquare">Square</span></button>
       </div>
       <div class="tray" id="tray2" data-round="2">
-        <button class="chip formula" type="button" data-round="2" data-word="rect"><span>Length &times; Breadth</span></button>
-        <button class="chip formula" type="button" data-round="2" data-word="triangle"><span><span class="frac"><span class="num">1</span><span class="den">2</span></span> &times; Base &times; Height</span></button>
-        <button class="chip formula" type="button" data-round="2" data-word="square"><span>(Side)<sup>2</sup></span></button>
+        <button class="chip formula" type="button" data-round="2" data-word="rect"><span data-i18n-html="formulaRectangle">Length &times; Breadth</span></button>
+        <button class="chip formula" type="button" data-round="2" data-word="triangle"><span data-i18n-html="formulaTriangle"><span class="frac"><span class="num">1</span><span class="den">2</span></span> &times; Base &times; Height</span></button>
+        <button class="chip formula" type="button" data-round="2" data-word="square"><span data-i18n-html="formulaSquare">(Side)<sup>2</sup></span></button>
       </div>
     </div>
 
     <!-- Next: sits in the board's bottom right corner once a section is
          over, clear of the (by then empty) card decks. -->
     <button class="next-btn" id="nextBtn" type="button" hidden>
-      <span class="sr-only">Next</span>
+      <span class="sr-only" data-i18n="nextButton">Next</span>
       <svg class="next-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#ico-next" /></svg>
     </button>
 
@@ -865,7 +865,7 @@
        sections): fixed to the viewport, centred low, over the intro layer -->
   <div class="free-next" id="freeNext">
     <button class="next-btn" id="nextBtnFree" type="button" hidden>
-      <span class="sr-only">Next</span>
+      <span class="sr-only" data-i18n="nextButton">Next</span>
       <svg class="next-ico" viewBox="0 0 100 100" aria-hidden="true"><use href="#ico-next" /></svg>
     </button>
   </div>
@@ -909,30 +909,33 @@
   <div class="jump" id="jump" hidden>
     <button class="jump-btn" id="jumpBtn" type="button"
             aria-haspopup="listbox" aria-expanded="false"
-            aria-label="Jump to a section" title="Jump to a section">
+            aria-label="Jump to a section" title="Jump to a section"
+            data-i18n-attr="aria-label:jumpTitle;title:jumpTitle">
       <svg class="jump-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M4 7h16M4 12h16M4 17h10" />
       </svg>
-      <span class="jump-label" id="jumpLabel">Section</span>
+      <span class="jump-label" id="jumpLabel" data-i18n="jumpLabel">Section</span>
       <svg class="jump-caret" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M6 15l6-6 6 6" />
       </svg>
     </button>
-    <div class="jump-menu" id="jumpMenu" role="listbox" aria-label="Sections"></div>
+    <div class="jump-menu" id="jumpMenu" role="listbox" aria-label="Sections" data-i18n-attr="aria-label:jumpMenuAria"></div>
   </div>
 
   <div class="hud-tools">
     <button class="tool-btn" id="backBtn" type="button" hidden
-            aria-label="Back to the previous section" title="Back to the previous section">
+            aria-label="Back to the previous section" title="Back to the previous section"
+            data-i18n-attr="aria-label:backTitle;title:backTitle">
       <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M18 5l-7 7 7 7" />
         <path d="M10 5l-7 7 7 7" />
       </svg>
-      <span>Back</span>
+      <span data-i18n="backButton">Back</span>
     </button>
     <button class="tool-btn" id="skipBtn" type="button" hidden
-            aria-label="Skip this section" title="Skip this section">
-      <span>Skip</span>
+            aria-label="Skip this section" title="Skip this section"
+            data-i18n-attr="aria-label:skipTitle;title:skipTitle">
+      <span data-i18n="skipButton">Skip</span>
       <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M6 5l7 7-7 7" />
         <path d="M14 5l7 7-7 7" />
@@ -944,7 +947,8 @@
          icons are both in the markup and the class decides which shows, so
          toggling it never touches the DOM. -->
     <button class="tool-btn" id="muteBtn" type="button" hidden
-            aria-label="Sound off" title="Sound off" aria-pressed="false">
+            aria-label="Sound off" title="Sound off" aria-pressed="false"
+            data-i18n-attr="aria-label:soundOff;title:soundOff">
       <svg class="tool-icon tool-icon-on" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M4 9v6h4l5 4V5L8 9H4z" />
         <path d="M16.5 8.5a5 5 0 0 1 0 7" />
@@ -955,21 +959,22 @@
         <path d="M17 9.5l4 5" />
         <path d="M21 9.5l-4 5" />
       </svg>
-      <span>Sound</span>
+      <span data-i18n="soundButton">Sound</span>
     </button>
     <button class="tool-btn" id="resetBtn" type="button" hidden
-            aria-label="Replay this section" title="Replay this section">
+            aria-label="Replay this section" title="Replay this section"
+            data-i18n-attr="aria-label:replayTitle;title:replayTitle">
       <svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
         <polyline points="2 4 2 10 8 10" />
         <path d="M4.6 15a8.5 8.5 0 1 0 2-8.8L2 10" />
       </svg>
-      <span>Replay</span>
+      <span data-i18n="replayButton">Replay</span>
     </button>
   </div>
 
   <!-- only shown if the browser refuses to auto-play the briefing audio -->
   <div class="tap-start" id="tapStart" hidden>
-    <button class="tap-start-btn" type="button">Tap to begin</button>
+    <button class="tap-start-btn" type="button" data-i18n="tapToBegin">Tap to begin</button>
   </div>
 
   <!-- ---------- welcome screen ----------
@@ -984,16 +989,16 @@
     <div class="welcome-body">
       <div class="welcome-slot">
         <div class="loader" id="loader">
-          <p class="loader-label">Preparing mission<span class="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
+          <p class="loader-label"><span data-i18n="loaderLabel">Preparing mission</span><span class="dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
           <div class="loader-track" id="loadTrack" role="progressbar"
-               aria-label="Loading mission" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+               aria-label="Loading mission" data-i18n-attr="aria-label:loaderAria" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
             <div class="loader-fill" id="loadFill"></div>
           </div>
           <p class="loader-pct" id="loadPct">0%</p>
         </div>
 
         <button class="start-btn" id="startBtn" type="button" hidden>
-          <span>Start</span>
+          <span data-i18n="startButton">Start</span>
         </button>
       </div>
     </div>
@@ -1007,6 +1012,19 @@
   <script src="libs/Flip.min.js"></script>
   <script src="js/motion.js"></script>
   <script src="swiftee-sheets.js"></script>
-  <script src="script.js"></script>
+  <!-- The words come last. i18n.js reads ?lan=xx from the URL, loads the
+       locale (locales-quadrilaterals.json, or the generated
+       locales-quadrilaterals.js when a file:// page cannot fetch it), fills
+       every data-i18n* attribute above, and only then loads the game -- so
+       every line script.js builds is already in the chosen language. -->
+  <script src="i18n.js"></script>
+  <script>
+    I18n.load(function () {
+      I18n.applyStatic(document);
+      var s = document.createElement('script');
+      s.src = 'script.js';
+      document.body.appendChild(s);
+    });
+  </script>
 </body>
 </html>

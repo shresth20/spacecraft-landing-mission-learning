@@ -215,6 +215,53 @@
 (function () {
   'use strict';
 
+  /* ---------- the language ----------
+   * Every word the learner reads comes from locales-quadrilaterals.json
+   * through I18n (i18n.js), chosen by ?lan=xx on the URL. T() is the one
+   * lookup and the keys are the file's; index.html loads this script only
+   * once the locale is in, so T() is good from the first line here. The
+   * voice-over stays keyed by the ENGLISH line (VO_FILE): I18n.source()
+   * takes a translated line back to it, see voKey. */
+  const T = (key, repl) => I18n.t(key, repl);
+  /* a measurement with its unit, in the language's own unit word */
+  const CM   = n => n + ' ' + T('unitCm');
+  const SQCM = n => n + ' ' + T('unitSqCm');
+  /* A line with holes -- "Area of {name}" -- as the segments the working is
+     typed from: the words round the hole follow the language's word order
+     (Hindi puts the name first), and the filling keeps its highlight class.
+     `nb` sets the words' own spaces as no-break spaces, so a long line
+     wraps at an operator rather than inside "Area of". */
+  function segsOf(tpl, fills, nb) {
+    const sp = s => nb ? s.replace(/ (?=\S)/g, '\u00a0') : s;
+    const segs = [];
+    String(tpl).split(/(\{\w+\})/).forEach(part => {
+      if (!part) return;
+      const m = /^\{(\w+)\}$/.exec(part);
+      if (m && fills && fills[m[1]] != null) {
+        const f = fills[m[1]];
+        segs.push(typeof f === 'string' ? { t: f } : Object.assign({}, f));
+      } else {
+        segs.push({ t: sp(part) });
+      }
+    });
+    return segs;
+  }
+  /* the segments of a keyed line; the whole line is looked up once as well,
+     so the voice-over knows the sentence the segments make */
+  function TS(key, fills, nb) {
+    const flat = {};
+    Object.keys(fills || {}).forEach(k => { flat[k] = typeof fills[k] === 'string' ? fills[k] : fills[k].t; });
+    T(key, flat);
+    return segsOf(T(key), fills, nb);
+  }
+  /* "Area of <name>", the name carrying its highlight class; and the same
+     after an "=" or a "+", for the sum lines -- set in no-break spaces
+     where the line asks for them (`nb`), so the long sum wraps before an
+     operator rather than leaving one dangling */
+  const AREA_OF      = (name, w, nb) => TS('areaOf', { name: w ? { t: name, w: w } : name }, nb);
+  const EQ_AREA_OF   = (name, w, nb) => [{ t: nb ? ' =\u00a0' : ' = ' }].concat(AREA_OF(name, w, nb));
+  const PLUS_AREA_OF = (name, w, nb) => [{ t: nb ? ' +\u00a0' : ' + ' }].concat(AREA_OF(name, w, nb));
+
   /* Every beat of the game is paced through here, which is what makes Skip
      possible: while a skip is running each wait collapses to a single turn of
      the event loop, so a scene plays its whole choreography out in a handful
@@ -590,11 +637,11 @@
   let dismissing = null;
   let headKeepUntil = 0;   /* the heading's row stays open until then */
 
-  const CHUNK_ABBR = /(?:^|[\s(])(?:sq|e\.g|i\.e|etc|vs|approx)\.$/i;
+  const CHUNK_ABBR = /(?:^|[\s(])(?:sq|e\.g|i\.e|etc|vs|approx|चौ|ચો|సెం\.మీ|చ\.సెం\.మీ|ସେ\.ମି)\.$/i;
   const CHUNK_READ_MS = 700;   /* the beat on a piece when there is no voice */
   function chunkCuts(text) {
     const cuts = [];
-    const re = /[,!.?]+['’"”)]*\s+(?=\S)/g;
+    const re = /[,!.?।]+['’"”)]*\s+(?=\S)/g;
     let m;
     while ((m = re.exec(text)) !== null) {
       const mark = text.slice(0, m.index + 1);
@@ -914,20 +961,20 @@
   const ROUNDS = {
     /* withLine: the ghost drag plays WHILE the line is said, picked up on
        "Drag" and set down on "shape", rather than after it */
-    1: { text: 'Drag each name to the matching shape.', withLine: true },
+    1: { text: T('p02DragNames'), withLine: true },
     /* lineFirst: Swiftee says the line to an empty tray, and the formula
        slots and chips come in after it, before the drag is shown */
-    2: { text: 'Great! Now let’s recall their area formulas.', lineFirst: true }
+    2: { text: T('p02Formulas'), lineFirst: true }
   };
   const LAST_ROUND = 2;
 
   /* said once the three shapes have drawn, before round 1 opens */
-  const SHAPES_READY = 'Here are a few common shapes.';
+  const SHAPES_READY = T('p02Shapes');
 
   /* section 2: Swiftee's two lines in the triangle lesson */
   const LESSON = {
-    types: 'Triangles can look different. But their area depends on the base and height.',
-    dims:  'Let’s observe their base and height.'
+    types: T('p03Differ'),
+    dims:  T('p03Observe')
   };
 
   /* The heading's ghost holds the longest line of the level from the first
@@ -1468,12 +1515,19 @@
      and a new value fetches every clip afresh. Bump it whenever a clip is
      replaced under a name it already had. */
   const VO_REV = '?v=20261001';
+  /* A language with recordings of its own (Hindi: VO-HI/, listed under
+     "voiceOver" in the locale file) is voiced from those, line for line:
+     I18n.voice() names the clip for the words on screen, and a line it has
+     none for types in silence rather than in English. Every other language
+     keeps the English clips below. */
+  const VO_PACK = I18n.hasVoice();
 
   /* The line as it is written on screen, lower-cased with its typographic
      quotes flattened -- so the map can be read against the source, and a
      line that only differs by a curly apostrophe still finds its clip. */
   function voKey(text) {
-    return String(text)
+    /* a translated line is looked up by its English source (i18n.js) */
+    return String(I18n.source(text))
       .replace(/ /g, ' ')
       .replace(/[‘’]/g, '\'')
       .replace(/[“”]/g, '"')
@@ -1963,6 +2017,7 @@
   const voMissed = Object.create(null);
   /* the clip a line has, if it has one -- exact words first, then loose */
   function voHas(text) {
+    if (VO_PACK) return I18n.voice(text);
     const key = voKey(text);
     return VO_FILE[key] || VO_LOOSE[voLoose(key)] || null;
   }
@@ -2002,11 +2057,13 @@
     const key = voKey(text);
     const stem = voStem(text);
     if (!stem) return null;
-    let a = voBank[key];
+    /* a language's own clip is named by its whole path (I18n.voice) */
+    const bankKey = VO_PACK ? stem : key;
+    let a = voBank[bankKey];
     if (!a) {
-      a = new Audio(VO_DIR + stem + '.mp3' + VO_REV);
+      a = new Audio(VO_PACK ? stem : VO_DIR + stem + '.mp3' + VO_REV);
       a.preload = 'auto';
-      voBank[key] = a;
+      voBank[bankKey] = a;
     }
     return a;
   }
@@ -2117,10 +2174,8 @@
   /* The clips the mission opens with: the greeting, the shapes and the two
      warm-up briefings. These four the loading bar waits for, so the first
      line is never typed against a clip that has not arrived. */
-  const VO_OPENING = [
-    'Hey there!', 'Let’s start with a quick warm-up!',
-    'Here are a few common shapes.', 'Drag each name to the matching shape.'
-  ];
+  /* in the language on screen, as every lookup is (voKey, I18n.voice) */
+  const VO_OPENING = [T('p01Hey'), T('p01WarmUp'), T('p02Shapes'), T('p02DragNames')];
 
   /* The rest are fetched behind the mission once it is running -- a few at a
      time, so a hundred requests never queue in front of the one clip the
@@ -2128,8 +2183,11 @@
      its line is typed is not a problem: durationOf() reports nothing, and
      the line types at its own pace instead. */
   function warmVoices() {
-    const rest = Object.keys(VO_FILE)
-      .filter(k => VO_OPENING.every(t => voKey(t) !== k));
+    /* a language's own clips: the lines that are said (feedback and the
+       pages' lines), not the buttons and labels that were recorded too */
+    const rest = VO_PACK
+      ? I18n.voiceTexts(/^(fb|p\d)/).filter(t => VO_OPENING.indexOf(t) < 0)
+      : Object.keys(VO_FILE).filter(k => VO_OPENING.every(t => voKey(t) !== k));
     let at = 0;
     (function next() {
       if (at >= rest.length) return;
@@ -2239,40 +2297,40 @@
    * The entries are function declarations, so they are all hoisted and defined
    * by the time this array is evaluated, however far down the file they sit. */
   const MISSION = [
-    { entry: sceneIntro,        name: 'Welcome' },
-    { entry: sceneWarmUp,       name: 'Warm-up \u00b7 name the shapes' },
-    { entry: sectionTwo,        name: 'Triangles \u00b7 base and height' },
-    { entry: sectionThree,      name: 'Quadrilateral \u00b7 one diagonal' },
-    { entry: sectionThreeAgain, name: 'Quadrilateral \u00b7 the other diagonal' },
-    { entry: sectionFive,       name: 'Quadrilateral \u00b7 your own go' },
-    { entry: specialIntro,      name: 'Aside \u00b7 special quadrilaterals' },
-    { entry: paraSection,       name: 'Parallelogram \u00b7 its sides' },
-    { entry: paraArea,          name: 'Parallelogram \u00b7 its area' },
-    { entry: paraAreaQuestion,  name: 'Parallelogram \u00b7 the formula' },
-    { entry: paraCheck,         name: 'Parallelogram \u00b7 your own go' },
-    { entry: paraAside,         name: 'Aside \u00b7 on to the rhombus' },
-    { entry: rhombusSection,    name: 'Rhombus \u00b7 its sides' },
+    { entry: sceneIntro,        name: T('secWelcome') },
+    { entry: sceneWarmUp,       name: T('secWarmUp') },
+    { entry: sectionTwo,        name: T('secTriangles') },
+    { entry: sectionThree,      name: T('secQuadOneDiagonal') },
+    { entry: sectionThreeAgain, name: T('secQuadOtherDiagonal') },
+    { entry: sectionFive,       name: T('secQuadYourGo') },
+    { entry: specialIntro,      name: T('secAsideSpecial') },
+    { entry: paraSection,       name: T('secParaSides') },
+    { entry: paraArea,          name: T('secParaArea') },
+    { entry: paraAreaQuestion,  name: T('secParaFormula') },
+    { entry: paraCheck,         name: T('secParaYourGo') },
+    { entry: paraAside,         name: T('secAsideRhombus') },
+    { entry: rhombusSection,    name: T('secRhomSides') },
     /* the quiz that stood here -- which of two formulas is each half's
        area -- was cut (user, 2026-09-29): Next on the rhombus's sides goes
        straight to its area, worked the way page 4 works the quadrilateral's */
-    { entry: rhombusArea,       name: 'Rhombus \u00b7 its area' },
-    { entry: rhombusNumbers,    name: 'Rhombus \u00b7 with numbers' },
-    { entry: rhombusPractice1,  name: 'Rhombus \u00b7 practice 1' },
-    { entry: rhombusPractice2,  name: 'Rhombus \u00b7 practice 2' },
-    { entry: rhombusPractice3,  name: 'Rhombus \u00b7 practice 3' },
-    { entry: rhombusPractice4,  name: 'Rhombus \u00b7 practice 4' },
-    { entry: rhombusAside,      name: 'Aside \u00b7 on to the trapezium' },
-    { entry: trapSection,       name: 'Trapezium \u00b7 its name' },
-    { entry: trapSelect,        name: 'Trapezium \u00b7 pick them out' },
-    { entry: scalArea,          name: 'Trapezium \u00b7 its area' },
-    { entry: scalHalf,          name: 'Trapezium \u00b7 the formula' },
+    { entry: rhombusArea,       name: T('secRhomArea') },
+    { entry: rhombusNumbers,    name: T('secRhomNumbers') },
+    { entry: rhombusPractice1,  name: T('secRhomPractice1') },
+    { entry: rhombusPractice2,  name: T('secRhomPractice2') },
+    { entry: rhombusPractice3,  name: T('secRhomPractice3') },
+    { entry: rhombusPractice4,  name: T('secRhomPractice4') },
+    { entry: rhombusAside,      name: T('secAsideTrapezium') },
+    { entry: trapSection,       name: T('secTrapName') },
+    { entry: trapSelect,        name: T('secTrapPick') },
+    { entry: scalArea,          name: T('secTrapArea') },
+    { entry: scalHalf,          name: T('secTrapFormula') },
     /* the step-by-step working used to be a scene of its own here
        (trapSteps); it is now the tail of the values scene, on the same
        board, so there is one entry rather than two */
-    { entry: trapNumbers,       name: 'Trapezium \u00b7 find the values' },
-    { entry: trapPractice1,     name: 'Trapezium \u00b7 practice 1' },
-    { entry: trapPractice2,     name: 'Trapezium \u00b7 practice 2' },
-    { entry: trapPractice3,     name: 'Trapezium \u00b7 practice 3' }
+    { entry: trapNumbers,       name: T('secTrapValues') },
+    { entry: trapPractice1,     name: T('secTrapPractice1') },
+    { entry: trapPractice2,     name: T('secTrapPractice2') },
+    { entry: trapPractice3,     name: T('secTrapPractice3') }
   ];
 
   /* where we are in that order, and the stage every scene we have opened was
@@ -2301,7 +2359,7 @@
     const off = Motion.isMuted();
     muteBtn.classList.toggle('muted', off);
     muteBtn.setAttribute('aria-pressed', off ? 'true' : 'false');
-    const label = off ? 'Sound on' : 'Sound off';
+    const label = off ? T('soundOn') : T('soundOff');
     muteBtn.setAttribute('aria-label', label);
     muteBtn.setAttribute('title', label);
   }
@@ -2783,7 +2841,7 @@
      of them would have to be played through to reach */
   function markJump() {
     const here = MISSION[sceneIndex];
-    jumpLabel.textContent = here ? here.name : 'Section';
+    jumpLabel.textContent = here ? here.name : T('jumpLabel');
     jumpOpts.forEach(function (opt, i) {
       opt.setAttribute('aria-selected', i === sceneIndex ? 'true' : 'false');
       opt.classList.toggle('ahead', i > sceneIndex);
@@ -2955,11 +3013,11 @@
      the shake, and -- wherever the page has one -- Swiftee's own sentence
      saying what is wrong, never by a stock line spoken over it. */
   const FEEDBACK = {
-    right: 'That’s Correct',
-    done:  'Well Done!',
+    right: T('fbCorrect'),
+    done:  T('fbWellDone'),
     /* the bank's "Not quite!" (FB-04) -- not "Try again" -- for a page whose
        wrong answer has no sentence of its own, said and never typed */
-    wrong: 'Not quite!'
+    wrong: T('fbNotQuite')
   };
   const FEEDBACK_MS = 45;            /* per character: snappier than a briefing */
   let feedbackGen = 0;
@@ -3702,7 +3760,7 @@
   const boardMascot = document.getElementById('mascot');
   const hopper      = document.getElementById('hopper');
 
-  const GREETING = ['Hey there!', 'Let’s start with a quick warm-up!'];
+  const GREETING = [T('p01Hey'), T('p01WarmUp')];
   const TYPE_MS  = 72;              /* per character, no voice-over to pace against */
 
   /* one jump straight up into the middle of the screen: Swiftee springs up
@@ -4071,10 +4129,10 @@
   /* The formula in pieces: the two words the lesson is about are their own
      spans, so each can light up the moment it has finished typing. */
   const FORMULA = [
-    { t: 'Area = ½ × ' },
-    { t: 'Base',   w: 'base' },
+    { t: T('areaWord') + ' = ½ × ' },
+    { t: T('labelBaseCap'),   w: 'base' },
     { t: ' × ' },
-    { t: 'Height', w: 'height' }
+    { t: T('labelHeightCap'), w: 'height' }
   ];
   const FORMULA_MS    = 110;      /* per character: slower than a briefing, on purpose */
   const FORMULA_PAUSE = 720;      /* a beat after each key word, for the highlight to land */
@@ -4339,7 +4397,7 @@
   let corners  = [];           /* the corner groups of the shape on the board */
   let CORNERS  = {};           /* corner key -> { x, y }, in the svg's units */
   const HIT  = 24;             /* how near a corner a release counts, in svg units */
-  const NAME = { T: 'top', R: 'right', B: 'bottom', L: 'left' };
+  const NAME = { T: T('cornerTop'), R: T('cornerRight'), B: T('cornerBottom'), L: T('cornerLeft') };
 
   /* ---- the shapes ----
    * Corners are keyed by where they sit (top, right, bottom, left), which is
@@ -4352,8 +4410,8 @@
 
   /* section 3: the first quadrilateral, cut left to right... */
   const SPEC_A = {
-    pts: PTS_A, diag: ['L', 'R'], base: 'base',
-    tris: [{ apex: 'T', color: 'purple', label: 'height' }, { apex: 'B', color: 'green', label: 'height' }],
+    pts: PTS_A, diag: ['L', 'R'], base: T('labelBase'),
+    tris: [{ apex: 'T', color: 'purple', label: T('labelHeight') }, { apex: 'B', color: 'green', label: T('labelHeight') }],
     /* the short names the labels take after their two-second look */
     short: { base: 'b', h: ['h₁', 'h₂'] },
     /* The names the working calls the two halves by, written in the empty
@@ -4363,22 +4421,22 @@
        Given per scene rather than worked out, because where a name will fit
        is a matter of the shape it is drawn beside. */
     names: [
-      { text: 'Triangle 1', at: { x: 52, y: 30 },   from: { x: 74, y: 42 },   to: { x: 124, y: 92 },  bow: 16 },
-      { text: 'Triangle 2', at: { x: 256, y: 242 }, from: { x: 230, y: 232 }, to: { x: 182, y: 196 }, bow: 16 }
+      { text: T('triangle1'), at: { x: 52, y: 30 },   from: { x: 74, y: 42 },   to: { x: 124, y: 92 },  bow: 16 },
+      { text: T('triangle2'), at: { x: 256, y: 242 }, from: { x: 230, y: 232 }, to: { x: 182, y: 196 }, bow: 16 }
     ]
   };
   /* ...and then the same one, cut top to bottom */
   const SPEC_A2 = {
-    pts: PTS_A, diag: ['T', 'B'], base: 'base',
-    tris: [{ apex: 'L', color: 'green', label: 'height' }, { apex: 'R', color: 'purple', label: 'height' }],
+    pts: PTS_A, diag: ['T', 'B'], base: T('labelBase'),
+    tris: [{ apex: 'L', color: 'green', label: T('labelHeight') }, { apex: 'R', color: 'purple', label: T('labelHeight') }],
     /* the heights are h₁ and h₂ again: this is a fresh pair of triangles,
        and the working beside it is read the same way as the first cut's */
     short: { base: 'b', h: ['h₁', 'h₂'] }
   };
   /* section 5: the one the learner works out alone */
   const SPEC_C = {
-    pts: PTS_C, diag: ['L', 'R'], base: '18 cm',
-    tris: [{ apex: 'T', color: 'green', label: '6 cm' }, { apex: 'B', color: 'purple', label: '3 cm' }]
+    pts: PTS_C, diag: ['L', 'R'], base: CM(18),
+    tris: [{ apex: 'T', color: 'green', label: CM(6) }, { apex: 'B', color: 'purple', label: CM(3) }]
   };
 
   /* ---- Swiftee's lines ---- */
@@ -4386,59 +4444,59 @@
     /* the bird asks from its box; the box under the sentence says "Tap here"
        and the hand beside it points at the arrow, so the line itself does
        not have to */
-    ask:     'What shape is this?',
+    ask:     T('p04WhatShape'),
     answer:  'quadrilateral',
     /* every remark carries the reason -- how many sides that shape has --
        so a choice is answered with the thing being taught, not with praise */
     notes: {
-      triangle:      'Not quite! A triangle has 3 sides.',
-      pentagon:      'Not quite! A pentagon has 5 sides.',
-      quadrilateral: 'Correct. A quadrilateral has 4 sides.'
+      triangle:      T('p04NotTriangle'),
+      pentagon:      T('p04NotPentagon'),
+      quadrilateral: T('p04IsQuad')
     },
-    general: 'This is a general quadrilateral.',
-    area:    'Let’s try and find its area!',
-    join:    'Join the corners to draw a diagonal.',
-    divided: 'Now, the quadrilateral is divided into two triangles. Let’s look at each triangle.',
+    general: T('p04General'),
+    area:    T('p04FindArea'),
+    join:    T('p04Join'),
+    divided: T('p04Divided'),
     /* one triangle at a time: its base, its height, and then its area */
-    base1:   'Let’s say the base of this triangle is b.',
-    base2:   'This triangle has the same base b.',
-    height:  h => 'And its height is ' + h + '.',
+    base1:   T('p04Base1'),
+    base2:   T('p04Base2'),
+    height:  h => T('p04HeightIs', { h: h }),
     /* not `area`: that key is the aside beside the shape, "Let's try and
        find its area!", and a second `area` here silently replaced it */
-    areaIs:  'So, its area will be …',
+    areaIs:  T('p04AreaIs'),
     /* the rule put into words, a part at a time */
-    words1:  'The base b is the diagonal.',
-    words2:  'And h₁ + h₂ is the sum of the perpendicular heights.',
+    words1:  T('p04Words1'),
+    words2:  T('p04Words2'),
     /* the third line of the working, taken the rest of the way */
-    swap:    'Let’s put in each triangle’s area.',
-    share:   'Both triangles share the same base b.',
-    rule:    'So this is the area of the quadrilateral!',
-    another: 'Let’s try a different way!',
-    twoNew:  'Two new triangles! Let’s find their areas.',
-    complete: 'Complete the formula for the area of the quadrilateral.',
+    swap:    T('p04PutIn'),
+    share:   T('p04Share'),
+    rule:    T('p04Rule'),
+    another: T('p05Another'),
+    twoNew:  T('p05TwoNew'),
+    complete: T('p05Complete'),
     /* the two boxes are asked one at a time (user, 2026-09-28): the part
        wanted is named, and a wrong choice is answered with what it really is.
        The "green" triangle draws orange, so that is what the learner is told. */
-    chooseDiag: 'Choose the diagonal of the quadrilateral.',
-    chooseSum:  'Choose the sum of the perpendicular heights.',
-    notDiag: { 'h-green': 'This is the height of the orange triangle.',
-               'h-purple': 'This is the height of the purple triangle.' },
-    notSum:  'We add the two heights, not the diagonal.',
-    joinWrong: (a, b) => 'Try again! Join the ' + NAME[a] + ' and ' + NAME[b] + ' corners.'
+    chooseDiag: T('p05ChooseDiag'),
+    chooseSum:  T('p05ChooseSum'),
+    notDiag: { 'h-green': T('p05NotDiagOrange'),
+               'h-purple': T('p05NotDiagPurple') },
+    notSum:  T('p05NotSum'),
+    joinWrong: (a, b) => T('p04JoinWrong', { a: NAME[a], b: NAME[b] })
   };
   /* only .pick survives (in the heading-ghost list below): the rest of
      page 6, "Quadrilateral · with measurements", was cut (user, 2026-09-25) */
   const FOUR = {
-    pick: 'Choose the base and height for each triangle.'
+    pick: T('p06Pick')
   };
   const FIVE = {
-    turn: 'Now it’s your turn! Find the area of this quadrilateral.',
+    turn: T('p07Turn'),
     /* a wrong answer to each of the three questions: the mascot points back at
        the measurement it is asking about, and the figure glows gold there
        (user, 2026-09-28) */
-    wrongHeights: 'Not quite! Look at the measure of the heights.',
-    wrongDiag:    'Not quite! Look at the measure of the diagonal.',
-    wrongArea:    'Area of a general quadrilateral = ½ × diagonal × sum of perpendicular heights.'
+    wrongHeights: T('p07WrongHeights'),
+    wrongDiag:    T('p07WrongDiag'),
+    wrongArea:    T('p07WrongArea')
   };
 
   /* The working under (later, beside) the shape, in pieces: every word that
@@ -4447,11 +4505,11 @@
   const LINES_A = [
     /* `fly`: the part is not typed but floated in, a copy of the drawing's
        own label for it (floatLine) */
-    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' = ½ × ' }, { t: 'b', w: 'base', fly: 'base' }, { t: ' × ' }, { t: 'h₁', w: 'h-purple', fly: 'h' }],
-    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 'green' },  { t: ' = ½ × ' }, { t: 'b', w: 'base', fly: 'base' }, { t: ' × ' }, { t: 'h₂', w: 'h-green', fly: 'h' }],
+    [...AREA_OF(T('triangle1'), 'purple'), { t: ' = ½ × ' }, { t: 'b', w: 'base', fly: 'base' }, { t: ' × ' }, { t: 'h₁', w: 'h-purple', fly: 'h' }],
+    [...AREA_OF(T('triangle2'), 'green'),  { t: ' = ½ × ' }, { t: 'b', w: 'base', fly: 'base' }, { t: ' × ' }, { t: 'h₂', w: 'h-green', fly: 'h' }],
     /* the no-break spaces keep "= Area of" and "+ Area of" whole, so the long
        line wraps before an operator rather than leaving one dangling */
-    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' + Area of ' }, { t: 'Triangle 2', w: 'green' }]
+    [...AREA_OF(T('shapeQuadrilateral'), 'quad'), ...EQ_AREA_OF(T('triangle1'), 'purple', true), ...PLUS_AREA_OF(T('triangle2'), 'green', true)]
   ];
   /* The third line does not stop at the sum: it goes on being worked, in
      place, on the row it was written on -- the two areas put in, then the
@@ -4459,9 +4517,9 @@
      Quadrilateral = ½ × b ×" is written once and stays put. */
   const QUAD_STEPS = [
     LINES_A[2],
-    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: 'b', w: 'base' }, { t: ' × ' }, { t: 'h₁', w: 'h-purple' },
+    [...AREA_OF(T('shapeQuadrilateral'), 'quad'), { t: ' = ½ × ' }, { t: 'b', w: 'base' }, { t: ' × ' }, { t: 'h₁', w: 'h-purple' },
      { t: ' + ½ × ' }, { t: 'b', w: 'base' }, { t: ' × ' }, { t: 'h₂', w: 'h-green' }],
-    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: 'b', w: 'base' }, { t: ' × (' }, { t: 'h₁', w: 'h-purple' },
+    [...AREA_OF(T('shapeQuadrilateral'), 'quad'), { t: ' = ½ × ' }, { t: 'b', w: 'base' }, { t: ' × (' }, { t: 'h₁', w: 'h-purple' },
      { t: ' + ' }, { t: 'h₂', w: 'h-green' }, { t: ')' }]
   ];
   /* The rule again in words, on a row of its own under the working (review,
@@ -4469,9 +4527,9 @@
      and whose bracket becomes "Sum of perpendicular heights", one and then
      the other. The bracket's sum keeps the height's blue. */
   const WORDS_A = [
-    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: 'Diagonal', w: 'base' }, { t: ' × (' }, { t: 'h₁', w: 'h-purple' },
+    [...AREA_OF(T('shapeQuadrilateral'), 'quad'), { t: ' = ½ × ' }, { t: T('wordDiagonal'), w: 'base' }, { t: ' × (' }, { t: 'h₁', w: 'h-purple' },
      { t: ' + ' }, { t: 'h₂', w: 'h-green' }, { t: ')' }],
-    [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: 'Diagonal', w: 'base' }, { t: ' × (' }, { t: 'Sum of perpendicular heights', w: 'height' }, { t: ')' }]
+    [...AREA_OF(T('shapeQuadrilateral'), 'quad'), { t: ' = ½ × ' }, { t: T('wordDiagonal'), w: 'base' }, { t: ' × (' }, { t: T('wordSumOfHeights'), w: 'height' }, { t: ')' }]
   ];
 
   /* what the drop-downs in a formula offer: the parts of the drawing by
@@ -4485,8 +4543,8 @@
   /* the rule in words, typed out and then copied for the boxes to come out
      of: each bracketed part is one piece, brackets and all, since it is the
      whole of it that becomes a box (ruleToBoxes) */
-  const RULE_IN_WORDS = [{ t: 'Area of ' }, { t: 'Quadrilateral', w: 'quad' }, { t: ' = ½ × ' }, { t: '(Diagonal)', w: 'base' },
-    { t: ' × ' }, { t: '(Sum of perpendicular heights)', w: 'height' }];
+  const RULE_IN_WORDS = [...AREA_OF(T('shapeQuadrilateral'), 'quad'), { t: ' = ½ × ' }, { t: '(' + T('wordDiagonal') + ')', w: 'base' },
+    { t: ' × ' }, { t: '(' + T('wordSumOfHeights') + ')', w: 'height' }];
 
   const AREA_MS    = 64;       /* per character */
   const AREA_PAUSE = 560;      /* a beat after each key word, for the highlight to land */
@@ -5270,7 +5328,7 @@
     const root = document.createElement('div');
     root.className = 'dd' + (small ? ' dd-small' : '');
     root.innerHTML =
-      '<button class="dd-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="' + (hint ? 'Choose the ' + hint : 'Choose an answer') + '">' +
+      '<button class="dd-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="' + (hint ? T('ddChooseThe', { hint: hint }) : T('ddChooseAnswer')) + '">' +
         '<span class="dd-value"' + (hint ? ' data-hint="' + hint + '"' : '') + '></span>' +
         '<svg class="dd-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-8 10z" /></svg>' +
       '</button><div class="dd-menu" role="listbox"></div>';
@@ -6054,7 +6112,7 @@
        base × height" -- and only then does each part come off the drawing:
        the label floats across onto its word, and the word turns into it,
        "base" into b and "height" into h₁ (user, 2026-09-28). */
-    const WORD = { base: 'base', h: 'height' };
+    const WORD = { base: T('labelBase'), h: T('labelHeight') };
     const worded = segs.map(sg => sg.fly ? { t: sg.word || WORD[sg.fly] || sg.t, w: sg.w, fly: sg.fly } : sg);
     const line = document.createElement('div');
     line.className = 'area-line';
@@ -6367,10 +6425,10 @@
     await peelOff(from, line, dy);
     await wait(REDUCED ? 200 : 1000);
 
-    const dd1 = makeDD(NOTATION, true, 'diagonal');
+    const dd1 = makeDD(NOTATION, true, T('hintDiagonal'));
     await wordToBox(line, 'base', dd1);
     await wait(REDUCED ? 200 : 1000);
-    const dd2 = makeDD(SUMS, true, 'sum of perpendicular heights');
+    const dd2 = makeDD(SUMS, true, T('hintSumOfHeights'));
     await wordToBox(line, 'height', dd2);
     return { line: line, dds: [ddController(dd1), ddController(dd2)] };
   }
@@ -6945,16 +7003,16 @@
       if (show) await show();
       await wait(700);
     };
-    await askOne('The sum of the perpendicular heights is',
-      [{ v: '24', t: '24 cm' }, { v: '9', t: '9 cm' }, { v: '21', t: '21 cm' }], '9',
+    await askOne(T('p07QSum'),
+      [{ v: '24', t: CM(24) }, { v: '9', t: CM(9) }, { v: '21', t: CM(21) }], '9',
       async () => { await denoteQuad('green', 380); await denoteQuad('purple', 380); },
       () => { sayHint(FIVE.wrongHeights); goldGlow('heights'); });
-    await askOne('Diagonal length is',
-      [{ v: '6', t: '6 cm' }, { v: '3', t: '3 cm' }, { v: '18', t: '18 cm' }], '18',
+    await askOne(T('p07QDiag'),
+      [{ v: '6', t: CM(6) }, { v: '3', t: CM(3) }, { v: '18', t: CM(18) }], '18',
       () => denoteQuad('base', 520),
       () => { sayHint(FIVE.wrongDiag); goldGlow('diag'); });
-    await askOne('The area of the quadrilateral is',
-      [{ v: '81', t: '81 sq. cm' }, { v: '162', t: '162 sq. cm' }, { v: '182', t: '182 sq. cm' }], '81',
+    await askOne(T('p07QArea'),
+      [{ v: '81', t: SQCM(81) }, { v: '162', t: SQCM(162) }, { v: '182', t: SQCM(182) }], '81',
       null,
       () => sayHint(FIVE.wrongArea));
     celebrate();
@@ -6969,8 +7027,8 @@
    * landscape, and Swiftee hops up a little left of centre to say two lines
    * from its speech bubble -- the intro's own stage, brought back. */
   const SPECIAL = [
-    'We know how to find the area of a general quadrilateral.',
-    'Now, let’s find the area of some special quadrilaterals!'
+    T('p08Know'),
+    T('p08Special')
   ];
 
   /* Swiftee ducks behind the board, the board fades off the landscape, and
@@ -7083,91 +7141,91 @@
   const EXT = 44;              /* how far a side is carried on past each corner */
 
   const PARA = {
-    ask:     'What shape is this?',
+    ask:     T('p04WhatShape'),
     /* the verdict is said a sentence at a time (user, 2026-09-28): the cheer,
        then what the shape is, then the property that names it */
-    right:   ['Correct!', 'This is a parallelogram.', 'A parallelogram has two pairs of parallel sides.'],
-    look1:   'Look at the top and bottom sides.',
-    never:   'They run side by side and never meet.',
-    look2:   'The left and right sides do the same!',
-    measure: 'Now let’s compare their lengths.',
-    fit1:    'The top side fits the bottom side exactly!',
-    fit2:    'And the left side fits the right side too!',
+    right:   [T('fbCorrectShort'), T('p09IsPara'), T('p09TwoPairs')],
+    look1:   T('p09TopBottom'),
+    never:   T('p09NeverMeet'),
+    look2:   T('p09LeftRight'),
+    measure: T('p09Compare'),
+    fit1:    T('p09TopFits'),
+    fit2:    T('p09LeftFits'),
     /* a wrong name is turned down a sentence at a time too, for the same
        reason the right one is (user, 2026-09-28) */
     /* the original wording, back now that its two sentences are recorded
        ("newww voice filmie.mp3", 2026-10-01); for a day they were replaced
        by "A parallelogram has two pairs of parallel sides. Check the shape
        carefully.", which had clips (P09-03, P09-13) */
-    hint:    ['Not quite!', 'This is not a trapezium.', 'Trapezium has only one pair of parallel sides.'],
+    hint:    [T('fbNotQuite'), T('p09NotTrap'), T('p09TrapOnePair')],
     facts: {
-      par: [{ t: 'Opposite sides are ' }, { t: 'parallel', w: 'par' }, { t: ' to each other.' }],
-      eq:  [{ t: 'Opposite sides are ' }, { t: 'equal in length', w: 'eq' }, { t: '.' }]
+      par: TS('p09FactParallel', { parallel: { t: T('wordParallel'), w: 'par' } }),
+      eq:  TS('p09FactEqual',    { equal:    { t: T('wordEqualInLength'), w: 'eq' } })
     }
   };
   const PARA_ANSWER = 'parallelogram';
 
   /* the second half: base, height, the cut, the working, and the quiz */
   const PARA2 = {
-    here:   'Here is a parallelogram.',
-    base:   'This is the base of the parallelogram.',
-    height: 'Here comes the height!',
-    divide: 'Let us divide this into two triangles.',
+    here:   T('p10Here'),
+    base:   T('p10Base'),
+    height: T('p10Height'),
+    divide: T('p10Divide'),
     /* the working, a triangle at a time, each part said as it floats off
        the drawing into its line (user, 2026-09-29: page 4's way) */
     tri1: {
-      look: 'Let’s look at Triangle 1.',
-      area: 'So, its area will be …',
+      look: T('p10Tri1'),
+      area: T('p04AreaIs'),
       /* page 4's sentences, which have clips; "Its base is b." and "And the
          same height h." were never recorded (user, 2026-09-30) */
-      b:    'Let’s say the base of this triangle is b.',
-      h:    'And its height is h.'
+      b:    T('p04Base1'),
+      h:    T('p04HeightIs', { h: 'h' })
     },
     tri2: {
-      look: 'Now let’s look at Triangle 2.',
-      area: 'So, its area will be …',
-      b:    'This triangle has the same base b.',
-      h:    'And its height is h.'
+      look: T('p10Tri2'),
+      area: T('p04AreaIs'),
+      b:    T('p04Base2'),
+      h:    T('p04HeightIs', { h: 'h' })
     },
-    whole:  'The parallelogram is made of both triangles.',
+    whole:  T('p10Made'),
     /* page 4's own line, and its clip (P04-10) */
-    swap:   'Let’s put in each triangle’s area.',
-    half:   'Two halves of b × h make one whole b × h.',
-    words:  'That is base × height!',
-    rule:   'So this is the area of the parallelogram!',
-    which:  'Which of these is the area of the parallelogram?',
-    right:  'That’s Correct! Area of a parallelogram = base × height.'
+    swap:   T('p04PutIn'),
+    half:   T('p10TwoHalves'),
+    words:  T('p10BaseHeight'),
+    rule:   T('p10Rule'),
+    which:  T('p11Which'),
+    right:  T('p11Right')
   };
   const AREA_ANSWER = 'bh';
   /* a wrong formula is turned down in Swiftee's box with what it is instead,
      as page 4 says how many sides a wrong name has */
   const AREA_WRONG = {
-    half:   'Not quite! That is the area of just one triangle.',
-    double: 'Not quite! That is twice the area of the parallelogram.'
+    half:   T('p11NotHalf'),
+    double: T('p11NotDouble')
   };
 
   /* the learner's own go: the same shape with measurements on it */
   const PARA3 = {
-    turn:   'Now it’s your turn! Find the area of this parallelogram.',
-    base:   '8 cm',
-    height: '5 cm',
+    turn:   T('p12Turn'),
+    base:   CM(8),
+    height: CM(5),
     /* every answer to the three questions gets a line from the mascot, as
        page 6's do (user, 2026-09-29): a right one says what was found, a
        wrong one points back at the measurement the question is about, and
        the drawing glows gold there until the next try */
-    rightBase:   'That’s Correct! The base is 8 cm.',
-    rightHeight: 'That’s Correct! The height is 5 cm.',
+    rightBase:   T('p12RightBase'),
+    rightHeight: T('p12RightHeight'),
     /* one "=" only: a line with two is laid out as a derivation, a row per
        step (lineSpans), and this is a sentence */
-    rightArea:   'That’s Correct! The area is 8 × 5 = 40 sq. cm.',
-    wrongBase:   'Not quite! Look at the measure of the base.',
-    wrongHeight: 'Not quite! Look at the measure of the height.',
-    wrongArea:   'Not quite! Area of a parallelogram = base × height.'
+    rightArea:   T('p12RightArea'),
+    wrongBase:   T('p12WrongBase'),
+    wrongHeight: T('p12WrongHeight'),
+    wrongArea:   T('p12WrongArea')
   };
   /* and Swiftee's aside once it is done */
   const PARA_ASIDE = [
-    'We now know how to find the area of a parallelogram.',
-    'Let us now try finding the area of a special parallelogram.'
+    T('p13Know'),
+    T('p13Special')
   ];
 
   /* the two triangles are told apart by colour: purple on top of the cut,
@@ -7176,22 +7234,22 @@
      drawing's own label for it floats onto that word and the word becomes
      it (floatLine). Triangle 1's b and h are the top base and the right
      height; Triangle 2's the pair the whole shape was given. */
-  const PB = k => ({ t: 'b', w: 'b', fly: k, word: 'base' });
-  const PH = k => ({ t: 'h', w: 'h', fly: k, word: 'height' });
+  const PB = k => ({ t: 'b', w: 'b', fly: k, word: T('labelBase') });
+  const PH = k => ({ t: 'h', w: 'h', fly: k, word: T('labelHeight') });
   const PARA_LINES = [
-    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' = ½ × ' }, PB('b'), { t: ' × ' }, PH('h')],
-    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 'green' },  { t: ' = ½ × ' }, PB('b'), { t: ' × ' }, PH('h')],
-    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = Area of ' }, { t: 'Triangle 1', w: 'purple' },
-     { t: ' + Area of ' }, { t: 'Triangle 2', w: 'green' }]
+    [...AREA_OF(T('triangle1'), 'purple'), { t: ' = ½ × ' }, PB('b'), { t: ' × ' }, PH('h')],
+    [...AREA_OF(T('triangle2'), 'green'),  { t: ' = ½ × ' }, PB('b'), { t: ' × ' }, PH('h')],
+    [...AREA_OF(T('shapeParallelogram'), 'para'), ...EQ_AREA_OF(T('triangle1'), 'purple'),
+     ...PLUS_AREA_OF(T('triangle2'), 'green')]
   ];
   /* The third line does not stop at the sum: it is worked in place, on the
      row it was written on, as the quadrilateral's is (QUAD_STEPS) -- each
      triangle's name giving way to that triangle's area, one and then the
      other (user, 2026-09-29). */
   const PARA_SUM = [
-    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = ½ × ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' },
-     { t: ' + Area of ' }, { t: 'Triangle 2', w: 'green' }],
-    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = ½ × ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' },
+    [...AREA_OF(T('shapeParallelogram'), 'para'), { t: ' = ½ × ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' },
+     ...PLUS_AREA_OF(T('triangle2'), 'green')],
+    [...AREA_OF(T('shapeParallelogram'), 'para'), { t: ' = ½ × ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' },
      { t: ' + ½ × ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' }]
   ];
   /* The fourth line is a copy of the third as it is left, under its "="
@@ -7199,10 +7257,10 @@
      "= ½ × b × h + ½ × b × h" -> "= b × h" -> "= base × height" */
   const PARA_STEPS = [
     PARA_SUM[1],
-    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' }],
+    [...AREA_OF(T('shapeParallelogram'), 'para'), { t: ' = ' }, { t: 'b', w: 'b' }, { t: ' × ' }, { t: 'h', w: 'h' }],
     /* the words keep the hues of the letters they replace: base in the
        base's colour, height in the height's (user, 2026-09-29) */
-    [{ t: 'Area of ' }, { t: 'Parallelogram', w: 'para' }, { t: ' = ' }, { t: 'base', w: 'b' }, { t: ' × ' }, { t: 'height', w: 'h' }]
+    [...AREA_OF(T('shapeParallelogram'), 'para'), { t: ' = ' }, { t: T('labelBase'), w: 'b' }, { t: ' × ' }, { t: T('labelHeight'), w: 'h' }]
   ];
 
   /* each fact's ghost holds its whole line from the first frame, so the list
@@ -7272,8 +7330,8 @@
       '</g>';
     };
     paraDims.innerHTML =
-      arrow('d-bottom', P.BL, P.BR, 1, 'Base', ' (b)') +
-      height('d-left', P.TL, { x: P.TL.x, y: P.BL.y }, 1, 'Height', ' (h)') +
+      arrow('d-bottom', P.BL, P.BR, 1, T('labelBaseCap'), ' (b)') +
+      height('d-left', P.TL, { x: P.TL.x, y: P.BL.y }, 1, T('labelHeightCap'), ' (h)') +
       '<g class="split-dims">' +
         ln('join-line', P.TL, P.BR) +
         arrow('d-top', P.TL, P.TR, -1, 'b', '') +
@@ -8224,19 +8282,19 @@
       await q.dd.ask(v => v === answer, onRight, onWrong);
       lockInput(true);
     };
-    await ask('The base of the parallelogram is',
-      [{ v: '8', t: '8 cm' }, { v: '5', t: '5 cm' }, { v: '13', t: '13 cm' }], '8',
+    await ask(T('p12QBase'),
+      [{ v: '8', t: CM(8) }, { v: '5', t: CM(5) }, { v: '13', t: CM(13) }], '8',
       right(PARA3.rightBase, 'lit-b'), wrong(PARA3.wrongBase, 'b'));
     await wait(700);
-    await ask('The height is',
-      [{ v: '5', t: '5 cm' }, { v: '8', t: '8 cm' }, { v: '3', t: '3 cm' }], '5',
+    await ask(T('p12QHeight'),
+      [{ v: '5', t: CM(5) }, { v: '8', t: CM(8) }, { v: '3', t: CM(3) }], '5',
       right(PARA3.rightHeight, 'lit-h'), wrong(PARA3.wrongHeight, 'h'));
     await wait(700);
     /* the area takes both measurements, so a wrong one glows both. Its right
        line is waited for: the celebration's "Well Done!" would stop it
        mid-type and send the bird off with half of it on screen. */
-    await ask('The area of the parallelogram is',
-      [{ v: '40', t: '40 sq. cm' }, { v: '13', t: '13 sq. cm' }, { v: '20', t: '20 sq. cm' }], '40',
+    await ask(T('p12QArea'),
+      [{ v: '40', t: SQCM(40) }, { v: '13', t: SQCM(13) }, { v: '20', t: SQCM(20) }], '40',
       right(null), wrong(PARA3.wrongArea, 'b', 'h'));
     await heading(PARA3.rightArea);
     headStay = false;
@@ -8329,11 +8387,11 @@
   speaker(rpTxt, rpMascot, () => rpNote.classList.remove('show', 'ok', 'bad'));
 
   const RHOM = {
-    drag:  'Drag the points to make each angle 90 degrees.',
-    sides: 'All four sides are equal in length!',
-    right: 'And the diagonals meet at a right angle (90°).',
-    named: 'A parallelogram with these properties is called a rhombus.',
-    final: [{ t: 'This is the special parallelogram called ' }, { t: 'Rhombus', w: 'rhom' }, { t: '.' }]
+    drag:  T('p14Drag'),
+    sides: T('p14Equal'),
+    right: T('p14Right'),
+    named: T('p14Named'),
+    final: TS('p14Final', { rhombus: { t: T('shapeRhombus'), w: 'rhom' } })
   };
 
   /* the say line's ghost holds its whole line from the first frame */
@@ -8854,27 +8912,27 @@
    *      shape and the working come forward a little into the room it
    *      leaves, and only then Next -- page 4's close */
   const RHOM2 = {
-    here:  'Here, is a Rhombus.',
-    whole: 'Let’s find the area of the whole rhombus.',
+    here:  T('p15Here'),
+    whole: T('p15Whole'),
     /* a triangle at a time, each part said as it floats off the drawing
        into its line. The heights are page 4's own lines, and clips (P04-14,
        P04-17); the look lines are the parallelogram's (P10-05, P10-09) */
     tri1: {
-      look: 'Let’s look at Triangle 1.',
-      base: 'Its base is the diagonal d₁.',
-      h:    'And its height is h₁.'
+      look: T('p10Tri1'),
+      base: T('p15BaseD1'),
+      h:    T('p04HeightIs', { h: 'h₁' })
     },
     tri2: {
-      look: 'Now let’s look at Triangle 2.',
-      base: 'It has the same base d₁.',
-      h:    'And its height is h₂.'
+      look: T('p10Tri2'),
+      base: T('p15SameD1'),
+      h:    T('p04HeightIs', { h: 'h₂' })
     },
     /* page 4's own line, and its clip (P04-10) */
-    swap:  'Let’s put in each triangle’s area.',
-    share: 'Both parts have ½ × d₁ in them, so take it out.',
-    join:  'And h₁ and h₂ together make the whole of d₂.',
-    words: 'And d₁ × d₂ is the product of the diagonals.',
-    rule:  'So the area of a rhombus is ½ × d₁ × d₂.'
+    swap:  T('p04PutIn'),
+    share: T('p15TakeOut'),
+    join:  T('p15Together'),
+    words: T('p15Product'),
+    rule:  T('p15Rule')
   };
   /* every line above, for the heading's ghost */
   const RHOM2_ALL = [].concat.apply([], Object.keys(RHOM2).map(k =>
@@ -8921,8 +8979,8 @@
      `fly`: the part is written as a word first -- "base", "height" -- and
      then floated in, a copy of the drawing's own label for it (floatLine) */
   const RHOM_LINES = [
-    [{ t: 'Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' = ½ × ' }, { t: 'd₁', w: 'd1', fly: 'base' }, { t: ' × ' }, { t: 'h₁', w: 'h1', fly: 'h' }],
-    [{ t: 'Area of ' }, { t: 'Triangle 2', w: 'green' },  { t: ' = ½ × ' }, { t: 'd₁', w: 'd1', fly: 'base' }, { t: ' × ' }, { t: 'h₂', w: 'h2', fly: 'h' }]
+    [...AREA_OF(T('triangle1'), 'purple'), { t: ' = ½ × ' }, { t: 'd₁', w: 'd1', fly: 'base' }, { t: ' × ' }, { t: 'h₁', w: 'h1', fly: 'h' }],
+    [...AREA_OF(T('triangle2'), 'green'),  { t: ' = ½ × ' }, { t: 'd₁', w: 'd1', fly: 'base' }, { t: ' × ' }, { t: 'h₂', w: 'h2', fly: 'h' }]
   ];
   /* and the third line, which is not four lines but one: it is typed out as
      the first of these and then changes into each of the others where it
@@ -8931,9 +8989,9 @@
      spaces keep "= Area of" and "+ Area of" whole, as page 4's do, so the
      long first step wraps before an operator rather than leaving one
      dangling. */
-  const RHOM_HEAD = [{ t: 'Area of ' }, { t: 'Rhombus', w: 'rhom' }];
+  const RHOM_HEAD = [...AREA_OF(T('shapeRhombus'), 'rhom')];
   const RHOM_STEPS = [
-    RHOM_HEAD.concat([{ t: ' = Area of ' }, { t: 'Triangle 1', w: 'purple' }, { t: ' + Area of ' }, { t: 'Triangle 2', w: 'green' }]),
+    RHOM_HEAD.concat([...EQ_AREA_OF(T('triangle1'), 'purple', true), ...PLUS_AREA_OF(T('triangle2'), 'green', true)]),
     RHOM_HEAD.concat([{ t: ' = ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × ' }, { t: 'h₁', w: 'h1' }, { t: ' + ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × ' }, { t: 'h₂', w: 'h2' }]),
     RHOM_HEAD.concat([{ t: ' = ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × (' }, { t: 'h₁', w: 'h1' }, { t: ' + ' }, { t: 'h₂', w: 'h2' }, { t: ')' }]),
     RHOM_HEAD.concat([{ t: ' = ½ × ' }, { t: 'd₁', w: 'd1' }, { t: ' × ' }, { t: 'd₂', w: 'd2' }])
@@ -8941,7 +8999,7 @@
   /* The rule again in words, on a fourth row (page 4's way): a copy of the
      third line's right-hand side, set under its "=" (copyLine), whose
      d1 × d2 becomes "Product of Diagonals" */
-  const RHOM_WORDS = RHOM_HEAD.concat([{ t: ' = ½ × ' }, { t: 'Product of Diagonals', w: 'diags' }]);
+  const RHOM_WORDS = RHOM_HEAD.concat([{ t: ' = ½ × ' }, { t: T('wordProductOfDiagonals'), w: 'diags' }]);
 
   const areaEl = cls => rhomArea.querySelector('.' + cls);
 
@@ -8978,8 +9036,8 @@
      lettering is a step up from page 4's, since this drawing's units are
      smaller on screen. */
   const RHOM_NAMES = [
-    { text: 'Triangle 1', at: [-.79, -.81], from: [-.655, -.68], to: [-.29, -.45] },
-    { text: 'Triangle 2', at: [.85, .88],   from: [.69, .77],    to: [.42, .38] }
+    { text: T('triangle1'), at: [-.79, -.81], from: [-.655, -.68], to: [-.29, -.45] },
+    { text: T('triangle2'), at: [.85, .88],   from: [.69, .77],    to: [.42, .38] }
   ];
   const RHOM_NAME_K = 1.3;
   let rhomNameStore = {};
@@ -9412,22 +9470,22 @@
    * length may go in either slot; a wrong one is shaken off. Both in, the
    * answer is said in the heading, and Next. */
   const NUM = {
-    drag:  'Drag the two lengths into the formula.',
+    drag:  T('p17Drag'),
     /* the verdict on each drop is said in a sentence in the heading (user,
        2026-09-29): a wrong length is told where a right one is written --
        the one still missing, once the other is in -- and the first right
        one is named and the other asked for. Either diagonal may go in
        either slot (user, 2026-09-30): d₁ × d₂ is d₂ × d₁. */
-    wrong:  'Not quite! The two diagonals are written under and beside the shape.',
-    wrong1: 'Not quite! The length written under the shape is d₁.',
-    right1: 'That’s Correct! The first diagonal is 16 cm. Now drag d₂ into the formula.',
-    wrong2: 'Not quite! The length written beside the shape is d₂.',
-    right2: 'That’s Correct! The second diagonal is 12 cm. Now drag d₁ into the formula.',
+    wrong:  T('p17WrongBoth'),
+    wrong1: T('p17WrongD1'),
+    right1: T('p17RightD1'),
+    wrong2: T('p17WrongD2'),
+    right2: T('p17RightD2'),
     /* the working the learner has just built IS the answer; saying it again
        at the top would also give away the question the next page asks */
-    right: 'That’s Correct!'
+    right: T('fbCorrectBang')
   };
-  const NUM_D1 = '16 cm', NUM_D2 = '12 cm';
+  const NUM_D1 = CM(16), NUM_D2 = CM(12);
   const NUM_NEED = ['16', '12'];
 
   const dimEl = cls => rhomArea.querySelector('.' + cls);
@@ -9766,12 +9824,12 @@
    * shape, as before, except for the third, which halves the board and asks
    * from a panel of its own beside the figure. */
   const PRACTICE = {
-    area:     'Choose the correct area.',
-    areaOk:   'That’s Correct!',
-    find:     'This rhombus has an area of 240 sq. cm. Find the other diagonal.',
-    findOk:   'That’s Correct! ½ × 30 × d₂ = 240, so d₂ is 16 cm.',
-    which:    'Which formula can you use here?',
-    whichOk:  'That’s Correct! No diagonals are given, so use base × height.'
+    area:     T('p18Choose'),
+    areaOk:   T('fbCorrectBang'),
+    find:     T('p19FindFull'),
+    findOk:   T('p19Right'),
+    which:    T('p21Which'),
+    whichOk:  T('p21Right')
   };
   const PRACTICE_GHOST = [PRACTICE.area, PRACTICE.areaOk, PRACTICE.find, PRACTICE.findOk, PRACTICE.which, PRACTICE.whichOk];
 
@@ -9781,13 +9839,13 @@
    * is told what it is instead -- the product without the half, or the sum
    * -- and the right one is worked out in a line. */
   const RP = {
-    ask:   'Choose the correct area.',
-    opts:  [{ v: '96', t: '96 sq. cm' }, { v: '192', t: '192 sq. cm' }, { v: '28', t: '28 sq. cm' }],
+    ask:   T('p18Choose'),
+    opts:  [{ v: '96', t: SQCM(96) }, { v: '192', t: SQCM(192) }, { v: '28', t: SQCM(28) }],
     right: '96',
     notes: {
-      '192': 'Not quite! That is 16 × 12 without the half. Look at the formula again.',
-      '28':  'Not quite! That is 16 + 12. The diagonals are multiplied, not added.',
-      '96':  'That’s Correct! Half of 16 × 12 is 96 sq. cm.'
+      '192': T('p18Wrong192'),
+      '28':  T('p18Wrong28'),
+      '96':  T('p18Right')
     }
   };
   /* the box fits the piece it is saying, and is fitted before the bird is
@@ -9925,11 +9983,11 @@
     over += '<g class="d-group d-hgt">' +
       figLine('d-height', TL, F) + figHead(TL, -hv.x, -hv.y) + figHead(F, hv.x, hv.y) +
       '<path class="d-mark" d="M' + fmt(F.x) + ' ' + fmt(F.y - M) + ' H' + fmt(F.x + M) + ' V' + fmt(F.y) + '" />' +
-      '<text class="d-label" x="' + fmt(F.x + 10) + '" y="' + fmt((TL.y + F.y) / 2) + '" font-size="17" text-anchor="start" dominant-baseline="middle">6 cm</text>' +
+      '<text class="d-label" x="' + fmt(F.x + 10) + '" y="' + fmt((TL.y + F.y) / 2) + '" font-size="17" text-anchor="start" dominant-baseline="middle">' + CM(6) + '</text>' +
     '</g>';
     /* the base, measured under the shape */
     const y = BL.y + 20;
-    over += figMeasure('d-d1', { x: BL.x, y: y }, { x: BR.x, y: y }, '10 cm',
+    over += figMeasure('d-d1', { x: BL.x, y: y }, { x: BR.x, y: y }, CM(10),
       [{ from: BL, to: { x: BL.x, y: y } }, { from: BR, to: { x: BR.x, y: y } }], false);
     return figShell(key, '', art, over, 172);
   }
@@ -9991,10 +10049,10 @@
     over += '<g class="d-group d-hgt">' +
       figLine('d-height', TL, F) + figHead(TL, -hv.x, -hv.y, PF.head) + figHead(F, hv.x, hv.y, PF.head) +
       '<path class="d-mark" d="M' + fmt(F.x) + ' ' + fmt(F.y - M) + ' H' + fmt(F.x + M) + ' V' + fmt(F.y) + '" />' +
-      '<text class="d-label" x="' + fmt(F.x + 10) + '" y="' + fmt((TL.y + F.y) / 2) + '" font-size="' + PF.font + '" text-anchor="start" dominant-baseline="middle">6 cm</text>' +
+      '<text class="d-label" x="' + fmt(F.x + 10) + '" y="' + fmt((TL.y + F.y) / 2) + '" font-size="' + PF.font + '" text-anchor="start" dominant-baseline="middle">' + CM(6) + '</text>' +
     '</g>';
     const y = BL.y + 20;
-    over += figMeasure('d-d1', { x: BL.x, y: y }, { x: BR.x, y: y }, '10 cm',
+    over += figMeasure('d-d1', { x: BL.x, y: y }, { x: BR.x, y: y }, CM(10),
       [{ from: BL, to: { x: BL.x, y: y } }, { from: BR, to: { x: BR.x, y: y } }], false, PF);
     return figShell(key, '', art, over, PF_H, PF_W);
   }
@@ -10391,18 +10449,18 @@
    * four answers. Nothing that could be read as the answer is on the board
    * until the learner has given one. */
   const RC = {
-    ask:  'What is the area of the rhombus?',
-    opts: [{ v: '180', t: '180 sq. cm' }, { v: '360', t: '360 sq. cm' },
-           { v: '90', t: '90 sq. cm' }, { v: '39', t: '39 sq. cm' }],
+    ask:  T('p20Ask'),
+    opts: [{ v: '180', t: SQCM(180) }, { v: '360', t: SQCM(360) },
+           { v: '90', t: SQCM(90) }, { v: '39', t: SQCM(39) }],
     right: '180',
     /* the halving first, then the multiplying: the two steps the formula is,
        in the order it is read in */
-    work: ['Area = ½ × 24 × 15', 'Area = 12 × 15', 'Area = 180 sq. cm'],
+    work: T('p20Work'),
     /* the first miss puts the formula up -- in words, not in letters -- and
        the second the lengths it wants, pointed at on the figure as well.
        Neither is the arithmetic: a nudge that worked it out would answer
        the question. */
-    hint: 'The diagonals are 24 cm and 15 cm.'
+    hint: T('p20Hint')
   };
   function rcHint(text) { showHint(rcHintEl, text); }
 
@@ -10439,10 +10497,10 @@
       figLine('rd rd-d2', O, T) + figLine('rd rd-d2', O, B) +
       '<path class="rmark mark-up" d="M' + fmt(O.x) + ' ' + fmt(O.y - M) + ' H' + fmt(O.x + M) + ' V' + fmt(O.y) + '" />';
     const y = B.y + 18;
-    over += figMeasure('d-d1', { x: L.x, y: y }, { x: R.x, y: y }, '24 cm',
+    over += figMeasure('d-d1', { x: L.x, y: y }, { x: R.x, y: y }, CM(24),
       [{ from: L, to: { x: L.x, y: y } }, { from: R, to: { x: R.x, y: y } }], false);
     const x = L.x - 22;
-    over += figMeasure('d-d2', { x: x, y: T.y }, { x: x, y: B.y }, '15 cm',
+    over += figMeasure('d-d2', { x: x, y: T.y }, { x: x, y: B.y }, CM(15),
       [{ from: T, to: { x: x, y: T.y } }, { from: B, to: { x: x, y: B.y } }], true);
     return figShell('q', '', art, over, RC_H);
   }
@@ -10560,21 +10618,21 @@
         the dashed diagonal solid and writes its length on it. */
   const P2 = {
     key:  'a',
-    fig:  pFigRhombus('a', 300, 180, '30 cm', '', true),
+    fig:  pFigRhombus('a', 300, 180, CM(30), '', true),
     /* what is given is written over the shape (user, 2026-09-30), and the
        box asks only for what is wanted */
-    fact: 'This rhombus has an area of 240 sq. cm.',
-    ask:  'Find the other diagonal.',
-    opts: [{ v: '8', t: '8 cm' }, { v: '16', t: '16 cm' }, { v: '32', t: '32 cm' }],
+    fact: T('p19Fact'),
+    ask:  T('p19Find'),
+    opts: [{ v: '8', t: CM(8) }, { v: '16', t: CM(16) }, { v: '32', t: CM(32) }],
     right: '16', wrongDefault: '8',
     notes: {
-      '8':  'Not quite! Half of 30 × 8 is only 120 sq. cm.',
-      '32': 'Not quite! Half of 30 × 32 is 480 sq. cm. That is too much.',
+      '8':  T('p19Wrong8'),
+      '32': T('p19Wrong32'),
       '16': PRACTICE.findOk
     },
     onRight: async f => {
       f.querySelector('.rd-d2').classList.remove('dashed');
-      f.querySelector('.lbl-q').textContent = '16 cm';
+      f.querySelector('.lbl-q').textContent = CM(16);
       rcLight(f, 'd2');
       sfx('click', .35);
       await wait(REDUCED ? 100 : 420);
@@ -10591,16 +10649,16 @@
         diagonals before the shape takes its glow. */
   const P3 = {
     key:  'q',
-    fig:  pFigRhombus('q', 300, 190, '24 cm', '15 cm'),
+    fig:  pFigRhombus('q', 300, 190, CM(24), CM(15)),
     ask:  RC.ask,
     /* three answers (user, 2026-09-30): the right one, the product without
        the half, and the sum */
-    opts: [{ v: '180', t: '180 sq. cm' }, { v: '360', t: '360 sq. cm' }, { v: '39', t: '39 sq. cm' }],
+    opts: [{ v: '180', t: SQCM(180) }, { v: '360', t: SQCM(360) }, { v: '39', t: SQCM(39) }],
     right: '180', wrongDefault: '360',
     notes: {
-      '360': 'Not quite! That is 24 × 15 without the half.',
-      '39':  'Not quite! That is 24 + 15. The diagonals are multiplied, not added.',
-      '180': 'That’s Correct! Half of 24 × 15 is 180 sq. cm.'
+      '360': T('p20Wrong360'),
+      '39':  T('p20Wrong39'),
+      '180': T('p20Right')
     },
     onRight: async f => {
       rcLight(f, 'd1');
@@ -10622,10 +10680,10 @@
     key:  's',
     fig:  pFigSlant('s'),
     ask:  PRACTICE.which,
-    opts: [{ v: 'diag', t: '½ × product of diagonals', formula: true }, { v: 'bh', t: 'base × height', formula: true }],
+    opts: [{ v: 'diag', t: T('formulaHalfProductDiagonals'), formula: true }, { v: 'bh', t: T('formulaBaseHeight'), formula: true }],
     right: 'bh', wrongDefault: 'diag',
     notes: {
-      'diag': 'Not quite! No diagonals are given here. Look at what is marked.',
+      'diag': T('p21WrongDiag'),
       'bh':   PRACTICE.whichOk
     }
   };
@@ -10637,9 +10695,9 @@
   /* the board goes, and Swiftee looks ahead from its bubble. Its own scene,
      so Replay can re-enter it. */
   const RHOM_ASIDE = [
-    'We found the area of a rhombus!',
-    'Ready for the next challenge?',
-    'Let’s find the area of another special quadrilateral!'
+    T('p22Found'),
+    T('p22Ready'),
+    T('p22Another')
   ];
   async function rhombusAside() {
     /* the bird is down in page 19's panel: it goes behind the board from
@@ -10694,20 +10752,20 @@
   const trapChips  = Array.from(trapTray.querySelectorAll('.chip'));
 
   const TRAP = {
-    ask:    'What shape is this?',
+    ask:    T('p04WhatShape'),
     answer: 'trapezium',
     notes: {
-      kite:          'A kite has two pairs of equal sides next to each other. Check the shape carefully.',
-      parallelogram: 'A parallelogram has two pairs of parallel sides. Check the shape carefully.',
-      trapezium:     'Correct! Look at the shape \u2014 it has only one pair of parallel sides.'
+      kite:          T('p23Kite'),
+      parallelogram: T('p23Para'),
+      trapezium:     T('p23Right')
     },
-    select: 'Select all the trapeziums.',
+    select: T('p24Select'),
     /* all three found: said from the heading before Next (user, 2026-09-30) */
-    found:  'Well done! You found all the trapeziums.',
+    found:  T('p24Found'),
     /* why a wrong card is wrong: said, never typed, while the card is out
        in the middle with its pairs marked (user, 2026-10-01) */
-    noPair: 'This shape has no parallel sides. A trapezium has one pair.',
-    match:  'Drag each name to the correct shape.'
+    noPair: T('p24NoParallel'),
+    match:  T('p24DragNames')
   };
   const TRAP_GHOST = [TRAP.select, TRAP.found, TRAP.match, FEEDBACK.done];
 
@@ -11238,7 +11296,7 @@
     cardGrid.innerHTML = keys.map((k, i) => {
       const c = CARDS[k];
       return '<div class="card" data-kind="' + k + '" data-trap="' + (c.trap ? 1 : 0) + '" role="button" tabindex="-1" ' +
-                  'aria-pressed="false" aria-label="Shape ' + (i + 1) + '">' +
+                  'aria-pressed="false" aria-label="' + T('ariaCard', { n: i + 1 }) + '">' +
         '<svg class="card-box" viewBox="0 0 ' + CARD_W + ' ' + CARD_H + '" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' +
           CARD_RECT +
           /* the outer g carries the fixed SHAPE_FIT placement as an SVG
@@ -11251,7 +11309,7 @@
             '</g>' +
           '</g>' +
         '</svg>' +
-        (c.trap ? '<div class="slot card-slot" data-accept="' + k + '" aria-label="Name of this trapezium"></div>' : '') +
+        (c.trap ? '<div class="slot card-slot" data-accept="' + k + '" aria-label="' + T('ariaCardSlot') + '"></div>' : '') +
       '</div>';
     }).join('');
     return cardsNow();
@@ -11784,6 +11842,8 @@
        its arrow, its gap and its letter out there */
     const OUT = 58, END = 8;
     const shortName = name === 'Right-angled' ? name : name.toLowerCase();
+    /* the whole the two make, in the language's own word */
+    const wholeName = T(whole === 'rectangle' ? 'wordRectangle' : 'wordParallelogram');
     const home = RT_MID - right / 2;
     const pair = RT_MID - ((0 - OUT) + (join + right + END)) / 2;
     return {
@@ -11804,22 +11864,22 @@
          its outer side */
       stageBox: fmt(home - OUT - 24) + ' -70 ' + fmt(split + right + 2 * OUT + 48) + ' 300',
       say: {
-        here:  'Let us try to find the area of this trapezium.',
-        sides: 'Its parallel sides are a and b, and its height is h.',
-        room:  'Let us slide it across, to make room beside it.',
-        copy:  'Now let us take a copy of it.',
-        flip:  'The copy slides over and flips upside down.',
-        made:  'The two trapeziums fit together to make a ' + whole + '!',
-        eqA:   'Side a of the copy is equal to side a.',
-        eqB:   'And side b of the copy is equal to side b.',
-        eqH:   'Its height is the same h too.',
-        sum:   whole === 'rectangle' ? 'So the rectangle is a + b long and h wide.'
-                                     : 'So the parallelogram has base a + b and height h.',
+        here:  T('p25Here'),
+        sides: T('p25Sides'),
+        room:  T('p25Room'),
+        copy:  T('p25Copy'),
+        flip:  T('p25Flip'),
+        made:  T('p25Made', { whole: wholeName }),
+        eqA:   T('p25EqA'),
+        eqB:   T('p25EqB'),
+        eqH:   T('p25EqH'),
+        sum:   whole === 'rectangle' ? T('p25SumRect')
+                                     : T('p25SumPara'),
         /* from beside the working */
-        area:  'The area of the whole ' + whole + ' is:',
-        half:  'Our trapezium is exactly half of this ' + whole + '.',
-        so:    'So, the area of the trapezium is:',
-        rule:  'This works for every trapezium!'
+        area:  T('p26Area', { whole: wholeName }),
+        half:  T('p26Half', { whole: wholeName }),
+        so:    T('p26So'),
+        rule:  T('p26Rule')
       },
       /* the working, page 4's way (user, 2026-09-30): a line is typed, and
          a copy of its right-hand side peels off under its "=" and is worked
@@ -11827,12 +11887,12 @@
          `final` are what the copy passes through, not lines of their own,
          and never say the left-hand side again. */
       lines: {
-        total:  [{ t: 'Total area = ' }, { t: dims[0], w: 'ab' }, { t: ' × ' }, { t: dims[1], w: 'h' }],
+        total:  [{ t: T('totalArea') + ' = ' }, { t: dims[0], w: 'ab' }, { t: ' × ' }, { t: dims[1], w: 'h' }],
         totalA: [{ t: '= ' }, { t: '(a + b)', w: 'ab' }, { t: ' × ' }, { t: dims[1], w: 'h' }],
         totalB: [{ t: '= ' }, { t: '(a + b)', w: 'ab' }, { t: ' × ' }, { t: 'h', w: 'h' }],
-        final:  [{ t: 'Area of ' }, { t: 'Trapezium', w: 'trap' }, { t: ' = ½ × ' }, { t: '(a + b)', w: 'ab' }, { t: ' × ' }, { t: 'h', w: 'h' }],
-        ruleA:  [{ t: '= ½ × ' }, { t: '(sum of parallel sides)', w: 'ab' }, { t: ' × ' }, { t: 'h', w: 'h' }],
-        ruleB:  [{ t: '= ½ × ' }, { t: '(sum of parallel sides)', w: 'ab' }, { t: ' × ' }, { t: 'height', w: 'h' }]
+        final:  [...AREA_OF(T('shapeTrapezium'), 'trap'), { t: ' = ½ × ' }, { t: '(a + b)', w: 'ab' }, { t: ' × ' }, { t: 'h', w: 'h' }],
+        ruleA:  [{ t: '= ½ × ' }, { t: '(' + T('wordSumOfParallelSides') + ')', w: 'ab' }, { t: ' × ' }, { t: 'h', w: 'h' }],
+        ruleB:  [{ t: '= ½ × ' }, { t: '(' + T('wordSumOfParallelSides') + ')', w: 'ab' }, { t: ' × ' }, { t: T('labelHeight'), w: 'h' }]
       },
       shortName: shortName
     };
@@ -11840,9 +11900,9 @@
   /* the right-angled one stands its upright side on the LEFT, so the copy
      that turns about its right side completes it into a rectangle */
   const RT_KINDS = {
-    right:   rtKind('right',   'Right-angled', 0,                    'rectangle',     ['length', 'breadth']),
-    scalene: rtKind('scalene', 'Scalene',      70,                   'parallelogram', ['base', 'height']),
-    iso:     rtKind('iso',     'Isosceles',    (RT_B - RT_A) / 2,    'parallelogram', ['base', 'height'])
+    right:   rtKind('right',   'Right-angled', 0,                    'rectangle',     [T('labelLength'), T('labelBreadth')]),
+    scalene: rtKind('scalene', 'Scalene',      70,                   'parallelogram', [T('labelBase'), T('labelHeight')]),
+    iso:     rtKind('iso',     'Isosceles',    (RT_B - RT_A) / 2,    'parallelogram', [T('labelBase'), T('labelHeight')])
   };
   const rtHeadLines = k => [k.say.here, k.say.sides, k.say.room, k.say.copy, k.say.flip,
                             k.say.eqA, k.say.eqB, k.say.eqH, k.say.made, k.say.sum];
@@ -12567,18 +12627,18 @@
   const rtrapPText    = document.getElementById('rtrapPText');
 
   const TP = {
-    steps:   'Follow each simplification step.',
-    read:    'Look at the trapezium and choose the correct values.',
-    area:    'What is the area of the trapezium?',
-    areaOk:  'That’s Correct!'
+    steps:   T('p27Steps'),
+    read:    T('p28Look'),
+    area:    T('p29Ask'),
+    areaOk:  T('fbCorrectBang')
   };
   const TP_GHOST = [TP.read, TP.area, TP.areaOk];
   const TP_STEPS = [
-    [{ t: 'A = ½ × ' }, { t: '(sum of parallel sides)', w: 'ab' }, { t: ' × ' }, { t: 'perpendicular height', w: 'h' }],
-    [{ t: 'A = ½ × ' }, { t: '(8 + 14)', w: 'ab' }, { t: ' × ' }, { t: '6', w: 'h' }],
-    [{ t: 'A = ½ × 22 × 6' }],
-    [{ t: 'A = 11 × 6' }],
-    [{ t: 'A = ' }, { t: '66 sq. cm', w: 'trap' }]
+    [{ t: T('areaAbbrev') + ' = ½ × ' }, { t: '(' + T('wordSumOfParallelSides') + ')', w: 'ab' }, { t: ' × ' }, { t: T('wordPerpHeight'), w: 'h' }],
+    [{ t: T('areaAbbrev') + ' = ½ × ' }, { t: '(8 + 14)', w: 'ab' }, { t: ' × ' }, { t: '6', w: 'h' }],
+    [{ t: T('p27WorkShort')[0] }],
+    [{ t: T('p27WorkShort')[1] }],
+    [{ t: T('areaAbbrev') + ' = ' }, { t: SQCM(66), w: 'trap' }]
   ];
 
   /* ---- the figures ----
@@ -12622,11 +12682,11 @@
     /* 8, 14 and 6 at 25 units to the centimetre: the bottom 350 wide, the
        top 200 and set in */
     n:  { P: { TL: { x: 109, y: 50 }, TR: { x: 309, y: 50 }, BR: { x: 395, y: 200 }, BL: { x: 45, y: 200 } },
-          labels: { a: '8 cm', b: '14 cm', h: '6 cm' }, hgt: { from: 'TL', side: 1 } },
+          labels: { a: CM(8), b: CM(14), h: CM(6) }, hgt: { from: 'TL', side: 1 } },
     /* 13, 20 and 10 at 15 units to the centimetre: the bottom 300, the top
        195 */
     p:  { P: { TL: { x: 120, y: 50 }, TR: { x: 315, y: 50 }, BR: { x: 400, y: 200 }, BL: { x: 100, y: 200 } },
-          labels: { a: '13 cm', b: '20 cm', h: '10 cm' },
+          labels: { a: CM(13), b: CM(20), h: CM(10) },
           /* its left side leans only 20 units over the whole drop, so the
              height is set in from the corner (user, 2026-09-18): dropped
              from the corner itself the two lines start at the same point
@@ -12638,7 +12698,7 @@
        height is plainly the distance between the two parallel sides and
        not one of the slanted ones */
     c:  { P: { TL: { x: 120, y: 50 }, TR: { x: 420, y: 50 }, BR: { x: 420, y: 200 }, BL: { x: 20, y: 200 } },
-          labels: { a: '30 cm', b: '40 cm', h: '15 cm' }, hgt: { from: 'TL', side: 1 } }
+          labels: { a: CM(30), b: CM(40), h: CM(15) }, hgt: { from: 'TL', side: 1 } }
   };
   /* one chevron to a parallel side, the same mark on each, which is all
      "parallel" needs said */
@@ -12837,22 +12897,22 @@
   const tnWork    = document.getElementById('tnWork');
 
   const TN = {
-    say:   'Let’s find the area of this trapezium.',
-    drag:  'Drag the three lengths into the formula.',
+    say:   T('p27Find'),
+    drag:  T('p27Drag'),
     /* the verdict on each drop, page 15's way: a wrong length is told what
        the box wants, and each right one is named and the next asked for */
     wrong: {
-      a: 'Not quite! a is the shorter parallel side.',
-      b: 'Not quite! b is the longer parallel side.',
-      h: 'Not quite! h is the perpendicular height.'
+      a: T('p27WrongA'),
+      b: T('p27WrongB'),
+      h: T('p27WrongH')
     },
     right: {
-      a: 'That’s Correct! a is 8 cm. Now drag b into the formula.',
-      b: 'That’s Correct! b is 14 cm. Now drag h into the formula.'
+      a: T('p27RightA'),
+      b: T('p27RightB')
     },
-    first: 'Fill a first. Then b and then h.',
-    done:  'That’s Correct!',
-    solve: 'Let’s simplify it, step by step.'
+    first: T('p27FillFirst'),
+    done:  T('fbCorrectBang'),
+    solve: T('p27Simplify')
   };
   const TN_KEYS = ['a', 'b', 'h'];
   const TN_NEED = ['8', '14', '6'];
@@ -12862,22 +12922,22 @@
      on the shape, so the number on the board and the line on the drawing are
      never more than a beat apart */
   const TN_SOLVE = [
-    { t: 'Area = ½ × ( 8 + 14 ) × 6', lit: '.d-top, .d-bot' },
-    { t: 'Area = ½ × 22 × 6',         lit: '.d-top, .d-bot' },
-    { t: 'Area = 11 × 6',             lit: '.d-hgt' },
-    { t: 'Area = 66 sq. cm',          lit: null }
+    { t: T('p27Work')[0], lit: '.d-top, .d-bot' },
+    { t: T('p27Work')[1], lit: '.d-top, .d-bot' },
+    { t: T('p27Work')[2], lit: '.d-hgt' },
+    { t: T('p27Work')[3], lit: null }
   ];
   /* the formula, in the pieces it is revealed in; a piece with a `k` is one
      of the three boxes the values go into */
   const TN_FORMULA = [
-    { t: 'Area' }, { t: '=' }, { t: '½' }, { t: '×' }, { t: '(' },
+    { t: T('areaWord') }, { t: '=' }, { t: '½' }, { t: '×' }, { t: '(' },
     { k: 'a', t: 'a' }, { t: '+' }, { k: 'b', t: 'b' }, { t: ')' },
     { t: '×' }, { k: 'h', t: 'h' }
   ];
-  const TN_NAMES = { a: 'a, the shorter parallel side', b: 'b, the longer parallel side', h: 'h, the height' };
+  const TN_NAMES = { a: T('p27NameA'), b: T('p27NameB'), h: T('p27NameH') };
   /* the three measurements to carry into the formula, in an order that is
      not the formula's: reading them off the drawing is the question */
-  const TN_CHIPS = [{ v: '14', t: '14 cm' }, { v: '6', t: '6 cm' }, { v: '8', t: '8 cm' }];
+  const TN_CHIPS = [{ v: '14', t: CM(14) }, { v: '6', t: CM(6) }, { v: '8', t: CM(8) }];
   let tnChips = [];
 
   /* the panel as a scene that is not this one must find it: empty, unpainted */
@@ -13264,7 +13324,7 @@
     swiftee.release();
     await wait(520);
     swiftee.hold('talking');
-    await showSolveLine(rtrapLines, [TP_STEPS[1], 'A = ½ × 22 × 6', 'A = 11 × 6', 'A = 66 sq. cm'], onTpWord);
+    await showSolveLine(rtrapLines, [TP_STEPS[1]].concat(T('p27WorkShort')), onTpWord);
     swiftee.release();
     await wait(300);
     swiftee.play('proud', 1);
@@ -13399,35 +13459,35 @@
   const TV = {
     say: TP.read,
     qs: [
-      { k: 'ab', ask: 'What is the sum of the parallel sides?',
-        opts: [{ v: '30', t: '30 cm' }, { v: '33', t: '33 cm' }, { v: '23', t: '23 cm' }],
+      { k: 'ab', ask: T('p28QSum'),
+        opts: [{ v: '30', t: CM(30) }, { v: '33', t: CM(33) }, { v: '23', t: CM(23) }],
         right: '33', wrongDefault: '30',
         notes: {
-          '30': 'Not quite! That is 20 + 10. Add the two parallel sides: 13 + 20.',
-          '23': 'Not quite! That is 13 + 10. Add the two parallel sides: 13 + 20.',
-          '33': 'That’s Correct! 13 + 20 = 33. The sum of the parallel sides is 33 cm.'
+          '30': T('p28Wrong30'),
+          '23': T('p28Wrong23'),
+          '33': T('p28RightSum')
         } },
-      { k: 'h', ask: 'What is the height?', early: true,
-        opts: [{ v: '13', t: '13 cm' }, { v: '10', t: '10 cm' }, { v: '20', t: '20 cm' }],
+      { k: 'h', ask: T('p28QHeight'), early: true,
+        opts: [{ v: '13', t: CM(13) }, { v: '10', t: CM(10) }, { v: '20', t: CM(20) }],
         right: '10', wrongDefault: '13',
         notes: {
-          '13': 'Not quite! 13 cm is the top parallel side. Look at the dotted perpendicular line.',
-          '20': 'Not quite! 20 cm is the bottom parallel side. Look at the dotted perpendicular line.',
-          '10': 'That’s Correct! The dotted perpendicular height is 10 cm.'
+          '13': T('p28Wrong13'),
+          '20': T('p28Wrong20'),
+          '10': T('p28RightHeight')
         } }
     ]
   };
   const TA = {
     ask: TP.area,
     /* the right one, the product without the half, and the sum */
-    opts: [{ v: '330', t: '330 sq. cm' }, { v: '165', t: '165 sq. cm' }, { v: '43', t: '43 sq. cm' }],
+    opts: [{ v: '330', t: SQCM(330) }, { v: '165', t: SQCM(165) }, { v: '43', t: SQCM(43) }],
     right: '165', wrongDefault: '330',
     notes: {
-      '330': 'Not quite! That is 33 × 10 without the half.',
-      '43':  'Not quite! That is 33 + 10. Multiply the sum of the parallel sides by the height.',
-      '165': 'That’s Correct! Half of 33 × 10 is 165 sq. cm.'
+      '330': T('p29Wrong330'),
+      '43':  T('p29Wrong43'),
+      '165': T('p29Right')
     },
-    work: ['Area = ½ × (13 + 20) × 10', 'Area = ½ × 33 × 10', 'Area = 33 × 5', 'Area = 165 sq. cm']
+    work: T('p29Work')
   };
   /* the practice trapezium of both pages */
   const tvFig = () => tpFig('p');
@@ -13578,16 +13638,16 @@
   const TC = {
     ask: TP.area,
     /* the right one, the product without the half, and one side only */
-    opts: [{ v: '525', t: '525 sq. cm' }, { v: '1050', t: '1050 sq. cm' }, { v: '450', t: '450 sq. cm' }],
+    opts: [{ v: '525', t: SQCM(525) }, { v: '1050', t: SQCM(1050) }, { v: '450', t: SQCM(450) }],
     right: '525', wrongDefault: '1050',
     notes: {
-      '1050': 'Not quite! That is 70 × 15 without the half.',
-      '450':  'Not quite! That is 30 × 15. Add both parallel sides first.',
-      '525':  'That’s Correct! Half of (30 + 40) × 15 is 525 sq. cm.'
+      '1050': T('p30Wrong1050'),
+      '450':  T('p30Wrong450'),
+      '525':  T('p30Right')
     },
     /* the sum of the parallel sides first, then the halving: the two steps
        the formula is, in the order it is read in */
-    work: ['Area = ½ × (30 + 40) × 15', 'Area = ½ × 70 × 15', 'Area = 525 sq. cm']
+    work: T('p30Work')
   };
   const tcFig = () => tpFig('c');
 
@@ -13735,5 +13795,8 @@
     await startRound(1);
   }
 
-  window.addEventListener('load', () => { boot(); }, { once: true });
+  /* index.html loads this script once the locale is in, which can be after
+     the window's load event has fired: then boot at once */
+  if (document.readyState === 'complete') boot();
+  else window.addEventListener('load', () => { boot(); }, { once: true });
 })();
