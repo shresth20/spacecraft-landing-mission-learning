@@ -1,0 +1,54 @@
+- generic [active] [ref=e1]:
+  - main [ref=e3]:
+    - heading [level=1] [ref=e4]
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - img "એક લંબચોરસ" [ref=e9]:
+          - img [aria-hidden] [ref=e10]:
+            - generic:
+              - generic: લંબાઈ
+              - generic: પહોળાઈ
+        - generic [ref=e14]:
+          - generic "પહેલા આકારનું નામ"
+          - generic "પહેલા આકારનું ક્ષેત્રફળ"
+      - generic [ref=e15]:
+        - img "એક ચોરસ" [ref=e17]:
+          - img [aria-hidden] [ref=e18]:
+            - generic:
+              - generic: બાજુ
+              - generic: બાજુ
+        - generic [ref=e22]:
+          - generic "બીજા આકારનું નામ"
+          - generic "બીજા આકારનું ક્ષેત્રફળ"
+      - generic [ref=e23]:
+        - img "એક ત્રિકોણ" [ref=e25]:
+          - img [aria-hidden] [ref=e26]:
+            - generic:
+              - generic: પાયો
+              - generic: ઊંચાઈ
+        - generic [ref=e30]:
+          - generic "ત્રીજા આકારનું નામ"
+          - generic "ત્રીજા આકારનું ક્ષેત્રફળ"
+    - generic [ref=e31]:
+      - generic:
+        - button "લંબચોરસ"
+        - button "ચોરસ"
+        - button "ત્રિકોણ"
+      - generic:
+        - button "લંબાઈ × પહોળાઈ"
+        - button "(બાજુ)2":
+          - generic:
+            - text: (બાજુ)
+            - superscript: "2"
+        - button "1 2 × પાયો × ઊંચાઈ":
+          - generic:
+            - generic:
+              - generic: "1"
+              - generic: "2"
+            - text: × પાયો × ઊંચાઈ
+  - generic [ref=e38]:
+    - paragraph [ref=e39]:
+      - text: મિશન તૈયાર થઈ રહ્યું છે
+      - generic [aria-hidden] [ref=e40]: ...
+    - progressbar "મિશન લોડ થઈ રહ્યું છે" [ref=e41]
+    - paragraph [ref=e43]: 3%
