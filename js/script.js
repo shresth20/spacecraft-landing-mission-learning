@@ -1490,7 +1490,7 @@
   }
 
   /* ---------- voice-over ----------
-   * Every spoken line in the mission has a clip of its own under assets/VO,
+   * Every spoken line in the mission has a clip of its own under assets/VO-EN,
    * cut from the master recordings and named for the page it belongs to
    * (P04-06-lets-try-and-find-its-area.webm, Opus). Pages 1-8 are cut from the
    * newer recording (voice 1-2.mp3); the rest still play the older voice
@@ -1509,7 +1509,7 @@
    * and each of those asks here first. A line with no clip types at its own
    * pace, silently, as it did before there was a recording.
    */
-  const VO_DIR = 'assets/VO/';
+  const VO_DIR = 'assets/VO-EN/';
   /* Clips are fetched by script after the page has loaded, so a reload does
      not revalidate them: a clip re-cut under its old name -- P24-02's
      stand-in, replaced by the recording on 2026-10-01 -- keeps playing from
