@@ -996,9 +996,13 @@
   var SOUND_GATE = 100;                        /* ms: the same cue, twice, is one cue */
 
   function isMuted() { return muted; }
-  function setMuted(on) {
+  /* `forNow`: this page only -- what is remembered between sittings is left
+     as it was (a game with no sound switch on screen uses it to ignore one) */
+  function setMuted(on, forNow) {
     muted = !!on;
-    try { global.localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch (e) { /* fine */ }
+    if (!forNow) {
+      try { global.localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch (e) { /* fine */ }
+    }
     return muted;
   }
   function toggleMuted() { return setMuted(!muted); }
