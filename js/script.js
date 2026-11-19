@@ -2278,7 +2278,7 @@
   const jumpMenu  = document.getElementById('jumpMenu');
   const jumpLabel = document.getElementById('jumpLabel');
 
-  /* ---------- dev tools: OFF ----------
+  /* ---------- dev tools: OFF unless ?dev=1 ----------
    * The section menu (bottom-left) and Back / Skip / Sound / Replay
    * (bottom-right) are debugging aids, switched off for release. They are
    * taken out of the page, so they can be neither seen, clicked nor tabbed
@@ -2286,8 +2286,14 @@
    * detached buttons. With no Sound button on screen there would be no way
    * back from a "sound off" remembered by an earlier sitting, so this page
    * ignores it (without overwriting it).
-   * Set DEV_TOOLS to true to bring them all back; nothing else changes. */
-  const DEV_TOOLS = false;
+   * The only way to switch them on is the URL: index.html?dev=1 (works
+   * alongside ?lan=xx, e.g. ?lan=hi&dev=1). It is read fresh on every load
+   * and never stored, so dropping the parameter turns them off again, and
+   * nothing on screen hints that they exist. */
+  const DEV_TOOLS = (function () {
+    try { return new URLSearchParams(window.location.search).get('dev') === '1'; }
+    catch (e) { return false; }
+  })();
   if (!DEV_TOOLS) {
     jump.remove();
     const hudTools = document.querySelector('.hud-tools');
