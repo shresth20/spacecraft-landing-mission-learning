@@ -1,0 +1,53 @@
+name: Vercel lint check
+
+# Vercel project prj_6I2phazsQWRXPFN3D0LocN8aK1Ta requires a deployment check
+# named "Vercel - shresth20-spacecraft-landing-mission-learning: lint".
+# Vercel only moves the production link to a new deployment after that check
+# reports success, so this workflow must exist on main.
+#
+# Flow: Vercel sends `vercel.deployment.ready` -> this job runs -> the status
+# step marks the commit "pending" and, when the job ends, "success" (or
+# "failure" if any step failed) under the check name below.
+
+on:
+  repository_dispatch:
+    types:
+      - 'vercel.deployment.ready'
+
+run-name: Vercel lint - ${{ github.event.client_payload.project.name }} (${{ github.event.client_payload.environment }})
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      statuses: write
+      contents: read
+
+    steps:
+      - name: 'notify vercel'
+        uses: 'vercel/repository-dispatch/actions/status@v1'
+        with:
+          name: 'Vercel - shresth20-spacecraft-landing-mission-learning: lint'
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.git.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Check JavaScript syntax
+        run: |
+          set -e
+          find js locales -name '*.js' -not -path 'js/libs/*' -print0 \
+            | xargs -0 -n1 node --check
+
+      - name: Check locale JSON parses
+        run: |
+          set -e
+          for f in $(find locales -name '*.json'); do
+            node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "$f"
+            echo "ok $f"
+          done
